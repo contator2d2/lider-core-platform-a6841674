@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import {
   Bell,
   Compass,
@@ -37,11 +37,12 @@ function AppShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { signOut } = useAuth();
 
-  const signOut = async () => {
+  const handleSignOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    signOut();
     toast.success("Até logo.");
     navigate({ to: "/auth", replace: true });
   };
@@ -94,7 +95,7 @@ function AppShell() {
         </nav>
 
         <button
-          onClick={signOut}
+          onClick={handleSignOut}
           className="flex items-center gap-3 border-t border-sidebar-border px-6 py-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <LogOut className="h-4 w-4" /> Sair
