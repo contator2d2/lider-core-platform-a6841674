@@ -1,12 +1,13 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import { env } from "./env.js";
 import { prisma } from "./prisma.js";
 
 export type JwtPayload = { sub: string; email: string };
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+  const options: SignOptions = { expiresIn: env.JWT_EXPIRES_IN as SignOptions["expiresIn"] };
+  return jwt.sign(payload, env.JWT_SECRET, options);
 }
 
 export function verifyToken(token: string): JwtPayload {
