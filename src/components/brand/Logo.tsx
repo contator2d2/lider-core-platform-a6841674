@@ -22,8 +22,8 @@ export function Logo({ className, variant = "full", alt = "LÍDER C.O.R.E." }: P
           backgroundImage: `url(${logoAsset.url})`,
           backgroundRepeat: "no-repeat",
           // Focus on the orange "o" in the top wordmark
-          backgroundPosition: "62% 42%",
-          backgroundSize: "260% auto",
+          backgroundPosition: "48% 50%",
+          backgroundSize: "400% auto",
           aspectRatio: "1 / 1",
         }}
         role="img"
