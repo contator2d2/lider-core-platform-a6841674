@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Brain, Compass, Sparkles, Target } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,13 +48,8 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground font-display font-semibold">
-            L
-          </span>
-          <span className="font-display text-lg font-semibold tracking-tight">
-            líder <span className="text-accent">core</span>
-          </span>
+        <Link to="/" className="flex items-center" aria-label="LÍDER C.O.R.E. — home">
+          <Logo className="h-8 w-auto max-w-[200px]" />
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           <a href="#metodologia" className="hover:text-foreground">Metodologia</a>
@@ -240,8 +236,11 @@ function Index() {
       </section>
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-6 py-8 text-xs text-muted-foreground md:flex-row md:items-center">
-          <div>© {new Date().getFullYear()} Neo Pessoas · LÍDER C.O.R.E.</div>
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-10 text-xs text-muted-foreground md:flex-row md:items-center">
+          <div className="flex items-center gap-4">
+            <Logo className="h-6 w-auto max-w-[140px] opacity-80" />
+            <span>© {new Date().getFullYear()} Neo Pessoas</span>
+          </div>
           <div>lidercore.com.br</div>
         </div>
       </footer>
