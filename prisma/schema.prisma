@@ -1,0 +1,101 @@
+// Prisma schema for LÍDER C.O.R.E.
+// Mirrors the previous Supabase model but self-hosted on Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../api/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppRole {
+  super_admin
+  neo_admin
+  franchise_owner
+  hr_admin
+  leader
+  collaborator
+}
+
+enum PlanTier {
+  essencial
+  profissional
+  enterprise
+}
+
+enum OrgStatus {
+  trial
+  active
+  suspended
+  canceled
+}
+
+model User {
+  id            String        @id @default(uuid()) @db.Uuid
+  email         String        @unique
+  passwordHash  String        @map("password_hash")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  profile       Profile?
+  roles         UserRole[]
+  memberships   Membership[]
+
+  @@map("users")
+}
+
+model Profile {
+  id         String   @id @db.Uuid
+  user       User     @relation(fields: [id], references: [id], onDelete: Cascade)
+  fullName   String?  @map("full_name")
+  avatarUrl  String?  @map("avatar_url")
+  jobTitle   String?  @map("job_title")
+  phone      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model UserRole {
+  id      String  @id @default(uuid()) @db.Uuid
+  userId  String  @map("user_id") @db.Uuid
+  role    AppRole
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Organization {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String        @unique
+  cnpj         String?
+  plan         PlanTier      @default(essencial)
+  status       OrgStatus     @default(trial)
+  franchiseId  String?       @map("franchise_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  memberships  Membership[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  organizationId  String        @map("organization_id") @db.Uuid
+  role            AppRole       @default(collaborator)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("memberships")
+}
