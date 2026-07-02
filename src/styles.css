@@ -6,10 +6,8 @@
 
 /*
  * LÍDER C.O.R.E. — Design System
- *
- * Filosofia: presença editorial premium, mobile-first, dark-ready.
- * Base ivory quente + graphite; acento único (amber cobre).
- * Tipografia: Fraunces (display, serif) + Inter Tight (sans).
+ * Espelha a identidade do site lidercore.com.br:
+ * fundo branco, tipografia sans bold, acento laranja terroso.
  */
 
 @theme inline {
@@ -57,51 +55,51 @@
   --color-attention-foreground: var(--attention-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-display: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
   --radius: 0.75rem;
-  /* ivory quente */
-  --background: oklch(0.985 0.008 85);
-  --foreground: oklch(0.20 0.02 50);
+  /* branco puro, como o site oficial */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.18 0.01 40);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.20 0.02 50);
+  --card-foreground: oklch(0.18 0.01 40);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.20 0.02 50);
-  /* graphite profundo como primary */
-  --primary: oklch(0.22 0.015 55);
-  --primary-foreground: oklch(0.98 0.008 85);
-  --secondary: oklch(0.95 0.01 80);
-  --secondary-foreground: oklch(0.22 0.015 55);
-  --muted: oklch(0.955 0.008 80);
-  --muted-foreground: oklch(0.50 0.02 60);
-  /* amber cobre — acento único */
-  --accent: oklch(0.72 0.16 55);
-  --accent-foreground: oklch(0.18 0.02 50);
+  --popover-foreground: oklch(0.18 0.01 40);
+  /* preto quente como primary (botões escuros) */
+  --primary: oklch(0.16 0.01 40);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.965 0.004 50);
+  --secondary-foreground: oklch(0.18 0.01 40);
+  --muted: oklch(0.965 0.004 50);
+  --muted-foreground: oklch(0.48 0.015 45);
+  /* laranja Líder C.O.R.E. — pareado ao site (~#E15A26) */
+  --accent: oklch(0.66 0.18 42);
+  --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.58 0.22 27);
-  --destructive-foreground: oklch(0.98 0.008 85);
+  --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.68 0.12 155);
   --success-foreground: oklch(0.15 0.02 155);
-  --attention: oklch(0.72 0.16 55);
-  --attention-foreground: oklch(0.18 0.02 50);
-  --border: oklch(0.90 0.012 80);
-  --input: oklch(0.90 0.012 80);
-  --ring: oklch(0.72 0.16 55);
-  --chart-1: oklch(0.72 0.16 55);
+  --attention: oklch(0.66 0.18 42);
+  --attention-foreground: oklch(1 0 0);
+  --border: oklch(0.91 0.005 50);
+  --input: oklch(0.91 0.005 50);
+  --ring: oklch(0.66 0.18 42);
+  --chart-1: oklch(0.66 0.18 42);
   --chart-2: oklch(0.55 0.10 200);
   --chart-3: oklch(0.68 0.12 155);
   --chart-4: oklch(0.65 0.18 30);
   --chart-5: oklch(0.45 0.05 280);
-  --sidebar: oklch(0.97 0.008 82);
-  --sidebar-foreground: oklch(0.30 0.015 55);
-  --sidebar-primary: oklch(0.22 0.015 55);
-  --sidebar-primary-foreground: oklch(0.98 0.008 85);
-  --sidebar-accent: oklch(0.93 0.012 80);
-  --sidebar-accent-foreground: oklch(0.22 0.015 55);
-  --sidebar-border: oklch(0.90 0.012 80);
-  --sidebar-ring: oklch(0.72 0.16 55);
+  --sidebar: oklch(0.985 0.003 50);
+  --sidebar-foreground: oklch(0.28 0.01 40);
+  --sidebar-primary: oklch(0.16 0.01 40);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.005 50);
+  --sidebar-accent-foreground: oklch(0.16 0.01 40);
+  --sidebar-border: oklch(0.91 0.005 50);
+  --sidebar-ring: oklch(0.66 0.18 42);
 }
 
 .dark {
@@ -157,8 +155,9 @@
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
-    font-optical-sizing: auto;
-    letter-spacing: -0.02em;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
   }
 }
 
