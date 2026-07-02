@@ -1,6 +1,6 @@
 # Frontend (TanStack Start) container.
 # Build stage: install & compile with the API URL baked in via VITE_API_URL.
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
@@ -10,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # Runtime: TanStack Start's node server output.
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
