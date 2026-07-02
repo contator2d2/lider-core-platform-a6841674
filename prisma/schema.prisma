@@ -1,5 +1,6 @@
 // Prisma schema for LÍDER C.O.R.E.
-// Mirrors the previous Supabase model but self-hosted on Postgres.
+// Self-hosted Postgres model for the EasyPanel deployment.
+
 
 generator client {
   provider = "prisma-client-js"

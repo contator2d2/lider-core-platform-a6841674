@@ -18,8 +18,9 @@ Sistema Operacional para Liderança, multi-tenant, baseado na metodologia Neo Pe
 ## 2. Stack Técnica
 
 - **Frontend/SSR:** TanStack Start (React 19, Vite 7), Tailwind v4, shadcn/ui.
-- **Backend:** Lovable Cloud (Supabase gerenciado) — Postgres + Auth + Storage + RLS.
-- **RPC:** `createServerFn` para lógica interna; server routes `/api/public/*` para webhooks (Stripe/Asaas).
+- **Backend:** Express 4 + Prisma ORM + JWT próprio, self-hosted no EasyPanel (Postgres oficial).
+- **RPC:** REST API interna `/api/*` servida pelo backend Express; webhooks expostos em `/api/public/*`.
+
 - **IA:** Lovable AI Gateway (multi-provedor: OpenAI, Anthropic, Gemini, Groq, Azure) com contabilização de tokens por tenant.
 - **Pagamentos:** Stripe seamless (padrão) + arquitetura pluggable para Asaas.
 - **Design:** Apple/Linear/Notion — dark-mode-ready, mobile-first, muito respiro.
