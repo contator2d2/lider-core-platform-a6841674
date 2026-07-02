@@ -9,12 +9,21 @@ import { orgsRouter } from "./routes/organizations.routes.js";
 const app = express();
 
 app.use(helmet());
+
+const allowedOrigins = env.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean);
 app.use(
   cors({
-    origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((s) => s.trim()),
+    origin: (origin, cb) => {
+      // Allow same-origin / server-to-server (no Origin header)
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes("*")) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
   }),
 );
+app.options("*", cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
