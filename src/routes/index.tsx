@@ -69,34 +69,34 @@ function Index() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-60 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
         <div className="relative mx-auto max-w-6xl px-6 pb-24 pt-20 md:pt-32">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Neo Pessoas · Metodologia C.O.R.E.
+          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-muted-foreground">
+            <span className="h-px w-8 bg-foreground/40" />
+            Programa de Desenvolvimento de Liderança
           </div>
-          <h1 className="mt-8 font-display text-5xl font-medium leading-[1.02] tracking-tight md:text-7xl">
-            O líder não entra no
+          <h1 className="mt-8 text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">
+            O líder não entra no sistema
             <br />
-            sistema para preencher
+            para preencher{" "}
+            <span className="italic font-black text-accent">formulários.</span>
             <br />
-            <span className="italic text-accent">formulários.</span>
+            Ele entra para liderar.
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            Ele entra para liderar. LÍDER C.O.R.E. é o sistema operacional que
-            transforma a metodologia da Neo Pessoas em rotina diária de gestão de
-            pessoas — com IA que interpreta comportamento e mostra quem precisa
-            da sua atenção agora.
+            LÍDER C.O.R.E. transforma a metodologia da Neo Pessoas em rotina
+            diária de gestão de pessoas — com IA que interpreta comportamento
+            e mostra quem precisa da sua atenção agora.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Link
               to="/auth"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-sm bg-accent px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-accent-foreground transition-transform hover:-translate-y-0.5"
             >
-              Começar agora
+              Acessar a plataforma
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
               href="#metodologia"
-              className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium hover:bg-secondary"
+              className="inline-flex items-center gap-2 rounded-sm border border-border px-7 py-3.5 text-sm font-semibold uppercase tracking-wider hover:bg-secondary"
             >
               Ver a metodologia
             </a>
@@ -108,13 +108,13 @@ function Index() {
       <section id="metodologia" className="mx-auto max-w-6xl px-6 py-24">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">
-              Metodologia
+            <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+              O Método
             </div>
-            <h2 className="mt-3 font-display text-4xl font-medium tracking-tight md:text-5xl">
-              Quatro passos.
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight md:text-5xl">
+              O método <span className="italic text-accent">C.O.R.E.</span>
               <br />
-              <span className="text-muted-foreground">Uma nova rotina de liderança.</span>
+              <span className="text-muted-foreground">Quatro pilares, uma rotina.</span>
             </h2>
           </div>
           <p className="max-w-sm text-sm text-muted-foreground">
@@ -127,11 +127,11 @@ function Index() {
           {pillars.map(({ key, title, text, icon: Icon }) => (
             <div key={key} className="group relative flex flex-col gap-6 bg-card p-8 transition-colors hover:bg-secondary">
               <div className="flex items-center justify-between">
-                <span className="font-display text-5xl font-medium text-accent">{key}</span>
+                <span className="text-6xl font-black text-accent">{key}</span>
                 <Icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-display text-2xl">{title}</h3>
+                <h3 className="text-2xl font-bold">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {text}
                 </p>
@@ -145,13 +145,13 @@ function Index() {
       <section id="plataforma" className="border-y border-border bg-secondary/40">
         <div className="mx-auto grid max-w-6xl gap-16 px-6 py-24 md:grid-cols-[1.1fr,1fr] md:items-center">
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
               A plataforma
             </div>
-            <h2 className="mt-3 font-display text-4xl font-medium tracking-tight md:text-5xl">
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight md:text-5xl">
               O sistema registra fatos.
               <br />
-              A IA gera diagnósticos.
+              <span className="italic text-accent">A IA</span> gera diagnósticos.
             </h2>
             <p className="mt-5 max-w-lg text-muted-foreground">
               Rituais de 1:1, delegações, feedbacks e check-ins alimentam um
@@ -183,7 +183,7 @@ function Index() {
                   3 ações
                 </span>
               </div>
-              <h3 className="mt-3 font-display text-xl">Quem precisa da sua atenção</h3>
+              <h3 className="mt-3 text-xl font-bold">Quem precisa da sua atenção</h3>
               <div className="mt-5 space-y-3">
                 {[
                   { name: "Marina Alves", note: "Sem 1:1 há 21 dias", tone: "attention" },
@@ -207,7 +207,7 @@ function Index() {
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
                 <span>CORE Score</span>
-                <span className="font-display text-lg text-foreground">78</span>
+                <span className="text-lg font-bold text-foreground">78</span>
               </div>
             </div>
           </div>
@@ -217,8 +217,9 @@ function Index() {
       {/* CTA */}
       <section id="quem" className="mx-auto max-w-6xl px-6 py-24">
         <div className="rounded-3xl border border-border bg-primary p-10 text-primary-foreground md:p-16">
-          <h2 className="max-w-2xl font-display text-4xl leading-tight md:text-5xl">
-            Uma plataforma que continua útil depois da mentoria.
+          <h2 className="max-w-2xl text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
+            Uma plataforma que continua útil{" "}
+            <span className="italic text-accent">depois da mentoria.</span>
           </h2>
           <p className="mt-4 max-w-xl text-primary-foreground/70">
             LÍDER C.O.R.E. é feito para virar rotina. Não depende de novos
@@ -227,7 +228,7 @@ function Index() {
           </p>
           <Link
             to="/auth"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-transform hover:-translate-y-0.5"
+            className="mt-8 inline-flex items-center gap-2 rounded-sm bg-accent px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-accent-foreground transition-transform hover:-translate-y-0.5"
           >
             Acessar a plataforma
             <ArrowRight className="h-4 w-4" />
