@@ -15,6 +15,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/brand/Logo";
 
 export const Route = createFileRoute("/_authenticated/app")({
   component: AppShell,
@@ -53,16 +54,11 @@ function AppShell() {
   return (
     <div className="min-h-screen bg-background text-foreground md:grid md:grid-cols-[260px,1fr]">
       <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col">
-        <div className="flex items-center gap-2 border-b border-sidebar-border px-6 py-5">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground font-display font-semibold">
-            L
+        <div className="flex items-center gap-3 border-b border-sidebar-border px-6 py-5">
+          <Logo className="h-7 w-auto max-w-[160px]" />
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Neo Pessoas
           </span>
-          <div className="leading-tight">
-            <div className="font-display text-sm">líder core</div>
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Neo Pessoas
-            </div>
-          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-6">
@@ -114,8 +110,8 @@ function AppShell() {
             <button className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground">
               <Bell className="h-4 w-4" />
             </button>
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-medium">
-              LC
+            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-secondary text-sm font-medium">
+              <Logo variant="mark" className="h-8 w-8 rounded-full" />
             </div>
           </div>
         </header>

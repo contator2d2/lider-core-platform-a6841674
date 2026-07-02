@@ -217,3 +217,75 @@ src/routes/
 ## Próximo passo
 
 Confirme (ou ajuste) esta arquitetura — hierarquia, entidades, roles, módulos, navegação e roadmap. Assim que aprovada, começo pela **Fase 1 (Fundações + shell + design system)** e sigo pela **Persona Líder** como MVP.
+
+---
+
+## 14. Reconciliação com a Especificação Funcional (PDF oficial)
+
+O PDF `Lider_CORE_Especificacao_Funcional.pdf` confirma a arquitetura acima e adiciona **regras não-negociáveis** que passam a governar o produto:
+
+### 14.1 Regra de ouro
+> "Toda informação que pode ser inferida a partir do uso do sistema NÃO deve ser pedida como formulário de autoavaliação."
+
+O líder registra **fatos operacionais** (rituais, entregas, feedbacks, indicadores). O sistema **infere** maturidade, risco e sabotadores ativos. Nenhuma tela de autoavaliação semanal.
+
+### 14.2 Metáfora da bicicleta (arquitetura de dados)
+- **R** (roda traseira / tração): planejamento, indicadores, fatos.
+- **C** (roda dianteira / direção): perfil, maturidade, leitura humana.
+- **O** (eixo): rituais e comunicação — sem eixo, as rodas não andam.
+- **E** (velocímetro): mede sustentação ao longo do tempo, não pedala.
+
+**Implicação:** os 4 módulos compartilham **uma única base de dados** — quatro leituras sobre o mesmo conjunto de fatos. Isso reforça o `organization_id` universal + views especializadas por módulo.
+
+### 14.3 Ajustes por módulo
+
+**C — Consciência**
+- Assessment comportamental (Big Five/DISC + sabotadores + egograma) — **1 vez** ou a cada 90 dias, nunca semanal.
+- Feature central: **alertas cruzados** — o sistema combina queda de rituais (O) + perfil (C) para gerar leitura comportamental automática. Ex.: "seus rituais caíram 40% — combina com seu padrão de controle sob pressão".
+- Visibilidade: perfil detalhado é **foro íntimo** do líder; empresa vê apenas "mapeado sim/não".
+
+**O — Organização**
+- **Mapa da Área** (config inicial, revisão trimestral): propósito, entregas, indicadores.
+- Rituais com marcação **1 toque** (feito / não feito) — não relatório.
+- Registro de decisão por ritual é **opcional e curto** (texto livre), nunca questionário.
+
+**R — Resultado**
+- Indicadores em **3 níveis**: área, individuais, liderança.
+- **Indicador de concentração** ("carga na própria mão"): % de entregas ativas sob responsabilidade direta do líder. Acima de **30%** → alerta automático de centralização.
+- Delegações com combinado registrado 1 vez (o quê, quem, prazo, critério de feito); status muda automaticamente pelo prazo.
+
+**E — Evolução**
+- **CORE Score** = 100% calculado a partir dos outros 3 módulos. Nenhuma pergunta de autoavaliação alimenta o score diretamente.
+- Radar de maturidade + evolução mensal + plano de desenvolvimento.
+
+### 14.4 Visão da Empresa (RH/Diretoria) — limite de visibilidade
+A empresa **NÃO vê**:
+- Conteúdo de 1:1s;
+- Feedbacks individuais em texto;
+- Perfil comportamental detalhado;
+- Registro de conversas difíceis.
+
+A empresa vê **agregados**: adesão a rituais, saúde geral, CORE Score consolidado, quantidade (não conteúdo) de feedbacks/conversas. **Esse limite é o que sustenta a confiança do líder no sistema** — sem ele, o produto vira ferramenta de avaliação e perde a função.
+
+### 14.5 Modelos de conversa (Módulo E — Feedbacks)
+Templates prontos para: feedback positivo, corretivo, alinhamento, cobrança, conflito, desligamento, reconhecimento. Baseados em: firmeza com amor · verdade sem dureza · afeto sem permissividade. Diagnóstico: técnico / emocional / relacional / governança. Referência: 5 disfunções de equipes (Lencioni).
+
+### 14.6 Faseamento oficial (substitui roadmap anterior)
+1. **Fase 1 — Esqueleto operacional**: Módulo O (mapa da área + rituais feito/quebrado).
+2. **Fase 2 — Fatos de gestão**: Módulo R (indicadores, delegações, indicador de concentração).
+3. **Fase 3 — Leitura humana**: Módulo C (assessment + alertas cruzados).
+4. **Fase 4 — Sustentação + empresa**: Módulo E (CORE Score + diagnóstico automático) + dashboard executivo.
+
+**Critério de avanço:** cada fase validada com pequeno grupo de líderes reais por **3-4 semanas de uso sustentado** — não aprovação em demo.
+
+### 14.7 Divergências com o plano anterior (resolvidas a favor do PDF)
+- ✅ Removido: telas de autoavaliação semanal → substituídas por **inferência** a partir de fatos.
+- ✅ Ajustado: CORE Score deixa de ser um input e passa a ser **100% derivado**.
+- ✅ Adicionado: **indicador de concentração** e **alertas cruzados** como features centrais.
+- ✅ Reforçado: limites de visibilidade da empresa (RH/diretoria não vê detalhe operacional).
+- ✅ Reordenado: roadmap agora começa por **Módulo O** (esqueleto operacional), não por dashboard genérico.
+
+### 14.8 Impacto imediato no código
+- A home atual do líder (`/app`) já segue o princípio "quem precisa da atenção agora" ✅.
+- As stubs de rituais / delegações / indicadores / feedbacks / PDIs / IA permanecem — serão implementadas nesta ordem de fases.
+- O schema precisa incluir: `area_map`, `ritual_templates` × `ritual_instances`, `delegations` com auto-status por prazo, `assessments` (1 por 90d), `ai_cross_alerts`, e a função de cálculo do `core_score`.
