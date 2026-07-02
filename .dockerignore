@@ -1,0 +1,10 @@
+node_modules
+.output
+.tanstack
+.git
+.env
+.env.local
+dist
+api/node_modules
+api/dist
+*.log
