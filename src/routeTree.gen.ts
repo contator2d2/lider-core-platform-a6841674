@@ -14,6 +14,14 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
+import { Route as AuthenticatedAppRitualsRouteImport } from './routes/_authenticated/app.rituals'
+import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticated/app.pdis'
+import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
+import { Route as AuthenticatedAppIndicatorsRouteImport } from './routes/_authenticated/app.indicators'
+import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authenticated/app.feedbacks'
+import { Route as AuthenticatedAppDelegationsRouteImport } from './routes/_authenticated/app.delegations'
+import { Route as AuthenticatedAppAiRouteImport } from './routes/_authenticated/app.ai'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -39,16 +47,76 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppRitualsRoute = AuthenticatedAppRitualsRouteImport.update({
+  id: '/rituals',
+  path: '/rituals',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppPdisRoute = AuthenticatedAppPdisRouteImport.update({
+  id: '/pdis',
+  path: '/pdis',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppOneOnOnesRoute =
+  AuthenticatedAppOneOnOnesRouteImport.update({
+    id: '/one-on-ones',
+    path: '/one-on-ones',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppIndicatorsRoute =
+  AuthenticatedAppIndicatorsRouteImport.update({
+    id: '/indicators',
+    path: '/indicators',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppFeedbacksRoute =
+  AuthenticatedAppFeedbacksRouteImport.update({
+    id: '/feedbacks',
+    path: '/feedbacks',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppDelegationsRoute =
+  AuthenticatedAppDelegationsRouteImport.update({
+    id: '/delegations',
+    path: '/delegations',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppAiRoute = AuthenticatedAppAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
+  '/app/ai': typeof AuthenticatedAppAiRoute
+  '/app/delegations': typeof AuthenticatedAppDelegationsRoute
+  '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
+  '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
+  '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/rituals': typeof AuthenticatedAppRitualsRoute
+  '/app/team': typeof AuthenticatedAppTeamRoute
   '/app/': typeof AuthenticatedAppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/ai': typeof AuthenticatedAppAiRoute
+  '/app/delegations': typeof AuthenticatedAppDelegationsRoute
+  '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
+  '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
+  '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/rituals': typeof AuthenticatedAppRitualsRoute
+  '/app/team': typeof AuthenticatedAppTeamRoute
   '/app': typeof AuthenticatedAppIndexRoute
 }
 export interface FileRoutesById {
@@ -57,19 +125,58 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/app/ai': typeof AuthenticatedAppAiRoute
+  '/_authenticated/app/delegations': typeof AuthenticatedAppDelegationsRoute
+  '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/_authenticated/app/indicators': typeof AuthenticatedAppIndicatorsRoute
+  '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
+  '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/_authenticated/app/rituals': typeof AuthenticatedAppRitualsRoute
+  '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/app' | '/app/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/app'
+    | '/app/ai'
+    | '/app/delegations'
+    | '/app/feedbacks'
+    | '/app/indicators'
+    | '/app/one-on-ones'
+    | '/app/pdis'
+    | '/app/rituals'
+    | '/app/team'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/ai'
+    | '/app/delegations'
+    | '/app/feedbacks'
+    | '/app/indicators'
+    | '/app/one-on-ones'
+    | '/app/pdis'
+    | '/app/rituals'
+    | '/app/team'
+    | '/app'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/app'
+    | '/_authenticated/app/ai'
+    | '/_authenticated/app/delegations'
+    | '/_authenticated/app/feedbacks'
+    | '/_authenticated/app/indicators'
+    | '/_authenticated/app/one-on-ones'
+    | '/_authenticated/app/pdis'
+    | '/_authenticated/app/rituals'
+    | '/_authenticated/app/team'
     | '/_authenticated/app/'
   fileRoutesById: FileRoutesById
 }
@@ -116,14 +223,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/team': {
+      id: '/_authenticated/app/team'
+      path: '/team'
+      fullPath: '/app/team'
+      preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/rituals': {
+      id: '/_authenticated/app/rituals'
+      path: '/rituals'
+      fullPath: '/app/rituals'
+      preLoaderRoute: typeof AuthenticatedAppRitualsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/pdis': {
+      id: '/_authenticated/app/pdis'
+      path: '/pdis'
+      fullPath: '/app/pdis'
+      preLoaderRoute: typeof AuthenticatedAppPdisRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/one-on-ones': {
+      id: '/_authenticated/app/one-on-ones'
+      path: '/one-on-ones'
+      fullPath: '/app/one-on-ones'
+      preLoaderRoute: typeof AuthenticatedAppOneOnOnesRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/indicators': {
+      id: '/_authenticated/app/indicators'
+      path: '/indicators'
+      fullPath: '/app/indicators'
+      preLoaderRoute: typeof AuthenticatedAppIndicatorsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/feedbacks': {
+      id: '/_authenticated/app/feedbacks'
+      path: '/feedbacks'
+      fullPath: '/app/feedbacks'
+      preLoaderRoute: typeof AuthenticatedAppFeedbacksRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/delegations': {
+      id: '/_authenticated/app/delegations'
+      path: '/delegations'
+      fullPath: '/app/delegations'
+      preLoaderRoute: typeof AuthenticatedAppDelegationsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/ai': {
+      id: '/_authenticated/app/ai'
+      path: '/ai'
+      fullPath: '/app/ai'
+      preLoaderRoute: typeof AuthenticatedAppAiRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
   }
 }
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
+  AuthenticatedAppDelegationsRoute: typeof AuthenticatedAppDelegationsRoute
+  AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
+  AuthenticatedAppIndicatorsRoute: typeof AuthenticatedAppIndicatorsRoute
+  AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
+  AuthenticatedAppPdisRoute: typeof AuthenticatedAppPdisRoute
+  AuthenticatedAppRitualsRoute: typeof AuthenticatedAppRitualsRoute
+  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppAiRoute: AuthenticatedAppAiRoute,
+  AuthenticatedAppDelegationsRoute: AuthenticatedAppDelegationsRoute,
+  AuthenticatedAppFeedbacksRoute: AuthenticatedAppFeedbacksRoute,
+  AuthenticatedAppIndicatorsRoute: AuthenticatedAppIndicatorsRoute,
+  AuthenticatedAppOneOnOnesRoute: AuthenticatedAppOneOnOnesRoute,
+  AuthenticatedAppPdisRoute: AuthenticatedAppPdisRoute,
+  AuthenticatedAppRitualsRoute: AuthenticatedAppRitualsRoute,
+  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
 
