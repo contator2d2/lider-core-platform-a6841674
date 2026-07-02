@@ -12,4 +12,6 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Self-hosted on EasyPanel: build a Node server instead of a Cloudflare Worker.
+  nitro: { preset: "node-server" },
 });
