@@ -1,24 +1,250 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, Brain, Compass, Sparkles, Target } from "lucide-react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "LÍDER C.O.R.E. — Sistema Operacional para Liderança" },
+      {
+        name: "description",
+        content:
+          "O sistema onde o líder entra para liderar. Rituais, 1:1s, feedbacks, PDIs e IA que aponta quem precisa da sua atenção hoje.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+const pillars = [
+  {
+    key: "C",
+    title: "Consciência",
+    text: "Organize internamente o líder. Perfil, propósito e clareza sobre onde ele pisa.",
+    icon: Brain,
+  },
+  {
+    key: "O",
+    title: "Organização",
+    text: "Estruture a liderança em rituais, 1:1s, delegações e agenda que respeita a rotina real.",
+    icon: Compass,
+  },
+  {
+    key: "R",
+    title: "Resultado",
+    text: "Execute. KPIs, metas e indicadores do time em um só lugar — sem planilha paralela.",
+    icon: Target,
+  },
+  {
+    key: "E",
+    title: "Evolução",
+    text: "Melhoria contínua com PDI, feedbacks e IA que aprende com cada interação do time.",
+    icon: Sparkles,
+  },
+];
+
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <Link to="/" className="flex items-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground font-display font-semibold">
+            L
+          </span>
+          <span className="font-display text-lg font-semibold tracking-tight">
+            líder <span className="text-accent">core</span>
+          </span>
+        </Link>
+        <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+          <a href="#metodologia" className="hover:text-foreground">Metodologia</a>
+          <a href="#plataforma" className="hover:text-foreground">Plataforma</a>
+          <a href="#quem" className="hover:text-foreground">Para quem é</a>
+        </nav>
+        <Link
+          to="/auth"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary"
+        >
+          Entrar
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </header>
+
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-60 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
+        <div className="relative mx-auto max-w-6xl px-6 pb-24 pt-20 md:pt-32">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            Neo Pessoas · Metodologia C.O.R.E.
+          </div>
+          <h1 className="mt-8 font-display text-5xl font-medium leading-[1.02] tracking-tight md:text-7xl">
+            O líder não entra no
+            <br />
+            sistema para preencher
+            <br />
+            <span className="italic text-accent">formulários.</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-lg text-muted-foreground">
+            Ele entra para liderar. LÍDER C.O.R.E. é o sistema operacional que
+            transforma a metodologia da Neo Pessoas em rotina diária de gestão de
+            pessoas — com IA que interpreta comportamento e mostra quem precisa
+            da sua atenção agora.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
+            >
+              Começar agora
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="#metodologia"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium hover:bg-secondary"
+            >
+              Ver a metodologia
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* PILARES */}
+      <section id="metodologia" className="mx-auto max-w-6xl px-6 py-24">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Metodologia
+            </div>
+            <h2 className="mt-3 font-display text-4xl font-medium tracking-tight md:text-5xl">
+              Quatro passos.
+              <br />
+              <span className="text-muted-foreground">Uma nova rotina de liderança.</span>
+            </h2>
+          </div>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Cada módulo da plataforma respeita o ciclo C.O.R.E. — do
+            autoconhecimento do líder até a evolução contínua do time.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2 lg:grid-cols-4">
+          {pillars.map(({ key, title, text, icon: Icon }) => (
+            <div key={key} className="group relative flex flex-col gap-6 bg-card p-8 transition-colors hover:bg-secondary">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-5xl font-medium text-accent">{key}</span>
+                <Icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="font-display text-2xl">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {text}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PLATAFORMA */}
+      <section id="plataforma" className="border-y border-border bg-secondary/40">
+        <div className="mx-auto grid max-w-6xl gap-16 px-6 py-24 md:grid-cols-[1.1fr,1fr] md:items-center">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              A plataforma
+            </div>
+            <h2 className="mt-3 font-display text-4xl font-medium tracking-tight md:text-5xl">
+              O sistema registra fatos.
+              <br />
+              A IA gera diagnósticos.
+            </h2>
+            <p className="mt-5 max-w-lg text-muted-foreground">
+              Rituais de 1:1, delegações, feedbacks e check-ins alimentam um
+              modelo comportamental que prioriza a atenção do líder. Ao abrir a
+              plataforma, ele vê ações — não gráficos.
+            </p>
+            <ul className="mt-8 space-y-3 text-sm">
+              {[
+                "Home do líder: quem precisa da minha atenção hoje",
+                "Rituais recorrentes que substituem planilhas de gestão",
+                "PDIs e feedbacks alimentados por conversas reais",
+                "CORE Score: leitura de saúde da liderança em tempo real",
+                "Multiempresa, RBAC e IA com controle de consumo por tenant",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* mock card */}
+          <div className="relative">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-2xl shadow-black/5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Hoje · Segunda-feira</span>
+                <span className="rounded-full bg-attention/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+                  3 ações
+                </span>
+              </div>
+              <h3 className="mt-3 font-display text-xl">Quem precisa da sua atenção</h3>
+              <div className="mt-5 space-y-3">
+                {[
+                  { name: "Marina Alves", note: "Sem 1:1 há 21 dias", tone: "attention" },
+                  { name: "Rafael Souza", note: "Feedback pendente há 5 dias", tone: "attention" },
+                  { name: "Time Comercial", note: "Ritual semanal em 2h", tone: "muted" },
+                ].map((r) => (
+                  <div key={r.name} className="flex items-center justify-between rounded-xl border border-border bg-background/60 p-3">
+                    <div>
+                      <div className="text-sm font-medium">{r.name}</div>
+                      <div className="text-xs text-muted-foreground">{r.note}</div>
+                    </div>
+                    <span
+                      className={
+                        r.tone === "attention"
+                          ? "h-2 w-2 rounded-full bg-accent"
+                          : "h-2 w-2 rounded-full bg-muted-foreground/40"
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
+                <span>CORE Score</span>
+                <span className="font-display text-lg text-foreground">78</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section id="quem" className="mx-auto max-w-6xl px-6 py-24">
+        <div className="rounded-3xl border border-border bg-primary p-10 text-primary-foreground md:p-16">
+          <h2 className="max-w-2xl font-display text-4xl leading-tight md:text-5xl">
+            Uma plataforma que continua útil depois da mentoria.
+          </h2>
+          <p className="mt-4 max-w-xl text-primary-foreground/70">
+            LÍDER C.O.R.E. é feito para virar rotina. Não depende de novos
+            treinamentos para gerar valor — cada dia usado, o líder lidera
+            melhor.
+          </p>
+          <Link
+            to="/auth"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-transform hover:-translate-y-0.5"
+          >
+            Acessar a plataforma
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-6 py-8 text-xs text-muted-foreground md:flex-row md:items-center">
+          <div>© {new Date().getFullYear()} Neo Pessoas · LÍDER C.O.R.E.</div>
+          <div>lidercore.com.br</div>
+        </div>
+      </footer>
     </div>
   );
 }
