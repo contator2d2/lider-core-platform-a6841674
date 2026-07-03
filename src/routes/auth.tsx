@@ -29,7 +29,10 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/app", replace: true });
+    if (user) {
+      const dest = user.roles?.includes("super_admin") ? "/admin" : "/app";
+      navigate({ to: dest, replace: true });
+    }
   }, [user, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -39,12 +42,11 @@ function AuthPage() {
       if (mode === "signin") {
         await signIn(email, password);
         toast.success("Bem-vindo de volta.");
-        navigate({ to: "/app" });
       } else {
         await signUp(email, password, fullName);
         toast.success("Conta criada.");
-        navigate({ to: "/app" });
       }
+      // Redirect handled by the useEffect above once `user` populates.
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erro ao autenticar");
     } finally {
