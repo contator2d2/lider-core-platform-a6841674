@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { ArrowRight, CalendarClock, MessageSquare, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: LeaderHome,
@@ -45,6 +48,14 @@ const attention: Attention[] = [
 ];
 
 function LeaderHome() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (user?.roles?.includes("super_admin")) {
+      navigate({ to: "/admin", replace: true });
+    }
+  }, [user, navigate]);
+
   return (
     <div className="mx-auto max-w-5xl">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
