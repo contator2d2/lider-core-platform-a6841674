@@ -8,10 +8,42 @@ import { orgsRouter } from "./routes/organizations.routes.js";
 
 const app = express();
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://ayratech-neo-lider-front.isyhhh.easypanel.host",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:8080",
+];
+
+const allowedOrigins = Array.from(
+  new Set([...env.CORS_ORIGIN.split(","), ...DEFAULT_ALLOWED_ORIGINS].map((s) => s.trim()).filter(Boolean)),
+);
+const allowAll = allowedOrigins.length === 0 || allowedOrigins.includes("*");
+const defaultAllowedHeaders = "Content-Type, Authorization, X-Requested-With, Accept, Origin";
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const requestedHeaders = req.headers["access-control-request-headers"];
+
+  if (origin && (allowAll || allowedOrigins.includes(origin))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    typeof requestedHeaders === "string" ? requestedHeaders : defaultAllowedHeaders,
+  );
+  res.setHeader("Access-Control-Max-Age", "86400");
+
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  return next();
+});
+
 app.use(helmet());
 
-const allowedOrigins = env.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean);
-const allowAll = allowedOrigins.length === 0 || allowedOrigins.includes("*");
 const corsOptions: cors.CorsOptions = {
   origin: (origin, cb) => {
     // Same-origin / server-to-server (no Origin header)
@@ -24,7 +56,7 @@ const corsOptions: cors.CorsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  allowedHeaders: defaultAllowedHeaders.split(", "),
   maxAge: 86400,
 };
 app.use(cors(corsOptions));
