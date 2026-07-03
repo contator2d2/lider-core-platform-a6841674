@@ -38,8 +38,12 @@ app.use((req, res, next) => {
   );
   res.setHeader("Access-Control-Max-Age", "86400");
 
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  return next();
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+
+  next();
 });
 
 app.use(helmet());
