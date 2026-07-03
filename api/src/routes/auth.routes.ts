@@ -82,8 +82,8 @@ authRouter.get("/me", requireAuth, async (req, res) => {
     fullName: user.profile?.fullName ?? null,
     avatarUrl: user.profile?.avatarUrl ?? null,
     jobTitle: user.profile?.jobTitle ?? null,
-    roles: user.roles.map((r) => r.role),
-    memberships: user.memberships.map((m) => ({
+    roles: user.roles.map((r: { role: string }) => r.role),
+    memberships: user.memberships.map((m: { role: string; organization: { id: string; name: string; slug: string; plan: string } }) => ({
       role: m.role,
       organization: m.organization,
     })),
