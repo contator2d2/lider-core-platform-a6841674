@@ -13,4 +13,8 @@ export const env = {
   PORT: Number(process.env.PORT ?? 4000),
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? "*",
   NODE_ENV: process.env.NODE_ENV ?? "development",
+  SUPER_ADMIN_EMAILS: (process.env.SUPER_ADMIN_EMAILS ?? "tnicodemos@gmail.com")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
 };
