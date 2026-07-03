@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { env } from "./env.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { orgsRouter } from "./routes/organizations.routes.js";
+import { prisma } from "./prisma.js";
 
 const app = express();
 
@@ -83,4 +84,30 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 app.listen(env.PORT, () => {
   console.log(`[api] listening on :${env.PORT}`);
+  void bootstrapSuperAdmins();
 });
+
+async function bootstrapSuperAdmins() {
+  const emails = env.SUPER_ADMIN_EMAILS;
+  if (!emails.length) return;
+  try {
+    const users = await prisma.user.findMany({
+      where: { email: { in: emails } },
+      select: { id: true, email: true },
+    });
+    for (const u of users) {
+      await prisma.userRole.upsert({
+        where: { userId_role: { userId: u.id, role: "super_admin" } },
+        update: {},
+        create: { userId: u.id, role: "super_admin" },
+      });
+      console.log(`[bootstrap] super_admin garantido para ${u.email}`);
+    }
+    const missing = emails.filter((e) => !users.find((u) => u.email.toLowerCase() === e));
+    for (const e of missing) {
+      console.log(`[bootstrap] usuário ${e} ainda não cadastrado — será promovido no próximo boot após registro`);
+    }
+  } catch (err) {
+    console.error("[bootstrap] falha ao promover super_admins", err);
+  }
+}
