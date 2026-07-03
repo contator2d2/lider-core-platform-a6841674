@@ -11,19 +11,24 @@ const app = express();
 app.use(helmet());
 
 const allowedOrigins = env.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean);
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // Allow same-origin / server-to-server (no Origin header)
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes("*")) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS: origin ${origin} not allowed`));
-    },
-    credentials: true,
-  }),
-);
-app.options("*", cors());
+const allowAll = allowedOrigins.length === 0 || allowedOrigins.includes("*");
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, cb) => {
+    // Same-origin / server-to-server (no Origin header)
+    if (!origin) return cb(null, true);
+    if (allowAll) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Do NOT throw — throwing prevents CORS headers on the response.
+    // Simply omit the header so the browser blocks it with a clear message.
+    return cb(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  maxAge: 86400,
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
