@@ -1,7 +1,6 @@
 // Prisma schema for LÍDER C.O.R.E.
 // Self-hosted Postgres model for the EasyPanel deployment.
 
-
 generator client {
   provider = "prisma-client-js"
   output   = "../api/node_modules/.prisma/client"
@@ -34,69 +33,315 @@ enum OrgStatus {
   canceled
 }
 
-model User {
-  id            String        @id @default(uuid()) @db.Uuid
-  email         String        @unique
-  passwordHash  String        @map("password_hash")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+enum FranchiseRole {
+  owner
+  admin
+  consultant
+}
 
-  profile       Profile?
-  roles         UserRole[]
-  memberships   Membership[]
+enum FranchiseStatus {
+  trial
+  active
+  suspended
+  canceled
+}
+
+enum SubscriptionOwnerType {
+  franchise
+  organization
+}
+
+enum SubscriptionStatus {
+  trial
+  active
+  past_due
+  canceled
+}
+
+enum InvoiceStatus {
+  draft
+  open
+  paid
+  void
+  uncollectible
+}
+
+enum AIProvider {
+  openai
+  gemini
+  lovable_ai
+}
+
+enum ScopeType {
+  global
+  franchise
+  organization
+}
+
+enum Platform {
+  web
+  desktop
+  mobile
+}
+
+enum ReleaseChannel {
+  stable
+  beta
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  profile              Profile?
+  roles                UserRole[]
+  memberships          Membership[]
+  franchiseMemberships FranchiseMember[]
+  ownedFranchises      Franchise[]       @relation("FranchiseOwner")
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
 
 model Profile {
-  id         String   @id @db.Uuid
-  user       User     @relation(fields: [id], references: [id], onDelete: Cascade)
-  fullName   String?  @map("full_name")
-  avatarUrl  String?  @map("avatar_url")
-  jobTitle   String?  @map("job_title")
-  phone      String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id        String   @id @db.Uuid
+  user      User     @relation(fields: [id], references: [id], onDelete: Cascade)
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  jobTitle  String?  @map("job_title")
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("profiles")
 }
 
 model UserRole {
-  id      String  @id @default(uuid()) @db.Uuid
-  userId  String  @map("user_id") @db.Uuid
-  role    AppRole
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String  @map("user_id") @db.Uuid
+  role   AppRole
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, role])
   @@map("user_roles")
 }
 
 model Organization {
-  id           String        @id @default(uuid()) @db.Uuid
-  name         String
-  slug         String        @unique
-  cnpj         String?
-  plan         PlanTier      @default(essencial)
-  status       OrgStatus     @default(trial)
-  franchiseId  String?       @map("franchise_id") @db.Uuid
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String    @unique
+  cnpj        String?
+  plan        PlanTier  @default(essencial)
+  status      OrgStatus @default(trial)
+  franchiseId String?   @map("franchise_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  memberships  Membership[]
+  memberships Membership[]
+  franchise   Franchise?   @relation(fields: [franchiseId], references: [id], onDelete: SetNull)
 
   @@map("organizations")
 }
 
 model Membership {
-  id              String        @id @default(uuid()) @db.Uuid
-  userId          String        @map("user_id") @db.Uuid
-  organizationId  String        @map("organization_id") @db.Uuid
-  role            AppRole       @default(collaborator)
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  role           AppRole  @default(collaborator)
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
   @@map("memberships")
+}
+
+model Franchise {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String          @unique
+  cnpj        String?
+  ownerUserId String?         @map("owner_user_id") @db.Uuid
+  planId      String?         @map("plan_id") @db.Uuid
+  status      FranchiseStatus @default(trial)
+  branding    Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  owner         User?             @relation("FranchiseOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  plan          Plan?             @relation(fields: [planId], references: [id], onDelete: SetNull)
+  members       FranchiseMember[]
+  organizations Organization[]
+
+  @@map("franchises")
+}
+
+model FranchiseMember {
+  id          String        @id @default(uuid()) @db.Uuid
+  franchiseId String        @map("franchise_id") @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  role        FranchiseRole @default(consultant)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  franchise Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([franchiseId, userId])
+  @@map("franchise_members")
+}
+
+model Plan {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String   @unique
+  description  String?
+  priceMonthly Int      @default(0) @map("price_monthly")
+  priceYearly  Int      @default(0) @map("price_yearly")
+  currency     String   @default("BRL")
+  limits       Json?
+  features     String[] @default([])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  franchises    Franchise[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                     String                @id @default(uuid()) @db.Uuid
+  ownerType              SubscriptionOwnerType @map("owner_type")
+  ownerId                String                @map("owner_id") @db.Uuid
+  planId                 String                @map("plan_id") @db.Uuid
+  status                 SubscriptionStatus    @default(trial)
+  currentPeriodStart     DateTime?             @map("current_period_start")
+  currentPeriodEnd       DateTime?             @map("current_period_end")
+  cancelAt               DateTime?             @map("cancel_at")
+  provider               String? // stripe | manual
+  providerCustomerId     String?               @map("provider_customer_id")
+  providerSubscriptionId String?               @map("provider_subscription_id")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
+  @@index([ownerType, ownerId])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id                String        @id @default(uuid()) @db.Uuid
+  subscriptionId    String        @map("subscription_id") @db.Uuid
+  amountCents       Int           @map("amount_cents")
+  currency          String        @default("BRL")
+  status            InvoiceStatus @default(open)
+  dueDate           DateTime?     @map("due_date")
+  paidAt            DateTime?     @map("paid_at")
+  providerInvoiceId String?       @map("provider_invoice_id")
+  pdfUrl            String?       @map("pdf_url")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model AISettings {
+  id                String     @id @default(uuid()) @db.Uuid
+  scope             ScopeType
+  scopeId           String?    @map("scope_id") @db.Uuid
+  provider          AIProvider
+  model             String
+  apiKeySecretRef   String?    @map("api_key_secret_ref")
+  monthlyTokenLimit Int?       @map("monthly_token_limit")
+  temperature       Float      @default(0.7)
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  @@unique([scope, scopeId])
+  @@map("ai_settings")
+}
+
+model AIUsage {
+  id               String     @id @default(uuid()) @db.Uuid
+  organizationId   String?    @map("organization_id") @db.Uuid
+  franchiseId      String?    @map("franchise_id") @db.Uuid
+  userId           String?    @map("user_id") @db.Uuid
+  provider         AIProvider
+  model            String
+  promptTokens     Int        @default(0) @map("prompt_tokens")
+  completionTokens Int        @default(0) @map("completion_tokens")
+  costCents        Int        @default(0) @map("cost_cents")
+  createdAt        DateTime   @default(now()) @map("created_at")
+
+  @@index([organizationId])
+  @@index([franchiseId])
+  @@index([userId])
+  @@map("ai_usage")
+}
+
+model Branding {
+  id            String    @id @default(uuid()) @db.Uuid
+  scope         ScopeType
+  scopeId       String?   @map("scope_id") @db.Uuid
+  logoUrl       String?   @map("logo_url")
+  primaryColor  String?   @map("primary_color")
+  accentColor   String?   @map("accent_color")
+  faviconUrl    String?   @map("favicon_url")
+  emailFromName String?   @map("email_from_name")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([scope, scopeId])
+  @@map("branding")
+}
+
+model MethodologyCompetency {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  description String?
+  weight      Int      @default(1)
+  orderIndex  Int      @default(0) @map("order_index")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("methodology_competencies")
+}
+
+model AppRelease {
+  id           String         @id @default(uuid()) @db.Uuid
+  platform     Platform
+  version      String
+  channel      ReleaseChannel @default(stable)
+  releaseNotes String?        @map("release_notes")
+  downloadUrl  String?        @map("download_url")
+  publishedAt  DateTime       @default(now()) @map("published_at")
+
+  @@unique([platform, version, channel])
+  @@map("apps_releases")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String
+  targetType  String?  @map("target_type")
+  targetId    String?  @map("target_id")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([targetType, targetId])
+  @@map("audit_log")
 }
