@@ -1,292 +1,191 @@
-# LÍDER C.O.R.E. — Arquitetura da Plataforma
+# Plano — LÍDER C.O.R.E. / Neo Leader — Arquitetura Multi-Tenant Completa
 
-Sistema Operacional para Liderança, multi-tenant, baseado na metodologia Neo Pessoas. Antes de gerar telas, apresento abaixo a arquitetura completa para sua aprovação.
-
----
-
-## 1. Princípio Norteador
-
-> "O líder não entra no sistema para preencher formulários. Ele entra para liderar."
-
-- O sistema **registra fatos** (interações, rituais, entregas).
-- A plataforma **interpreta comportamento** (padrões, frequência, engajamento).
-- A IA **gera diagnósticos** (CORE Score, alertas, recomendações).
-- Toda navegação segue o ciclo **C.O.R.E.**: Consciência → Organização → Resultado → Evolução.
-
----
-
-## 2. Stack Técnica
-
-- **Frontend/SSR:** TanStack Start (React 19, Vite 7), Tailwind v4, shadcn/ui.
-- **Backend:** Express 4 + Prisma ORM + JWT próprio, self-hosted no EasyPanel (Postgres oficial).
-- **RPC:** REST API interna `/api/*` servida pelo backend Express; webhooks expostos em `/api/public/*`.
-
-- **IA:** Lovable AI Gateway (multi-provedor: OpenAI, Anthropic, Gemini, Groq, Azure) com contabilização de tokens por tenant.
-- **Pagamentos:** Stripe seamless (padrão) + arquitetura pluggable para Asaas.
-- **Design:** Apple/Linear/Notion — dark-mode-ready, mobile-first, muito respiro.
-
----
-
-## 3. Hierarquia Multi-Tenant
+## 1. Visão geral da hierarquia
 
 ```text
-R2D2 (Super Admin)
-  └── Neo Pessoas (Owner da metodologia)
-        └── Franquias / Licenciados
-              └── Empresas Clientes (tenant isolado)
-                    ├── Áreas / Departamentos / Filiais
-                    ├── Líderes
-                    └── Colaboradores
+SUPER ADMIN (Neo Pessoas + R2D2)
+   │
+   ├── Franquias (tenants regionais / parceiros)
+   │      │
+   │      ├── Colaboradores da franquia (consultores, admins locais)
+   │      │
+   │      └── Empresas vinculadas
+   │             │
+   │             ├── Colaboradores da empresa (RH, gestores)
+   │             └── Líderes (usuários finais avaliados)
+   │
+   └── Empresas diretas (sem franquia) + seus líderes
 ```
 
-Isolamento lógico via `tenant_id` (empresa) em **toda** tabela de dados operacionais, aplicado por RLS. Franquia e Neo Pessoas veem agregados de suas carteiras via views/policies específicas.
+Cada nível tem seu próprio painel, permissões e escopo de dados.
 
 ---
 
-## 4. Entidades Principais
+## 2. Papéis (roles) e permissões
 
-### Núcleo organizacional
-- `organizations` (empresas clientes) — CNPJ, plano, franquia_id, status.
-- `franchises` — carteira do licenciado.
-- `branches` (filiais), `departments`, `areas`, `teams`.
-- `users` (auth.users) + `profiles` (nome, avatar, telefone).
-- `user_roles` (tabela separada — **nunca** no profile) com enum `app_role`: `super_admin`, `neo_admin`, `franchise_admin`, `company_admin`, `leader`, `collaborator`.
-- `memberships` — vínculo user × organization × role × area/team.
+**Globais (tabela `user_roles`):**
+- `super_admin` — Neo Pessoas. Vê tudo.
+- `neo_admin` — staff Neo (suporte, financeiro).
 
-### Metodologia C.O.R.E.
-- `modules` — Consciência, Organização, Resultado, Evolução.
-- `rituals` — templates de rituais (1:1, check-in, feedback, reunião de time).
-- `ritual_instances` — execuções agendadas/realizadas.
-- `pdi` (Plano de Desenvolvimento Individual) + `pdi_actions`.
-- `feedbacks` (contínuos, estruturados).
-- `one_on_ones` — 1:1 com pauta, notas, ações.
-- `delegations` — delegações com prazo/status.
-- `objectives` + `key_results` (OKRs/metas).
-- `indicators` (KPIs) + `indicator_values` (série temporal).
-- `check_ins` — pulso do colaborador.
-- `core_score` — snapshot calculado (por líder, por equipe, por empresa).
+**Por franquia (tabela `franchise_members`):**
+- `franchise_owner` — dono da franquia
+- `franchise_admin` — gestão da franquia
+- `franchise_consultant` — consultor operacional
 
-### IA
-- `ai_providers` (openai, anthropic, …), `ai_tokens` (por tenant, encrypted).
-- `ai_usage` — consumo por request (tokens in/out, custo, modelo, feature).
-- `ai_insights` — diagnósticos gerados (quem precisa de atenção, risco de turnover, gaps).
-- `ai_limits` — cotas por plano/empresa.
+**Por empresa (tabela `memberships`, já existe — expandir):**
+- `company_owner` — dono/RH principal
+- `company_admin` — gestor de pessoas
+- `company_manager` — líder de área (vê seu time)
+- `leader` — líder final (só vê a si mesmo)
 
-### Comercial / Billing
-- `plans` (Essencial, Pro, Premium, IA) + `plan_features` (feature flags).
-- `subscriptions` (organization × plan, status, ciclo).
-- `licenses` — 1 por líder, com ativação/suspensão/expiração.
-- `invoices`, `payments`, `revenue_splits` (Neo 70% / R2D2 30%).
-- `payment_provider_accounts` (Stripe/Asaas).
-
-### Conteúdo & biblioteca
-- `contents` (artigos, vídeos, playbooks), `content_categories`.
-- `campaigns` (comunicações), `notifications`.
-
-### Governança
-- `audit_logs`, `feature_flags`, `system_settings`, `webhook_events`.
+Cada permissão granular (ver dashboard, cadastrar líder, exportar, etc.) fica em um objeto de capabilities derivado do role — configurável pelo super admin no futuro.
 
 ---
 
-## 5. Relacionamentos Chave
+## 3. Painéis por perfil
 
-- `organization` 1—N `memberships` N—1 `user`; role determina painel.
-- `leader (membership)` 1—N `collaborators (memberships)` via `team_members`.
-- Todo dado operacional (`ritual_instances`, `pdi`, `feedbacks`, `indicators`, `ai_insights`, `check_ins`) carrega `organization_id` para RLS.
-- `franchise_id` em `organizations` permite ao franqueado ver sua carteira.
-- `subscription` → `plan` → `plan_features` controla módulos ativos por tenant.
+### 3.1 Super Admin (`/admin`)
+- **Franquias**: criar, editar, suspender, transferir empresas.
+- **Empresas diretas**: cadastrar empresas sem franquia.
+- **Usuários globais**: promover super_admins, ver todos os usuários, resetar senha.
+- **Planos & Preços**: criar planos (Essencial, Pro, Enterprise), definir limites (nº de líderes, nº de empresas, features).
+- **Licenças & Cobrança**: atribuir plano a franquia/empresa, ciclo (mensal/anual), status (trial/ativo/inadimplente/cancelado), histórico de faturas.
+- **Provedor de IA**: escolher provider padrão (OpenAI, Gemini, Lovable AI), configurar chaves, modelo, limites de tokens por plano.
+- **Branding global**: logo, cores, favicon, e-mails transacionais.
+- **Metodologia**: gerir competências C.O.R.E., escalas, avaliações, templates de PDI.
+- **Apps & Versões**: controlar release da versão web, versão desktop (Electron), mobile.
+- **Analytics global**: MRR, uso de IA, líderes ativos, franquias top.
 
----
+### 3.2 Franquia (`/franchise`)
+- Dashboard consolidado: empresas vinculadas, líderes ativos, evolução média.
+- Cadastrar colaboradores da franquia (com role interno).
+- Cadastrar empresas e vincular à franquia.
+- Cadastrar/convidar líderes das empresas.
+- Ver consumo de IA e status do plano da franquia.
+- Branding secundário (co-branding permitido pelo super admin).
 
-## 6. Permissões (RBAC + RLS)
+### 3.3 Empresa (`/company`)
+- Cadastrar colaboradores (RH, gestores).
+- Cadastrar líderes (usuários finais).
+- Ver dashboard agregado da empresa.
+- Configurar quais módulos ficam disponíveis para cada líder.
 
-Roles em `user_roles` (tabela separada) + função `has_role(_user_id, _role)` `SECURITY DEFINER`. Escopo por tenant via `is_member_of(org_id)` também `SECURITY DEFINER`.
-
-| Role | Escopo | Pode |
-|---|---|---|
-| `super_admin` (R2D2) | Global | Tudo: empresas, franquias, planos, split, IA global, logs |
-| `neo_admin` | Neo Pessoas | Metodologia, conteúdos, franqueados, dashboard executivo |
-| `franchise_admin` | Sua carteira | Cadastrar empresas/líderes, ver receitas, dashboards |
-| `company_admin` | 1 organization | Configurar empresa, áreas, líderes, KPIs, planos |
-| `leader` | Sua equipe | Rituais, PDI, feedbacks, 1:1, delegações, indicadores da equipe |
-| `collaborator` | Ele mesmo | PDI próprio, check-ins, feedbacks recebidos, IA coach |
-
-Toda tabela `public.*` recebe **GRANTs explícitos** + RLS habilitado + policies por role/tenant.
-
----
-
-## 7. Módulos (feature flags por plano)
-
-1. **Consciência** — autodiagnóstico do líder, perfil comportamental, CORE Score pessoal.
-2. **Organização** — rituais, agenda de liderança, delegações, 1:1s.
-3. **Resultado** — OKRs, KPIs, dashboards de execução.
-4. **Evolução** — PDI, feedbacks, biblioteca, IA Coach, trilhas.
-
-Cada módulo é ativado/desativado por `plan_features`. Planos: Essencial, Pro, Premium, IA.
+### 3.4 Líder (`/app`) — já existe
+- Dashboard pessoal, PDI, IA Coach, feedbacks, indicadores, rituais.
 
 ---
 
-## 8. Navegação por Persona
+## 4. Modelo de dados (novas tabelas)
 
-### Super Admin (R2D2)
-Sidebar: Visão Geral · Empresas · Franquias · Planos & Licenças · Financeiro & Split · IA Global (tokens/consumo) · Segurança & Logs · Configurações.
+Estado atual: já existem `organizations`, `memberships`, `profiles`, `user_roles` (roles `super_admin`, `neo_admin`, `collaborator`), `has_role`, `is_org_member`.
 
-### Neo Pessoas
-Sidebar: Executivo · Franqueados · Empresas · Metodologia · Rituais & Templates · Biblioteca · Cursos · IA Coach · Campanhas · Notificações.
+**Novas tabelas:**
 
-### Franqueado
-Sidebar: Dashboard Comercial · Dashboard Operacional · Empresas · Líderes · Licenças · Receitas.
+- `franchises` — id, name, slug, cnpj, owner_user_id, plan_id, status, branding (jsonb), created_at.
+- `franchise_members` — franchise_id, user_id, role (`owner`|`admin`|`consultant`), unique(franchise_id, user_id).
+- `plans` — id, name, slug, price_monthly, price_yearly, limits (jsonb: max_companies, max_leaders, max_ai_tokens, features[]), active.
+- `subscriptions` — id, owner_type (`franchise`|`organization`), owner_id, plan_id, status (`trial`|`active`|`past_due`|`canceled`), current_period_start/end, cancel_at, provider (`stripe`|`manual`), provider_customer_id, provider_subscription_id.
+- `invoices` — id, subscription_id, amount_cents, currency, status, due_date, paid_at, provider_invoice_id, pdf_url.
+- `ai_settings` — scope (`global`|`franchise`|`organization`), scope_id, provider (`openai`|`gemini`|`lovable_ai`), model, api_key_secret_ref, monthly_token_limit, temperature.
+- `ai_usage` — organization_id, franchise_id, user_id, provider, model, prompt_tokens, completion_tokens, cost_cents, created_at.
+- `branding` — scope (`global`|`franchise`|`organization`), scope_id, logo_url, primary_color, accent_color, favicon_url, email_from_name.
+- `methodology_competencies` — id, code, name, description, weight, order.
+- `apps_releases` — platform (`web`|`desktop`|`mobile`), version, channel (`stable`|`beta`), release_notes, published_at, download_url.
+- `audit_log` — actor_user_id, action, target_type, target_id, metadata (jsonb), created_at.
 
-### Empresa (company_admin)
-Sidebar: Visão da Empresa · Organograma · Áreas & Filiais · Líderes · Colaboradores · KPIs & Metas · Rituais · PDIs · Plano & Licenças.
+**Alterações:**
+- `organizations`: já tem `franchise_id` — garantir FK para `franchises.id` (hoje é texto solto).
+- `app_role` enum: adicionar `neo_admin` (se ainda não existir), papéis de franquia ficam em tabela própria.
+- `memberships.role`: enum próprio (`company_owner`|`company_admin`|`company_manager`|`leader`).
 
-### Líder (coração do produto)
-**Home = "Quem precisa da minha atenção?"** — cards priorizados pela IA, não gráficos.
-Sidebar: Hoje · Minha Equipe · Rituais · 1:1s · Feedbacks · Delegações · PDIs · Indicadores · CORE Score · IA Coach.
-
-### Colaborador
-Sidebar: Meu Dia · Meus Objetivos · Meu PDI · Feedbacks · Check-ins · Conversas · Desenvolvimento · IA.
-
----
-
-## 9. IA — Arquitetura
-
-- **Gateway abstrato** com providers plugáveis; token default = Neo Pessoas; empresa pode plugar próprio token.
-- **Features de IA:** priorização de atenção do líder, sugestões de pauta 1:1, resumo de feedbacks, análise de sentimento em check-ins, geração de PDI, alertas de risco (turnover, disengagement), CORE Score.
-- **Contabilização:** cada chamada → `ai_usage` com tenant, feature, tokens, custo. Limites por plano em `ai_limits`.
-- Chamadas sempre em `createServerFn` — chave nunca no cliente.
+**RLS + GRANTs** para todas as novas tabelas, com funções `SECURITY DEFINER`: `is_franchise_member(uid, fid)`, `is_franchise_admin(uid, fid)`, `has_plan_feature(org_id, feature)`.
 
 ---
 
-## 10. Financeiro
+## 5. Cobrança & IA
 
-- Stripe seamless como default; abstração `payment_provider` permite Asaas.
-- Webhooks em `src/routes/api/public/webhooks/stripe.ts` com verificação HMAC.
-- `revenue_splits`: 70% Neo Pessoas / 30% R2D2, calculado por fatura paga.
-- Ciclo: assinatura → licença por líder → suspensão automática em inadimplência → upgrade/downgrade em pró-rata.
-
----
-
-## 11. UX / Design System
-
-- Tokens `oklch` em `src/styles.css` (light + dark).
-- Tipografia: display serifado sutil + sans neutra (não Inter/Poppins default).
-- Paleta: base off-white/graphite, acento único forte (não roxo genérico).
-- Layouts: muita respiração, densidade calculada nas telas de líder, cards de ação (não formulários) na home.
-- Componentes: shadcn customizados via variantes (`hero`, `attention`, `ritual`, `core-score`).
-- Mobile-first, dark-mode-ready desde o início.
+- **Cobrança**: iniciar com registro manual (super admin marca `paid`), estrutura pronta para Stripe/Paddle depois. Webhook opcional na fase 2.
+- **IA**: chaves guardadas em secrets do backend (`OPENAI_API_KEY`, `GEMINI_API_KEY`). `ai_settings` diz qual usar por escopo. Toda chamada de IA passa por um wrapper que:
+  1. Resolve provider/model conforme escopo (org → franchise → global).
+  2. Checa `monthly_token_limit` vs `ai_usage`.
+  3. Registra uso em `ai_usage` (para billing e dashboard).
 
 ---
 
-## 12. Estrutura Técnica de Rotas (TanStack Start)
+## 6. UI — novas rotas
 
 ```text
-src/routes/
-  __root.tsx
-  index.tsx                       → landing institucional (lidercore.com.br)
-  auth.tsx                        → login/signup/SSO
-  _authenticated/
-    route.tsx                     → gate (managed)
-    app.tsx                       → shell (sidebar por persona)
-    app.index.tsx                 → redireciona conforme role
-    super/…                       → R2D2
-    neo/…                         → Neo Pessoas
-    franchise/…                   → Franqueado
-    company/…                     → Empresa
-    leader/                       → Líder (home = atenção)
-      index.tsx, team.tsx, rituals.tsx, one-on-ones.tsx,
-      feedbacks.tsx, delegations.tsx, pdis.tsx,
-      indicators.tsx, core-score.tsx, ai.tsx
-    me/…                          → Colaborador
-  api/public/webhooks/stripe.ts   → billing
+/admin                          já existe (super admin)
+/admin/franchises               lista + criar
+/admin/franchises/$id           detalhe (empresas, membros, plano)
+/admin/organizations            empresas diretas + todas
+/admin/organizations/$id
+/admin/users                    usuários globais + roles
+/admin/plans                    CRUD de planos
+/admin/subscriptions            licenças ativas + cobrança
+/admin/invoices
+/admin/ai                       provedor IA, chaves, limites
+/admin/branding
+/admin/methodology              competências C.O.R.E.
+/admin/apps                     releases web/desktop/mobile
+/admin/analytics
+
+/franchise                      dashboard da franquia
+/franchise/members
+/franchise/companies
+/franchise/companies/$id/leaders
+/franchise/billing
+/franchise/branding
+
+/company                        dashboard da empresa
+/company/members
+/company/leaders
+/company/settings
+
+/app/*                          já existe (líder)
 ```
 
----
-
-## 13. Roadmap de Implementação (após aprovação)
-
-1. **Fundações:** Lovable Cloud on, schema base (orgs, memberships, roles, RLS), auth + login social, design system, shell autenticado com sidebar dinâmica por role.
-2. **Persona Líder (MVP do coração):** Home "atenção", rituais, 1:1, feedbacks, delegações, PDI, indicadores, CORE Score.
-3. **Empresa & Franquia:** cadastros, organograma, dashboards.
-4. **Neo Pessoas & Super Admin:** metodologia, planos, licenças, split.
-5. **IA:** gateway, features de diagnóstico, contabilização.
-6. **Billing:** Stripe + webhooks + licenças automáticas.
-7. **Colaborador & biblioteca:** experiência simplificada + conteúdos.
+Guardas: `_authenticated` já existe. Adicionar `_admin`, `_franchise`, `_company` como layouts pathless que checam role antes de renderizar.
 
 ---
 
-## Próximo passo
+## 7. Fases de entrega
 
-Confirme (ou ajuste) esta arquitetura — hierarquia, entidades, roles, módulos, navegação e roadmap. Assim que aprovada, começo pela **Fase 1 (Fundações + shell + design system)** e sigo pela **Persona Líder** como MVP.
+**Fase 1 — Fundação (esta primeira migration + backend)**
+- Migration com todas as tabelas novas + RLS + GRANTs + funções auxiliares.
+- Seed do plano padrão ("Essencial") e do super admin (já existe).
+- Endpoints REST no backend Express: `/admin/franchises`, `/admin/plans`, `/admin/subscriptions`, `/admin/users`, `/admin/ai`, `/admin/stats` (expandir), `/franchises/:id/*`, `/organizations/:id/*`.
+
+**Fase 2 — Painel Super Admin**
+- Telas `/admin/franchises`, `/admin/organizations`, `/admin/users`, `/admin/plans`, `/admin/subscriptions`.
+- CRUD completo + tabelas com filtros e paginação.
+
+**Fase 3 — Painel Franquia**
+- Rotas `/franchise/*`, cadastro de empresas e líderes, dashboard consolidado.
+
+**Fase 4 — Painel Empresa**
+- Rotas `/company/*`, cadastro de líderes, permissões internas.
+
+**Fase 5 — IA, Branding, Metodologia**
+- Wrapper de IA com roteamento por provider + medidor de tokens.
+- Branding por escopo aplicado no runtime (CSS vars).
+- Editor de competências C.O.R.E.
+
+**Fase 6 — Cobrança real**
+- Integração Stripe (checkout, webhooks, invoices).
+- Página pública de planos.
+
+**Fase 7 — Apps & Desktop**
+- Página `/admin/apps` com releases.
+- Empacotamento Electron (repositório separado, mesmo backend).
 
 ---
 
-## 14. Reconciliação com a Especificação Funcional (PDF oficial)
+## 8. O que preciso confirmar antes de codar
 
-O PDF `Lider_CORE_Especificacao_Funcional.pdf` confirma a arquitetura acima e adiciona **regras não-negociáveis** que passam a governar o produto:
+1. **Cobrança**: começamos com registro manual + estrutura pronta para Stripe (recomendado) ou já integrar Stripe agora?
+2. **IA**: quer que eu já suba o wrapper suportando OpenAI + Gemini + Lovable AI, ou só a estrutura de config nesta fase?
+3. **Desktop**: só a página de releases agora, ou já quer o projeto Electron iniciado?
+4. **Ordem**: começo pela Fase 1 (migration + backend) e Fase 2 (painel super admin completo) neste ciclo? Ou prefere outra prioridade?
 
-### 14.1 Regra de ouro
-> "Toda informação que pode ser inferida a partir do uso do sistema NÃO deve ser pedida como formulário de autoavaliação."
-
-O líder registra **fatos operacionais** (rituais, entregas, feedbacks, indicadores). O sistema **infere** maturidade, risco e sabotadores ativos. Nenhuma tela de autoavaliação semanal.
-
-### 14.2 Metáfora da bicicleta (arquitetura de dados)
-- **R** (roda traseira / tração): planejamento, indicadores, fatos.
-- **C** (roda dianteira / direção): perfil, maturidade, leitura humana.
-- **O** (eixo): rituais e comunicação — sem eixo, as rodas não andam.
-- **E** (velocímetro): mede sustentação ao longo do tempo, não pedala.
-
-**Implicação:** os 4 módulos compartilham **uma única base de dados** — quatro leituras sobre o mesmo conjunto de fatos. Isso reforça o `organization_id` universal + views especializadas por módulo.
-
-### 14.3 Ajustes por módulo
-
-**C — Consciência**
-- Assessment comportamental (Big Five/DISC + sabotadores + egograma) — **1 vez** ou a cada 90 dias, nunca semanal.
-- Feature central: **alertas cruzados** — o sistema combina queda de rituais (O) + perfil (C) para gerar leitura comportamental automática. Ex.: "seus rituais caíram 40% — combina com seu padrão de controle sob pressão".
-- Visibilidade: perfil detalhado é **foro íntimo** do líder; empresa vê apenas "mapeado sim/não".
-
-**O — Organização**
-- **Mapa da Área** (config inicial, revisão trimestral): propósito, entregas, indicadores.
-- Rituais com marcação **1 toque** (feito / não feito) — não relatório.
-- Registro de decisão por ritual é **opcional e curto** (texto livre), nunca questionário.
-
-**R — Resultado**
-- Indicadores em **3 níveis**: área, individuais, liderança.
-- **Indicador de concentração** ("carga na própria mão"): % de entregas ativas sob responsabilidade direta do líder. Acima de **30%** → alerta automático de centralização.
-- Delegações com combinado registrado 1 vez (o quê, quem, prazo, critério de feito); status muda automaticamente pelo prazo.
-
-**E — Evolução**
-- **CORE Score** = 100% calculado a partir dos outros 3 módulos. Nenhuma pergunta de autoavaliação alimenta o score diretamente.
-- Radar de maturidade + evolução mensal + plano de desenvolvimento.
-
-### 14.4 Visão da Empresa (RH/Diretoria) — limite de visibilidade
-A empresa **NÃO vê**:
-- Conteúdo de 1:1s;
-- Feedbacks individuais em texto;
-- Perfil comportamental detalhado;
-- Registro de conversas difíceis.
-
-A empresa vê **agregados**: adesão a rituais, saúde geral, CORE Score consolidado, quantidade (não conteúdo) de feedbacks/conversas. **Esse limite é o que sustenta a confiança do líder no sistema** — sem ele, o produto vira ferramenta de avaliação e perde a função.
-
-### 14.5 Modelos de conversa (Módulo E — Feedbacks)
-Templates prontos para: feedback positivo, corretivo, alinhamento, cobrança, conflito, desligamento, reconhecimento. Baseados em: firmeza com amor · verdade sem dureza · afeto sem permissividade. Diagnóstico: técnico / emocional / relacional / governança. Referência: 5 disfunções de equipes (Lencioni).
-
-### 14.6 Faseamento oficial (substitui roadmap anterior)
-1. **Fase 1 — Esqueleto operacional**: Módulo O (mapa da área + rituais feito/quebrado).
-2. **Fase 2 — Fatos de gestão**: Módulo R (indicadores, delegações, indicador de concentração).
-3. **Fase 3 — Leitura humana**: Módulo C (assessment + alertas cruzados).
-4. **Fase 4 — Sustentação + empresa**: Módulo E (CORE Score + diagnóstico automático) + dashboard executivo.
-
-**Critério de avanço:** cada fase validada com pequeno grupo de líderes reais por **3-4 semanas de uso sustentado** — não aprovação em demo.
-
-### 14.7 Divergências com o plano anterior (resolvidas a favor do PDF)
-- ✅ Removido: telas de autoavaliação semanal → substituídas por **inferência** a partir de fatos.
-- ✅ Ajustado: CORE Score deixa de ser um input e passa a ser **100% derivado**.
-- ✅ Adicionado: **indicador de concentração** e **alertas cruzados** como features centrais.
-- ✅ Reforçado: limites de visibilidade da empresa (RH/diretoria não vê detalhe operacional).
-- ✅ Reordenado: roadmap agora começa por **Módulo O** (esqueleto operacional), não por dashboard genérico.
-
-### 14.8 Impacto imediato no código
-- A home atual do líder (`/app`) já segue o princípio "quem precisa da atenção agora" ✅.
-- As stubs de rituais / delegações / indicadores / feedbacks / PDIs / IA permanecem — serão implementadas nesta ordem de fases.
-- O schema precisa incluir: `area_map`, `ritual_templates` × `ritual_instances`, `delegations` com auto-status por prazo, `assessments` (1 por 90d), `ai_cross_alerts`, e a função de cálculo do `core_score`.
+Confirme os 4 pontos e eu já sigo com a Fase 1 + 2 numa tacada.
