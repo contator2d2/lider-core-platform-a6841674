@@ -272,7 +272,7 @@ const planSchema = z.object({
 adminRouter.post("/plans", async (req, res) => {
   const parsed = planSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.create({ data: parsed.data });
+  const p = await prisma.plan.create({ data: parsed.data as never });
   res.status(201).json(p);
 });
 
