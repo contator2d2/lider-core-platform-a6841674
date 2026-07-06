@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 
@@ -269,17 +270,35 @@ const planSchema = z.object({
   active: z.boolean().default(true),
 });
 
+type PlanInput = z.infer<typeof planSchema>;
+
+const toPlanCreateInput = (data: PlanInput): Prisma.PlanCreateInput => {
+  const { limits, ...rest } = data;
+  return {
+    ...rest,
+    ...(limits !== undefined ? { limits: limits === null ? Prisma.DbNull : limits } : {}),
+  };
+};
+
+const toPlanUpdateInput = (data: Partial<PlanInput>): Prisma.PlanUpdateInput => {
+  const { limits, ...rest } = data;
+  return {
+    ...rest,
+    ...(limits !== undefined ? { limits: limits === null ? Prisma.DbNull : limits } : {}),
+  };
+};
+
 adminRouter.post("/plans", async (req, res) => {
   const parsed = planSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.create({ data: parsed.data as never });
+  const p = await prisma.plan.create({ data: toPlanCreateInput(parsed.data) });
   res.status(201).json(p);
 });
 
 adminRouter.patch("/plans/:id", async (req, res) => {
   const parsed = planSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.update({ where: { id: req.params.id }, data: parsed.data as never });
+  const p = await prisma.plan.update({ where: { id: req.params.id }, data: toPlanUpdateInput(parsed.data) });
   res.json(p);
 });
 
