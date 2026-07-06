@@ -279,7 +279,7 @@ adminRouter.post("/plans", async (req, res) => {
 adminRouter.patch("/plans/:id", async (req, res) => {
   const parsed = planSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.update({ where: { id: req.params.id }, data: parsed.data });
+  const p = await prisma.plan.update({ where: { id: req.params.id }, data: parsed.data as never });
   res.json(p);
 });
 
@@ -361,9 +361,9 @@ adminRouter.post("/ai-settings", async (req, res) => {
     where: {
       scope_scopeId: {
         scope: parsed.data.scope,
-        scopeId: parsed.data.scopeId ?? null,
+        scopeId: parsed.data.scopeId ?? "",
       },
-    },
+    } as never,
     update: parsed.data,
     create: parsed.data,
   });
@@ -393,8 +393,8 @@ adminRouter.post("/branding", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const b = await prisma.branding.upsert({
     where: {
-      scope_scopeId: { scope: parsed.data.scope, scopeId: parsed.data.scopeId ?? null },
-    },
+      scope_scopeId: { scope: parsed.data.scope, scopeId: parsed.data.scopeId ?? "" },
+    } as never,
     update: parsed.data,
     create: parsed.data,
   });
