@@ -16,7 +16,7 @@ type AISettings = {
   id: string;
   scope: string;
   scopeId: string | null;
-  provider: "openai" | "gemini" | "lovable_ai";
+  provider: "openai" | "gemini";
   model: string;
   apiKeySecretRef: string | null;
   monthlyTokenLimit: number | null;
@@ -32,8 +32,8 @@ function AIPage() {
 
   const global = list.data?.find((s) => s.scope === "global");
 
-  const [provider, setProvider] = useState<AISettings["provider"]>("lovable_ai");
-  const [model, setModel] = useState("google/gemini-2.5-flash");
+  const [provider, setProvider] = useState<AISettings["provider"]>("openai");
+  const [model, setModel] = useState("gpt-4o-mini");
   const [apiKeySecretRef, setApiKeySecretRef] = useState("");
   const [monthlyTokenLimit, setMonthlyTokenLimit] = useState(1000000);
   const [temperature, setTemperature] = useState(0.7);
@@ -72,7 +72,6 @@ function AIPage() {
   const modelSuggestions: Record<AISettings["provider"], string[]> = {
     openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
     gemini: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"],
-    lovable_ai: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5"],
   };
 
   return (
@@ -95,7 +94,6 @@ function AIPage() {
                 setModel(modelSuggestions[p][0]);
               }}
             >
-              <option value="lovable_ai">Lovable AI (gateway)</option>
               <option value="openai">OpenAI (chave própria)</option>
               <option value="gemini">Google Gemini (chave própria)</option>
             </select>
@@ -109,8 +107,7 @@ function AIPage() {
               ))}
             </datalist>
           </div>
-          {provider !== "lovable_ai" && (
-            <div className="space-y-1.5">
+          <div className="space-y-1.5">
               <Label>
                 Nome da variável de ambiente com a API Key
                 <span className="text-muted-foreground"> (ex.: OPENAI_API_KEY)</span>
@@ -123,8 +120,7 @@ function AIPage() {
               <p className="text-xs text-muted-foreground">
                 A chave em si vive nas variáveis de ambiente do backend. Aqui você só referencia qual variável usar.
               </p>
-            </div>
-          )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Limite mensal de tokens</Label>

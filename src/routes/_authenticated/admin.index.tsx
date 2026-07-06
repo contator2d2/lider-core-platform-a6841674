@@ -57,7 +57,7 @@ function AdminHome() {
         />
         <ActionCard
           title="Provedor de IA"
-          description="OpenAI, Gemini ou Lovable AI — modelo e limites."
+          description="OpenAI ou Gemini — modelo e limites."
           to="/admin/ai"
         />
       </section>
