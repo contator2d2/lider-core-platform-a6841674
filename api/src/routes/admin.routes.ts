@@ -354,7 +354,7 @@ adminRouter.get("/ai-settings", async (_req, res) => {
 const aiSchema = z.object({
   scope: z.enum(["global", "franchise", "organization"]),
   scopeId: z.string().uuid().optional().nullable(),
-  provider: z.enum(["openai", "gemini", "lovable_ai"]),
+  provider: z.enum(["openai", "gemini"]),
   model: z.string().min(1),
   apiKeySecretRef: z.string().optional().nullable(),
   monthlyTokenLimit: z.number().int().min(0).optional().nullable(),
