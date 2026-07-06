@@ -269,17 +269,24 @@ const planSchema = z.object({
   active: z.boolean().default(true),
 });
 
+type PlanInput = z.infer<typeof planSchema>;
+
+const normalizePlanData = (data: Partial<PlanInput>): never => {
+  const { limits, ...rest } = data;
+  return (limits == null ? rest : { ...rest, limits }) as never;
+};
+
 adminRouter.post("/plans", async (req, res) => {
   const parsed = planSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.create({ data: parsed.data as never });
+  const p = await prisma.plan.create({ data: normalizePlanData(parsed.data) });
   res.status(201).json(p);
 });
 
 adminRouter.patch("/plans/:id", async (req, res) => {
   const parsed = planSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.update({ where: { id: req.params.id }, data: parsed.data as never });
+  const p = await prisma.plan.update({ where: { id: req.params.id }, data: normalizePlanData(parsed.data) });
   res.json(p);
 });
 
