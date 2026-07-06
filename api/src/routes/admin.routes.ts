@@ -271,9 +271,9 @@ const planSchema = z.object({
 
 type PlanInput = z.infer<typeof planSchema>;
 
-const normalizePlanData = (data: Partial<PlanInput>) => {
+const normalizePlanData = (data: Partial<PlanInput>): never => {
   const { limits, ...rest } = data;
-  return limits == null ? rest : { ...rest, limits };
+  return (limits == null ? rest : { ...rest, limits }) as never;
 };
 
 adminRouter.post("/plans", async (req, res) => {
