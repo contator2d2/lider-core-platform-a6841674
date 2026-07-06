@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 
@@ -272,33 +271,22 @@ const planSchema = z.object({
 
 type PlanInput = z.infer<typeof planSchema>;
 
-const toPlanCreateInput = (data: PlanInput): Prisma.PlanCreateInput => {
+const normalizePlanData = (data: Partial<PlanInput>) => {
   const { limits, ...rest } = data;
-  return {
-    ...rest,
-    ...(limits !== undefined ? { limits: limits === null ? Prisma.DbNull : limits } : {}),
-  };
-};
-
-const toPlanUpdateInput = (data: Partial<PlanInput>): Prisma.PlanUpdateInput => {
-  const { limits, ...rest } = data;
-  return {
-    ...rest,
-    ...(limits !== undefined ? { limits: limits === null ? Prisma.DbNull : limits } : {}),
-  };
+  return limits == null ? rest : { ...rest, limits };
 };
 
 adminRouter.post("/plans", async (req, res) => {
   const parsed = planSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.create({ data: toPlanCreateInput(parsed.data) });
+  const p = await prisma.plan.create({ data: normalizePlanData(parsed.data) });
   res.status(201).json(p);
 });
 
 adminRouter.patch("/plans/:id", async (req, res) => {
   const parsed = planSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const p = await prisma.plan.update({ where: { id: req.params.id }, data: toPlanUpdateInput(parsed.data) });
+  const p = await prisma.plan.update({ where: { id: req.params.id }, data: normalizePlanData(parsed.data) });
   res.json(p);
 });
 
