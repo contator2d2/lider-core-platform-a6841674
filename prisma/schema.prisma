@@ -69,7 +69,6 @@ enum InvoiceStatus {
 enum AIProvider {
   openai
   gemini
-  lovable_ai
 }
 
 enum ScopeType {
