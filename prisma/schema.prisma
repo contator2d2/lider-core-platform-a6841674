@@ -434,6 +434,8 @@ model Plan {
 
   franchises    Franchise[]
   subscriptions Subscription[]
+  planModules   PlanModule[]
+  licenses      License[]
 
   @@map("plans")
 }
