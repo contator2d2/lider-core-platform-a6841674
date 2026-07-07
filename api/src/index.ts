@@ -9,6 +9,7 @@ import { orgsRouter } from "./routes/organizations.routes.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import { franchiseRouter } from "./routes/franchise.routes.js";
 import { companyRouter } from "./routes/company.routes.js";
+import { platformRouter } from "./routes/platform.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -96,6 +97,7 @@ app.use("/organizations", orgsRouter);
 app.use("/admin", adminRouter);
 app.use("/franchises", franchiseRouter);
 app.use("/companies", companyRouter);
+app.use("/platform", platformRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
@@ -110,6 +112,8 @@ app.listen(env.PORT, () => {
   void bootstrapSuperAdmins();
   void bootstrapDefaultPlans();
   void bootstrapDefaultCompetencies();
+  void bootstrapDefaultModules();
+  void bootstrapDefaultPermissions();
 });
 
 async function bootstrapSuperAdmins() {
@@ -201,5 +205,66 @@ async function bootstrapDefaultCompetencies() {
     console.log(`[bootstrap] competências C.O.R.E. garantidas (${defaults.length})`);
   } catch (err) {
     console.error("[bootstrap] falha ao criar competências", err);
+  }
+}
+
+async function bootstrapDefaultModules() {
+  const defaults = [
+    { code: "consciencia", name: "Consciência", category: "core" as const, orderIndex: 1 },
+    { code: "organizacao", name: "Organização", category: "core" as const, orderIndex: 2 },
+    { code: "resultado", name: "Resultado", category: "core" as const, orderIndex: 3 },
+    { code: "evolucao", name: "Evolução", category: "core" as const, orderIndex: 4 },
+    { code: "ia_coach", name: "IA Coach", category: "ia" as const, orderIndex: 5 },
+    { code: "dashboard_executivo", name: "Dashboard Executivo", category: "analytics" as const, orderIndex: 6 },
+    { code: "analytics", name: "Analytics", category: "analytics" as const, orderIndex: 7 },
+    { code: "benchmark", name: "Benchmark", category: "analytics" as const, orderIndex: 8 },
+    { code: "feedback", name: "Feedback 360º", category: "people" as const, orderIndex: 9 },
+    { code: "pdi", name: "PDI", category: "people" as const, orderIndex: 10 },
+  ];
+  try {
+    for (const m of defaults) {
+      await prisma.productModule.upsert({
+        where: { code: m.code },
+        update: {},
+        create: m,
+      });
+    }
+    console.log(`[bootstrap] módulos do produto garantidos (${defaults.length})`);
+  } catch (err) {
+    console.error("[bootstrap] falha ao criar módulos", err);
+  }
+}
+
+async function bootstrapDefaultPermissions() {
+  // Matriz padrão sensata; admins podem customizar depois.
+  const grants: Array<{ role: "super_admin" | "neo_admin" | "franchise_owner" | "hr_admin" | "leader" | "collaborator"; resource: string; action: "view" | "edit" | "delete" | "export" | "admin" }> = [];
+  const RESOURCES = [
+    "organizations", "franchises", "users", "branches", "areas", "teams",
+    "plans", "licenses", "subscriptions", "invoices", "ai_settings",
+    "branding", "methodology", "modules", "onboarding", "audit_log", "settings", "reports",
+  ];
+  // super_admin: tudo
+  for (const r of RESOURCES) for (const a of ["view", "edit", "delete", "export", "admin"] as const) grants.push({ role: "super_admin", resource: r, action: a });
+  // neo_admin: tudo exceto delete em plans/licenses/subscriptions
+  for (const r of RESOURCES) for (const a of ["view", "edit", "export"] as const) grants.push({ role: "neo_admin", resource: r, action: a });
+  // franchise_owner: view/edit em orgs, users, branches, areas, teams, licenses, onboarding, reports
+  for (const r of ["organizations", "users", "branches", "areas", "teams", "licenses", "onboarding", "reports", "branding"]) for (const a of ["view", "edit", "export"] as const) grants.push({ role: "franchise_owner", resource: r, action: a });
+  // hr_admin: users/areas/teams/onboarding/reports
+  for (const r of ["users", "branches", "areas", "teams", "onboarding", "reports"]) for (const a of ["view", "edit"] as const) grants.push({ role: "hr_admin", resource: r, action: a });
+  // leader: view teams/reports/users
+  for (const r of ["users", "areas", "teams", "reports"]) grants.push({ role: "leader", resource: r, action: "view" });
+  // collaborator: view próprio time/reports básicos
+  for (const r of ["teams", "reports"]) grants.push({ role: "collaborator", resource: r, action: "view" });
+  try {
+    for (const g of grants) {
+      await prisma.rolePermission.upsert({
+        where: { role_resource_action: g },
+        update: {},
+        create: g,
+      });
+    }
+    console.log(`[bootstrap] permissões padrão garantidas (${grants.length})`);
+  } catch (err) {
+    console.error("[bootstrap] falha ao criar permissões", err);
   }
 }
