@@ -16,21 +16,59 @@ import {
   BookOpen,
   Package,
   ArrowLeftRight,
+  Network,
+  KeyRound,
+  ShieldCheck,
+  ClipboardCheck,
+  FileText,
+  Boxes,
   type LucideIcon,
 } from "lucide-react";
 
-const navItems: Array<{ to: string; label: string; icon: LucideIcon }> = [
-  { to: "/admin", label: "Visão Geral", icon: LayoutDashboard },
-  { to: "/admin/franchises", label: "Franquias", icon: Store },
-  { to: "/admin/organizations", label: "Empresas", icon: Building2 },
-  { to: "/admin/users", label: "Usuários", icon: Users },
-  { to: "/admin/plans", label: "Planos", icon: Package },
-  { to: "/admin/subscriptions", label: "Assinaturas", icon: CreditCard },
-  { to: "/admin/invoices", label: "Faturas", icon: Receipt },
-  { to: "/admin/ai", label: "Provedor IA", icon: Brain },
-  { to: "/admin/branding", label: "Branding", icon: Palette },
-  { to: "/admin/methodology", label: "Metodologia", icon: BookOpen },
-  { to: "/admin/apps", label: "Apps & Versões", icon: Package },
+type NavItem = { to: string; label: string; icon: LucideIcon };
+type NavSection = { title: string; items: NavItem[] };
+
+const navSections: NavSection[] = [
+  {
+    title: "Visão",
+    items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "Tenants",
+    items: [
+      { to: "/admin/franchises", label: "Franquias", icon: Store },
+      { to: "/admin/organizations", label: "Empresas", icon: Building2 },
+      { to: "/admin/hierarchy", label: "Filiais / Áreas / Equipes", icon: Network },
+      { to: "/admin/users", label: "Usuários", icon: Users },
+      { to: "/admin/permissions", label: "Permissões (RBAC)", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "Comercial",
+    items: [
+      { to: "/admin/plans", label: "Planos", icon: Package },
+      { to: "/admin/modules", label: "Módulos do produto", icon: Boxes },
+      { to: "/admin/licenses", label: "Licenças", icon: KeyRound },
+      { to: "/admin/subscriptions", label: "Assinaturas", icon: CreditCard },
+      { to: "/admin/invoices", label: "Faturas", icon: Receipt },
+    ],
+  },
+  {
+    title: "Implantação",
+    items: [
+      { to: "/admin/onboarding", label: "Onboarding", icon: ClipboardCheck },
+    ],
+  },
+  {
+    title: "Plataforma",
+    items: [
+      { to: "/admin/ai", label: "Provedor IA", icon: Brain },
+      { to: "/admin/branding", label: "Branding", icon: Palette },
+      { to: "/admin/methodology", label: "Metodologia", icon: BookOpen },
+      { to: "/admin/apps", label: "Apps & Versões", icon: Package },
+      { to: "/admin/logs", label: "Logs de auditoria", icon: FileText },
+    ],
+  },
 ];
 
 export function AdminShell() {
@@ -57,27 +95,34 @@ export function AdminShell() {
               Super Admin
             </span>
           </div>
-          <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-            {navItems.map((item) => {
-              const active =
-                item.to === "/admin"
-                  ? pathname === "/admin" || pathname === "/admin/"
-                  : pathname.startsWith(item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                    active
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                  {item.label}
-                </Link>
-              );
-            })}
+          <nav className="flex-1 space-y-4 overflow-y-auto p-3">
+            {navSections.map((section) => (
+              <div key={section.title} className="space-y-0.5">
+                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                  {section.title}
+                </div>
+                {section.items.map((item) => {
+                  const active =
+                    item.to === "/admin"
+                      ? pathname === "/admin" || pathname === "/admin/"
+                      : pathname.startsWith(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                        active
+                          ? "bg-secondary text-foreground"
+                          : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
           <div className="border-t border-border p-3">
             <div className="mb-2 truncate px-3 text-xs text-muted-foreground">
