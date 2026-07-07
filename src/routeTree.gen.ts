@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminOrganizationsRouteImport } from './routes/_authenticated/admin.organizations'
 import { Route as AuthenticatedAdminModulesRouteImport } from './routes/_authenticated/admin.modules'
 import { Route as AuthenticatedAdminMethodologyRouteImport } from './routes/_authenticated/admin.methodology'
+import { Route as AuthenticatedAdminLicensesRouteImport } from './routes/_authenticated/admin.licenses'
 import { Route as AuthenticatedAdminInvoicesRouteImport } from './routes/_authenticated/admin.invoices'
 import { Route as AuthenticatedAdminHierarchyRouteImport } from './routes/_authenticated/admin.hierarchy'
 import { Route as AuthenticatedAdminFranchisesRouteImport } from './routes/_authenticated/admin.franchises'
@@ -149,6 +150,12 @@ const AuthenticatedAdminMethodologyRoute =
     path: '/methodology',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLicensesRoute =
+  AuthenticatedAdminLicensesRouteImport.update({
+    id: '/licenses',
+    path: '/licenses',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminInvoicesRoute =
   AuthenticatedAdminInvoicesRouteImport.update({
     id: '/invoices',
@@ -195,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
+  '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/methodology': typeof AuthenticatedAdminMethodologyRoute
   '/admin/modules': typeof AuthenticatedAdminModulesRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
+  '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/methodology': typeof AuthenticatedAdminMethodologyRoute
   '/admin/modules': typeof AuthenticatedAdminModulesRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -251,6 +260,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/_authenticated/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/_authenticated/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
+  '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/_authenticated/admin/methodology': typeof AuthenticatedAdminMethodologyRoute
   '/_authenticated/admin/modules': typeof AuthenticatedAdminModulesRoute
   '/_authenticated/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/admin/franchises'
     | '/admin/hierarchy'
     | '/admin/invoices'
+    | '/admin/licenses'
     | '/admin/methodology'
     | '/admin/modules'
     | '/admin/organizations'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/admin/franchises'
     | '/admin/hierarchy'
     | '/admin/invoices'
+    | '/admin/licenses'
     | '/admin/methodology'
     | '/admin/modules'
     | '/admin/organizations'
@@ -336,6 +348,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/franchises'
     | '/_authenticated/admin/hierarchy'
     | '/_authenticated/admin/invoices'
+    | '/_authenticated/admin/licenses'
     | '/_authenticated/admin/methodology'
     | '/_authenticated/admin/modules'
     | '/_authenticated/admin/organizations'
@@ -509,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMethodologyRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/licenses': {
+      id: '/_authenticated/admin/licenses'
+      path: '/licenses'
+      fullPath: '/admin/licenses'
+      preLoaderRoute: typeof AuthenticatedAdminLicensesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/invoices': {
       id: '/_authenticated/admin/invoices'
       path: '/invoices'
@@ -561,6 +581,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFranchisesRoute: typeof AuthenticatedAdminFranchisesRoute
   AuthenticatedAdminHierarchyRoute: typeof AuthenticatedAdminHierarchyRoute
   AuthenticatedAdminInvoicesRoute: typeof AuthenticatedAdminInvoicesRoute
+  AuthenticatedAdminLicensesRoute: typeof AuthenticatedAdminLicensesRoute
   AuthenticatedAdminMethodologyRoute: typeof AuthenticatedAdminMethodologyRoute
   AuthenticatedAdminModulesRoute: typeof AuthenticatedAdminModulesRoute
   AuthenticatedAdminOrganizationsRoute: typeof AuthenticatedAdminOrganizationsRoute
@@ -577,6 +598,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFranchisesRoute: AuthenticatedAdminFranchisesRoute,
   AuthenticatedAdminHierarchyRoute: AuthenticatedAdminHierarchyRoute,
   AuthenticatedAdminInvoicesRoute: AuthenticatedAdminInvoicesRoute,
+  AuthenticatedAdminLicensesRoute: AuthenticatedAdminLicensesRoute,
   AuthenticatedAdminMethodologyRoute: AuthenticatedAdminMethodologyRoute,
   AuthenticatedAdminModulesRoute: AuthenticatedAdminModulesRoute,
   AuthenticatedAdminOrganizationsRoute: AuthenticatedAdminOrganizationsRoute,
