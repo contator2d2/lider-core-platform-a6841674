@@ -17,4 +17,6 @@ export const env = {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
+  PUBLIC_API_URL: process.env.PUBLIC_API_URL ?? "",
+  UPLOADS_DIR: process.env.UPLOADS_DIR ?? "/app/uploads",
 };
