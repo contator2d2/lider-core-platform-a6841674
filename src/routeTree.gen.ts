@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminOrganizationsRouteImport } from './routes/_authenticated/admin.organizations'
 import { Route as AuthenticatedAdminMethodologyRouteImport } from './routes/_authenticated/admin.methodology'
 import { Route as AuthenticatedAdminInvoicesRouteImport } from './routes/_authenticated/admin.invoices'
+import { Route as AuthenticatedAdminHierarchyRouteImport } from './routes/_authenticated/admin.hierarchy'
 import { Route as AuthenticatedAdminFranchisesRouteImport } from './routes/_authenticated/admin.franchises'
 import { Route as AuthenticatedAdminBrandingRouteImport } from './routes/_authenticated/admin.branding'
 import { Route as AuthenticatedAdminAppsRouteImport } from './routes/_authenticated/admin.apps'
@@ -147,6 +148,12 @@ const AuthenticatedAdminInvoicesRoute =
     path: '/invoices',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminHierarchyRoute =
+  AuthenticatedAdminHierarchyRouteImport.update({
+    id: '/hierarchy',
+    path: '/hierarchy',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFranchisesRoute =
   AuthenticatedAdminFranchisesRouteImport.update({
     id: '/franchises',
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
+  '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/admin/methodology': typeof AuthenticatedAdminMethodologyRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -203,6 +211,7 @@ export interface FileRoutesByTo {
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
+  '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/admin/methodology': typeof AuthenticatedAdminMethodologyRoute
   '/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -231,6 +240,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/_authenticated/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/_authenticated/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
+  '/_authenticated/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/_authenticated/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/_authenticated/admin/methodology': typeof AuthenticatedAdminMethodologyRoute
   '/_authenticated/admin/organizations': typeof AuthenticatedAdminOrganizationsRoute
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/admin/apps'
     | '/admin/branding'
     | '/admin/franchises'
+    | '/admin/hierarchy'
     | '/admin/invoices'
     | '/admin/methodology'
     | '/admin/organizations'
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/admin/apps'
     | '/admin/branding'
     | '/admin/franchises'
+    | '/admin/hierarchy'
     | '/admin/invoices'
     | '/admin/methodology'
     | '/admin/organizations'
@@ -310,6 +322,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/apps'
     | '/_authenticated/admin/branding'
     | '/_authenticated/admin/franchises'
+    | '/_authenticated/admin/hierarchy'
     | '/_authenticated/admin/invoices'
     | '/_authenticated/admin/methodology'
     | '/_authenticated/admin/organizations'
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminInvoicesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/hierarchy': {
+      id: '/_authenticated/admin/hierarchy'
+      path: '/hierarchy'
+      fullPath: '/admin/hierarchy'
+      preLoaderRoute: typeof AuthenticatedAdminHierarchyRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/franchises': {
       id: '/_authenticated/admin/franchises'
       path: '/franchises'
@@ -519,6 +539,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAppsRoute: typeof AuthenticatedAdminAppsRoute
   AuthenticatedAdminBrandingRoute: typeof AuthenticatedAdminBrandingRoute
   AuthenticatedAdminFranchisesRoute: typeof AuthenticatedAdminFranchisesRoute
+  AuthenticatedAdminHierarchyRoute: typeof AuthenticatedAdminHierarchyRoute
   AuthenticatedAdminInvoicesRoute: typeof AuthenticatedAdminInvoicesRoute
   AuthenticatedAdminMethodologyRoute: typeof AuthenticatedAdminMethodologyRoute
   AuthenticatedAdminOrganizationsRoute: typeof AuthenticatedAdminOrganizationsRoute
@@ -533,6 +554,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAppsRoute: AuthenticatedAdminAppsRoute,
   AuthenticatedAdminBrandingRoute: AuthenticatedAdminBrandingRoute,
   AuthenticatedAdminFranchisesRoute: AuthenticatedAdminFranchisesRoute,
+  AuthenticatedAdminHierarchyRoute: AuthenticatedAdminHierarchyRoute,
   AuthenticatedAdminInvoicesRoute: AuthenticatedAdminInvoicesRoute,
   AuthenticatedAdminMethodologyRoute: AuthenticatedAdminMethodologyRoute,
   AuthenticatedAdminOrganizationsRoute: AuthenticatedAdminOrganizationsRoute,
