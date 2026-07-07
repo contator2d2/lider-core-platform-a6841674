@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import fs from "node:fs";
 import { env } from "./env.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { orgsRouter } from "./routes/organizations.routes.js";
@@ -71,6 +72,22 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+
+// Serve uploaded files (logos, favicons, brand assets)
+try {
+  fs.mkdirSync(env.UPLOADS_DIR, { recursive: true });
+} catch (err) {
+  console.error("[uploads] cannot create dir", env.UPLOADS_DIR, err);
+}
+app.use(
+  "/uploads",
+  express.static(env.UPLOADS_DIR, {
+    maxAge: "7d",
+    setHeaders: (res) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  }),
+);
 
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 

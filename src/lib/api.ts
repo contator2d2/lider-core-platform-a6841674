@@ -70,6 +70,36 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
   return data as T;
 }
 
+export async function uploadFile(
+  path: string,
+  file: File,
+  fieldName = "file",
+): Promise<{ url: string; path: string; filename: string; size: number; mimeType: string }> {
+  if (!API_URL) {
+    throw new ApiError("VITE_API_URL não configurada.", 0, null);
+  }
+  const token = getToken();
+  const fd = new FormData();
+  fd.append(fieldName, file);
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: fd,
+  });
+  const isJson = res.headers.get("content-type")?.includes("application/json");
+  const data = isJson ? await res.json() : await res.text();
+  if (!res.ok) {
+    const msg =
+      (isJson && typeof data === "object" && data && "error" in data
+        ? String((data as { error: unknown }).error)
+        : typeof data === "string"
+          ? data
+          : "Upload failed") || "Upload failed";
+    throw new ApiError(msg, res.status, data);
+  }
+  return data as { url: string; path: string; filename: string; size: number; mimeType: string };
+}
+
 export type Me = {
   id: string;
   email: string;

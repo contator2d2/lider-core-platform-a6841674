@@ -1,12 +1,74 @@
 import { Router } from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import path from "node:path";
+import fs from "node:fs";
+import crypto from "node:crypto";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
+import { env } from "../env.js";
 
 export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireRoles("super_admin", "neo_admin"));
+
+// ============================================================
+// File uploads (branding assets: logos, favicons, etc.)
+// ============================================================
+const ALLOWED_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+  "image/gif",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+]);
+
+const uploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    try {
+      fs.mkdirSync(env.UPLOADS_DIR, { recursive: true });
+      cb(null, env.UPLOADS_DIR);
+    } catch (err) {
+      cb(err as Error, env.UPLOADS_DIR);
+    }
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase().slice(0, 8) || ".bin";
+    const safeExt = /^\.[a-z0-9]+$/.test(ext) ? ext : ".bin";
+    const id = crypto.randomBytes(12).toString("hex");
+    cb(null, `${Date.now()}-${id}${safeExt}`);
+  },
+});
+
+const upload = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_MIME.has(file.mimetype)) {
+      return cb(new Error("Formato não suportado. Use PNG, JPG, WEBP, SVG, GIF ou ICO."));
+    }
+    cb(null, true);
+  },
+});
+
+adminRouter.post("/uploads", (req, res) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message ?? "Upload falhou" });
+    if (!req.file) return res.status(400).json({ error: "Arquivo ausente" });
+    const base = (env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+    const url = `${base}/uploads/${req.file.filename}`;
+    res.status(201).json({
+      url,
+      path: `/uploads/${req.file.filename}`,
+      filename: req.file.filename,
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+    });
+  });
+});
 
 // ============================================================
 // Stats
