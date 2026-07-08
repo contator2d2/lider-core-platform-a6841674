@@ -27,6 +27,7 @@ import {
   Search,
   Settings2,
   Bell,
+  Database,
   type LucideIcon,
 } from "lucide-react";
 
@@ -73,6 +74,7 @@ const navSections: NavSection[] = [
       { to: "/admin/methodology", label: "Metodologia", icon: BookOpen },
       { to: "/admin/apps", label: "Apps & Versões", icon: Package },
       { to: "/admin/notifications", label: "Notificações", icon: Bell },
+      { to: "/admin/data", label: "Dados (Import/Export)", icon: Database },
       { to: "/admin/settings", label: "Configurações", icon: Settings2 },
       { to: "/admin/logs", label: "Logs de auditoria", icon: FileText },
     ],
