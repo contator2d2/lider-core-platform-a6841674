@@ -468,7 +468,7 @@ organizationRouter.patch("/:orgId/delegations/:id", async (req, res) => {
       data: {
         ...data,
         dueAt: data.dueAt ? new Date(data.dueAt) : data.dueAt === null ? null : undefined,
-        doneAt: data.status === "done" ? new Date() : data.status && data.status !== "done" ? null : undefined,
+        doneAt: data.status === "done" ? new Date() : data.status ? null : undefined,
         updatedBy: req.userId,
         history: hist as never,
       },
