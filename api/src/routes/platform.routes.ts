@@ -746,3 +746,61 @@ platformRouter.post("/users/import", async (req, res) => {
     results,
   });
 });
+// ============================================================
+// PLATFORM SETTINGS — Central de Configurações (global scope)
+// SMTP, WhatsApp, SSO, Backup, Billing, Security, Integrations
+// ============================================================
+const settingSchema = z.object({
+  category: z.enum(["general", "smtp", "whatsapp", "sso", "backup", "billing", "security", "integrations"]),
+  key: z.string().min(1),
+  value: z.string().nullable().optional(),
+  secret: z.boolean().optional().default(false),
+});
+
+platformRouter.get("/settings", async (req, res) => {
+  const category = typeof req.query.category === "string" ? req.query.category : undefined;
+  const list = await prisma.platformSetting.findMany({
+    where: {
+      scope: "global",
+      ...(category ? { category: category as never } : {}),
+    },
+    orderBy: [{ category: "asc" }, { key: "asc" }],
+  });
+  // mask secret values so we never leak them to the frontend
+  res.json(
+    list.map((s) => ({
+      ...s,
+      value: s.secret && s.value ? "••••••••" : s.value,
+      hasValue: !!s.value,
+    })),
+  );
+});
+
+platformRouter.post("/settings", async (req, res) => {
+  const parsed = settingSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const { category, key, value, secret } = parsed.data;
+  const setting = await prisma.platformSetting.upsert({
+    where: {
+      scope_scopeId_category_key: { scope: "global", scopeId: null as never, category, key },
+    },
+    update: { value: value ?? null, secret: secret ?? false, updatedBy: req.userId ?? null },
+    create: {
+      scope: "global",
+      category,
+      key,
+      value: value ?? null,
+      secret: secret ?? false,
+      updatedBy: req.userId ?? null,
+    },
+  });
+  await audit(req.userId, "settings.upsert", "platform_setting", setting.id, { category, key });
+  res.json({ ...setting, value: setting.secret && setting.value ? "••••••••" : setting.value, hasValue: !!setting.value });
+});
+
+platformRouter.delete("/settings/:id", async (req, res) => {
+  const s = await prisma.platformSetting.delete({ where: { id: req.params.id } }).catch(() => null);
+  if (!s) return res.status(404).json({ error: "Não encontrado" });
+  await audit(req.userId, "settings.delete", "platform_setting", s.id, { category: s.category, key: s.key });
+  res.status(204).end();
+});
