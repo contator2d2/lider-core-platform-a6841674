@@ -780,20 +780,21 @@ platformRouter.post("/settings", async (req, res) => {
   const parsed = settingSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { category, key, value, secret } = parsed.data;
-  const setting = await prisma.platformSetting.upsert({
-    where: {
-      scope_scopeId_category_key: { scope: "global", scopeId: null as never, category, key },
-    },
-    update: { value: value ?? null, secret: secret ?? false, updatedBy: req.userId ?? null },
-    create: {
-      scope: "global",
-      category,
-      key,
-      value: value ?? null,
-      secret: secret ?? false,
-      updatedBy: req.userId ?? null,
-    },
+  // Manual upsert: @@unique with a nullable column doesn't play well with Prisma upsert
+  const existing = await prisma.platformSetting.findFirst({
+    where: { scope: "global", scopeId: null, category, key },
   });
+  const data = {
+    scope: "global" as const,
+    category,
+    key,
+    value: value ?? null,
+    secret: secret ?? false,
+    updatedBy: req.userId ?? null,
+  };
+  const setting = existing
+    ? await prisma.platformSetting.update({ where: { id: existing.id }, data })
+    : await prisma.platformSetting.create({ data });
   await audit(req.userId, "settings.upsert", "platform_setting", setting.id, { category, key });
   res.json({ ...setting, value: setting.secret && setting.value ? "••••••••" : setting.value, hasValue: !!setting.value });
 });
