@@ -13,6 +13,7 @@ import { platformRouter } from "./routes/platform.routes.js";
 import { billingRouter } from "./routes/billing.routes.js";
 import { webhooksRouter } from "./routes/webhooks.routes.js";
 import { notificationsRouter } from "./routes/notifications.routes.js";
+import { dataRouter } from "./routes/data.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -74,7 +75,7 @@ const corsOptions: cors.CorsOptions = {
 };
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "10mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
 // Serve uploaded files (logos, favicons, brand assets)
@@ -107,6 +108,7 @@ app.use("/companies", companyRouter);
 app.use("/platform", platformRouter);
 app.use("/billing", billingRouter);
 app.use("/notifications", notificationsRouter);
+app.use("/data", dataRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
