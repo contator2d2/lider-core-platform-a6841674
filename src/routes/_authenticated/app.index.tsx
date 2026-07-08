@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { LeadershipDrawer, type DrawerTarget } from "@/components/leadership/LeadershipDrawer";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -50,6 +51,7 @@ function LeadershipRoom() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { orgId, current } = useCurrentOrg();
+  const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
 
   useEffect(() => {
     if (user?.roles?.includes("super_admin")) {
@@ -77,6 +79,10 @@ function LeadershipRoom() {
 
   const data = room.data;
   const loading = room.isLoading;
+
+  const openPerson = (p: AttentionPerson) => setDrawer({ kind: "person", orgId, person: p });
+  const openDeleg = (d: DelegSummary) => setDrawer({ kind: "delegation", orgId, delegation: d });
+  const openDecision = (d: DecisionSummary) => setDrawer({ kind: "decision", orgId, decision: d });
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -111,10 +117,10 @@ function LeadershipRoom() {
       {/* Bloco principal + lateral */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
-          <AttentionSection people={data?.attention ?? []} loading={loading} />
+          <AttentionSection people={data?.attention ?? []} loading={loading} onOpen={openPerson} />
           <div className="grid gap-6 md:grid-cols-2">
-            <DelegationsCard data={data?.delegations} loading={loading} />
-            <DecisionsCard data={data?.decisions} loading={loading} />
+            <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
+            <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
           </div>
         </div>
         <aside className="space-y-6">
@@ -126,6 +132,8 @@ function LeadershipRoom() {
 
       {/* Bloco inferior — indicadores rápidos */}
       <QuickIndicators data={data} health={health.data} />
+
+      <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
     </div>
   );
 }
@@ -161,7 +169,7 @@ function NextBestActionCard({ action, loading }: { action: LeadershipRoomData["n
   );
 }
 
-function AttentionSection({ people, loading }: { people: AttentionPerson[]; loading: boolean }) {
+function AttentionSection({ people, loading, onOpen }: { people: AttentionPerson[]; loading: boolean; onOpen: (p: AttentionPerson) => void }) {
   return (
     <section className="rounded-2xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -180,18 +188,21 @@ function AttentionSection({ people, loading }: { people: AttentionPerson[]; load
           {people.map((p) => {
             const sig = p.signals[0];
             return (
-              <li key={p.membershipId} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 transition-colors hover:bg-secondary/40">
-                <Avatar name={p.name} severity={sig.severity} />
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{p.name}</div>
-                  <div className="truncate text-sm text-muted-foreground">{sig.reason}</div>
-                </div>
-                <Link
-                  to="/app/one-on-ones"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              <li key={p.membershipId}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(p)}
+                  className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
                 >
-                  {sig.action} <ArrowRight className="h-3 w-3" />
-                </Link>
+                  <Avatar name={p.name} severity={sig.severity} />
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{p.name}</div>
+                    <div className="truncate text-sm text-muted-foreground">{sig.reason}</div>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
+                    {sig.action} <ArrowRight className="h-3 w-3" />
+                  </span>
+                </button>
               </li>
             );
           })}
@@ -251,7 +262,7 @@ function RitualsCard({ rituals, loading }: { rituals: LeadershipRoomData["ritual
   );
 }
 
-function DelegationsCard({ data, loading }: { data: LeadershipRoomData["delegations"] | undefined; loading: boolean }) {
+function DelegationsCard({ data, loading, onOpen }: { data: LeadershipRoomData["delegations"] | undefined; loading: boolean; onOpen: (d: DelegSummary) => void }) {
   return (
     <SectionCard title="Delegações" icon={ClipboardList} href="/app/organization/delegations" hint={data?.overdueCount ? `${data.overdueCount} atrasadas` : undefined} tone={data?.overdueCount ? "warn" : "default"}>
       {loading ? (
@@ -260,32 +271,38 @@ function DelegationsCard({ data, loading }: { data: LeadershipRoomData["delegati
         <EmptyRow icon={ClipboardList} title="Nada em aberto" hint="Registre um combinado para acompanhar." compact />
       ) : (
         <ul className="divide-y divide-border">
-          {data.overdue.slice(0, 3).map((d) => <DelegRow key={d.id} d={d} overdue />)}
-          {data.upcoming.slice(0, Math.max(0, 4 - data.overdue.slice(0, 3).length)).map((d) => <DelegRow key={d.id} d={d} />)}
+          {data.overdue.slice(0, 3).map((d) => <DelegRow key={d.id} d={d} overdue onOpen={onOpen} />)}
+          {data.upcoming.slice(0, Math.max(0, 4 - data.overdue.slice(0, 3).length)).map((d) => <DelegRow key={d.id} d={d} onOpen={onOpen} />)}
         </ul>
       )}
     </SectionCard>
   );
 }
 
-function DelegRow({ d, overdue }: { d: DelegSummary; overdue?: boolean }) {
+function DelegRow({ d, overdue, onOpen }: { d: DelegSummary; overdue?: boolean; onOpen: (d: DelegSummary) => void }) {
   return (
-    <li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${overdue ? "bg-attention/15 text-accent" : "bg-muted text-muted-foreground"}`}>
-        {overdue ? <AlertTriangle className="h-3 w-3" /> : <ClipboardList className="h-3 w-3" />}
-      </span>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-medium">{d.title}</div>
-        <div className="text-xs text-muted-foreground">
-          {d.dueAt ? (overdue ? `Atrasado desde ${formatDate(d.dueAt)}` : `Prazo ${formatDate(d.dueAt)}`) : "Sem prazo"}
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(d)}
+        className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40"
+      >
+        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${overdue ? "bg-attention/15 text-accent" : "bg-muted text-muted-foreground"}`}>
+          {overdue ? <AlertTriangle className="h-3 w-3" /> : <ClipboardList className="h-3 w-3" />}
+        </span>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{d.title}</div>
+          <div className="text-xs text-muted-foreground">
+            {d.dueAt ? (overdue ? `Atrasado desde ${formatDate(d.dueAt)}` : `Prazo ${formatDate(d.dueAt)}`) : "Sem prazo"}
+          </div>
         </div>
-      </div>
-      <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{d.priority}</span>
+        <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{d.priority}</span>
+      </button>
     </li>
   );
 }
 
-function DecisionsCard({ data, loading }: { data: LeadershipRoomData["decisions"] | undefined; loading: boolean }) {
+function DecisionsCard({ data, loading, onOpen }: { data: LeadershipRoomData["decisions"] | undefined; loading: boolean; onOpen: (d: DecisionSummary) => void }) {
   return (
     <SectionCard title="Central de decisões" icon={ScrollText} href="/app/organization/decisions" hint={data?.openCount ? `${data.openCount} abertas` : undefined}>
       {loading ? (
@@ -295,14 +312,20 @@ function DecisionsCard({ data, loading }: { data: LeadershipRoomData["decisions"
       ) : (
         <ul className="divide-y divide-border">
           {data.recent.slice(0, 4).map((d) => (
-            <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{d.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {d.dueAt ? `Prazo ${formatDate(d.dueAt)}` : `Atualizada ${formatDate(d.updatedAt)}`}
+            <li key={d.id}>
+              <button
+                type="button"
+                onClick={() => onOpen(d)}
+                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{d.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {d.dueAt ? `Prazo ${formatDate(d.dueAt)}` : `Atualizada ${formatDate(d.updatedAt)}`}
+                  </div>
                 </div>
-              </div>
-              <DecisionBadge status={d.status} />
+                <DecisionBadge status={d.status} />
+              </button>
             </li>
           ))}
         </ul>
