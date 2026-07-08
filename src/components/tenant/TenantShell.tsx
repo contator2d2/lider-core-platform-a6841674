@@ -29,6 +29,10 @@ export function TenantShell({
     navigate({ to: "/auth", replace: true });
   };
 
+  const isRoot = (to: string) =>
+    (to === "/franchise" && (pathname === "/franchise" || pathname === "/franchise/")) ||
+    (to === "/company" && (pathname === "/company" || pathname === "/company/"));
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen">
@@ -44,17 +48,17 @@ export function TenantShell({
           </div>
           <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
             {nav.map((item) => {
-              const active = item.to === pathname || (item.to !== "/franchise" && item.to !== "/company" && pathname.startsWith(item.to));
-              const isRootActive =
-                (item.to === "/franchise" && (pathname === "/franchise" || pathname === "/franchise/")) ||
-                (item.to === "/company" && (pathname === "/company" || pathname === "/company/"));
-              const isActive = isRootActive || active;
+              const isActive =
+                isRoot(item.to) ||
+                (item.to !== "/franchise" && item.to !== "/company" && pathname.startsWith(item.to));
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                    isActive ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
                   }`}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.5} />
