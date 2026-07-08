@@ -581,6 +581,7 @@ enum SettingCategory {
   billing
   security
   integrations
+  notifications
 }
 
 model PlatformSetting {
@@ -598,4 +599,70 @@ model PlatformSetting {
   @@unique([scope, scopeId, category, key])
   @@index([category])
   @@map("platform_settings")
+}
+
+enum NotificationChannel {
+  whatsapp_uazapi
+  whatsapp_meta
+  email
+  sms
+  in_app
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  delivered
+  read
+  failed
+}
+
+enum NotificationDirection {
+  outbound
+  inbound
+}
+
+model NotificationTemplate {
+  id          String              @id @default(uuid()) @db.Uuid
+  code        String              @unique
+  name        String
+  channel     NotificationChannel
+  subject     String?
+  body        String
+  // Meta Cloud API approved template name (homologação). Se preenchido,
+  // usa `template` em vez de `text` no envio via canal Meta.
+  metaTemplateName String?         @map("meta_template_name")
+  metaLanguage     String?         @default("pt_BR") @map("meta_language")
+  variables   Json?
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  @@index([channel])
+  @@map("notification_templates")
+}
+
+model NotificationLog {
+  id           String                @id @default(uuid()) @db.Uuid
+  channel      NotificationChannel
+  direction    NotificationDirection @default(outbound)
+  status       NotificationStatus    @default(pending)
+  to           String
+  from         String?
+  templateCode String?               @map("template_code")
+  subject      String?
+  body         String?
+  providerId   String?               @map("provider_id")
+  providerRaw  Json?                 @map("provider_raw")
+  error        String?
+  userId       String?               @map("user_id") @db.Uuid
+  organizationId String?             @map("organization_id") @db.Uuid
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
+  @@index([to])
+  @@map("notification_logs")
 }
