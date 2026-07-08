@@ -1,0 +1,159 @@
+import { Router } from "express";
+import { z } from "zod";
+import { prisma } from "../prisma.js";
+import { requireAuth, requireRoles } from "../auth.js";
+import {
+  loadNotificationsConfig,
+  uazapiPing,
+  metaPing,
+  sendNotification,
+} from "../lib/notifications.js";
+
+export const notificationsRouter = Router();
+notificationsRouter.use(requireAuth);
+
+// ----- Config status -----
+notificationsRouter.get(
+  "/config",
+  requireRoles("super_admin", "neo_admin"),
+  async (_req, res) => {
+    const cfg = await loadNotificationsConfig();
+    res.json({
+      whatsappProvider: cfg.whatsappProvider,
+      uazapi: {
+        configured: !!cfg.uazapiToken,
+        baseUrl: cfg.uazapiBaseUrl,
+        hasWebhookToken: !!cfg.uazapiWebhookToken,
+      },
+      meta: {
+        configured: !!(cfg.metaAccessToken && cfg.metaPhoneNumberId),
+        apiVersion: cfg.metaApiVersion,
+        hasWebhookVerifyToken: !!cfg.metaWebhookVerifyToken,
+        hasAppSecret: !!cfg.metaAppSecret,
+      },
+      defaultCountryCode: cfg.defaultCountryCode,
+      defaultSenderName: cfg.defaultSenderName,
+    });
+  },
+);
+
+notificationsRouter.get(
+  "/config/ping/uazapi",
+  requireRoles("super_admin", "neo_admin"),
+  async (_req, res) => {
+    try {
+      const r = await uazapiPing();
+      res.json({ ok: r.ok, status: r.status, raw: r.raw });
+    } catch (err) {
+      const e = err as Error & { status?: number; body?: unknown };
+      res.status(e.status ?? 500).json({ ok: false, error: e.message, body: e.body });
+    }
+  },
+);
+
+notificationsRouter.get(
+  "/config/ping/meta",
+  requireRoles("super_admin", "neo_admin"),
+  async (_req, res) => {
+    try {
+      const r = await metaPing();
+      res.json({ ok: r.ok, raw: r.raw });
+    } catch (err) {
+      const e = err as Error & { status?: number; body?: unknown };
+      res.status(e.status ?? 500).json({ ok: false, error: e.message, body: e.body });
+    }
+  },
+);
+
+// ----- Test send -----
+const testSchema = z.object({
+  channel: z.enum(["whatsapp", "email", "sms", "in_app"]),
+  to: z.string().min(3),
+  text: z.string().min(1),
+  subject: z.string().optional(),
+  forceProvider: z.enum(["uazapi", "meta"]).optional(),
+  templateCode: z.string().optional(),
+  variables: z.array(z.string()).optional(),
+});
+
+notificationsRouter.post(
+  "/test",
+  requireRoles("super_admin", "neo_admin"),
+  async (req, res) => {
+    const parsed = testSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+    try {
+      const r = await sendNotification(parsed.data);
+      res.json(r);
+    } catch (err) {
+      res.status(500).json({ ok: false, error: (err as Error).message });
+    }
+  },
+);
+
+// ----- Logs -----
+notificationsRouter.get(
+  "/logs",
+  requireRoles("super_admin", "neo_admin"),
+  async (req, res) => {
+    const take = Math.min(Number(req.query.take) || 50, 200);
+    const channel = typeof req.query.channel === "string" ? req.query.channel : undefined;
+    const status = typeof req.query.status === "string" ? req.query.status : undefined;
+    const list = await prisma.notificationLog.findMany({
+      where: {
+        ...(channel ? { channel: channel as never } : {}),
+        ...(status ? { status: status as never } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+    res.json(list);
+  },
+);
+
+// ----- Templates -----
+const templateSchema = z.object({
+  code: z.string().min(1),
+  name: z.string().min(1),
+  channel: z.enum(["whatsapp_uazapi", "whatsapp_meta", "email", "sms", "in_app"]),
+  subject: z.string().optional().nullable(),
+  body: z.string().min(1),
+  metaTemplateName: z.string().optional().nullable(),
+  metaLanguage: z.string().optional().nullable(),
+  variables: z.array(z.string()).optional(),
+  active: z.boolean().optional().default(true),
+});
+
+notificationsRouter.get(
+  "/templates",
+  requireRoles("super_admin", "neo_admin"),
+  async (_req, res) => {
+    const list = await prisma.notificationTemplate.findMany({ orderBy: { name: "asc" } });
+    res.json(list);
+  },
+);
+
+notificationsRouter.post(
+  "/templates",
+  requireRoles("super_admin", "neo_admin"),
+  async (req, res) => {
+    const parsed = templateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+    const { code, variables, ...data } = parsed.data;
+    const tpl = await prisma.notificationTemplate.upsert({
+      where: { code },
+      update: { ...data, variables: variables as never },
+      create: { code, ...data, variables: variables as never },
+    });
+    res.json(tpl);
+  },
+);
+
+notificationsRouter.delete(
+  "/templates/:id",
+  requireRoles("super_admin", "neo_admin"),
+  async (req, res) => {
+    await prisma.notificationTemplate.delete({ where: { id: req.params.id } }).catch(() => null);
+    res.status(204).end();
+  },
+);
