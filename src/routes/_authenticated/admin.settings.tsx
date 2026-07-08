@@ -8,13 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Mail, MessageCircle, ShieldCheck, Database, CreditCard, Lock, Puzzle, Settings2 } from "lucide-react";
+import { Trash2, Plus, Mail, MessageCircle, ShieldCheck, Database, CreditCard, Lock, Puzzle, Settings2, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: SettingsPage,
 });
 
-type Category = "general" | "smtp" | "whatsapp" | "sso" | "backup" | "billing" | "security" | "integrations";
+type Category = "general" | "smtp" | "whatsapp" | "sso" | "backup" | "billing" | "security" | "integrations" | "notifications";
 type Setting = {
   id: string;
   category: Category;
@@ -50,6 +50,30 @@ const CATEGORIES: { key: Category; label: string; description: string; icon: typ
       { key: "business_account_id", label: "Business Account ID" },
       { key: "access_token", label: "Access Token", secret: true },
       { key: "webhook_verify_token", label: "Webhook Verify Token", secret: true },
+    ],
+  },
+  {
+    key: "notifications",
+    label: "Notificações (WhatsApp / E-mail)",
+    description:
+      "Cadastre uma vez e use em todos os módulos. WhatsApp aceita uazapi (produção) OU Meta Cloud API (homologação). Alterne o provedor em `whatsapp_provider` (uazapi | meta | off). URLs de webhook:  /api/public/webhooks/uazapi  e  /api/public/webhooks/meta.",
+    icon: Bell,
+    keys: [
+      { key: "whatsapp_provider", label: "Provedor WhatsApp", placeholder: "uazapi | meta | off" },
+      { key: "default_country_code", label: "DDI padrão", placeholder: "55" },
+      { key: "default_sender_name", label: "Nome do remetente", placeholder: "Lider C.O.R.E." },
+      // uazapi
+      { key: "uazapi_base_url", label: "uazapi — Base URL", placeholder: "https://free.uazapi.com" },
+      { key: "uazapi_token", label: "uazapi — Token da instância", secret: true },
+      { key: "uazapi_instance", label: "uazapi — Instância (opcional)" },
+      { key: "uazapi_webhook_token", label: "uazapi — Webhook Token (você define)", secret: true, placeholder: "string aleatória" },
+      // Meta Cloud API
+      { key: "meta_phone_number_id", label: "Meta — Phone Number ID" },
+      { key: "meta_business_account_id", label: "Meta — Business Account ID" },
+      { key: "meta_access_token", label: "Meta — Access Token", secret: true },
+      { key: "meta_app_secret", label: "Meta — App Secret (validação webhook)", secret: true },
+      { key: "meta_webhook_verify_token", label: "Meta — Webhook Verify Token (você define)", secret: true },
+      { key: "meta_api_version", label: "Meta — API Version", placeholder: "v20.0" },
     ],
   },
   {
