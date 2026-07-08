@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -300,6 +300,3 @@ function statusLabel(s: string) {
   };
   return map[s] ?? s;
 }
-
-// Silence unused import if any bundler complains
-export const __used = { useMemo };
