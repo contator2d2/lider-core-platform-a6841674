@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
@@ -49,7 +49,7 @@ async function audit(actorUserId: string | undefined, action: string, targetType
   }
 }
 
-function badReq(res: Parameters<typeof organizationRouter.get>[1] extends (...args: infer A) => unknown ? A[1] : never, err: unknown) {
+function badReq(res: Response, err: unknown) {
   return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
 }
 
