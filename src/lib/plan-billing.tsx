@@ -13,6 +13,7 @@ export interface BillingMe {
     id: string;
     status: string;
     plan: { id: string; name: string; slug: string; features: string[] };
+    invoices: Array<{ id: string; status: string; amountCents: number; dueDate: string | null; pdfUrl: string | null }>;
   } | null;
   licenses: Array<{ id: string; planName: string; seats: number; used: number; status: string; expiresAt: string | null }>;
 }
