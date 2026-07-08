@@ -204,6 +204,24 @@ billingRouter.get("/me", async (req, res) => {
   });
 });
 
+// Public plans list (any authenticated user) for the upgrade page
+billingRouter.get("/plans", async (_req, res) => {
+  const list = await prisma.plan.findMany({
+    where: { active: true },
+    orderBy: { priceMonthly: "asc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      priceMonthly: true,
+      priceYearly: true,
+      features: true,
+    },
+  });
+  res.json(list);
+});
+
 // User picks a plan for their org
 billingRouter.post("/me/subscribe", async (req, res) => {
   const schema = z.object({

@@ -18,7 +18,7 @@ function money(cents: number) {
 function CompanyBilling() {
   const qc = useQueryClient();
   const me = useBillingMe();
-  const plans = useQuery({ queryKey: ["plans", "public"], queryFn: () => api<Plan[]>("/platform/plans").catch(() => [] as Plan[]) });
+  const plans = useQuery({ queryKey: ["plans", "public"], queryFn: () => api<Plan[]>("/billing/plans").catch(() => [] as Plan[]) });
 
   const subscribe = useMutation({
     mutationFn: (planId: string) =>
