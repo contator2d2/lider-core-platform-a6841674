@@ -496,3 +496,253 @@ platformRouter.get("/logs", async (req, res) => {
   });
   res.json(logs);
 });
+
+// ============================================================
+// GLOBAL SEARCH (⌘K palette)
+// ============================================================
+platformRouter.get("/search", async (req, res) => {
+  const q = ((req.query.q as string) ?? "").trim();
+  if (!q) return res.json({ organizations: [], franchises: [], users: [], branches: [], areas: [], teams: [] });
+  const like = { contains: q, mode: "insensitive" as const };
+  const [organizations, franchises, users, branches, areas, teams] = await Promise.all([
+    prisma.organization.findMany({
+      where: { OR: [{ name: like }, { slug: like }, { cnpj: like }, { legalName: like }] },
+      select: { id: true, name: true, slug: true, status: true },
+      take: 6,
+    }),
+    prisma.franchise.findMany({
+      where: { OR: [{ name: like }, { slug: like }, { cnpj: like }] },
+      select: { id: true, name: true, slug: true, status: true },
+      take: 6,
+    }),
+    prisma.user.findMany({
+      where: { OR: [{ email: like }, { profile: { fullName: like } }] },
+      select: { id: true, email: true, profile: { select: { fullName: true } } },
+      take: 8,
+    }),
+    prisma.branch.findMany({
+      where: { OR: [{ name: like }, { code: like }, { city: like }] },
+      select: { id: true, name: true, city: true, organizationId: true },
+      take: 6,
+    }),
+    prisma.area.findMany({
+      where: { name: like },
+      select: { id: true, name: true, organizationId: true },
+      take: 6,
+    }),
+    prisma.team.findMany({
+      where: { name: like },
+      select: { id: true, name: true, organizationId: true, areaId: true },
+      take: 6,
+    }),
+  ]);
+  res.json({ organizations, franchises, users, branches, areas, teams });
+});
+
+// ============================================================
+// USERS — full detail, profile edit, memberships
+// ============================================================
+platformRouter.get("/users/:id", async (req, res) => {
+  const u = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    include: {
+      profile: true,
+      roles: true,
+      memberships: {
+        include: {
+          organization: { select: { id: true, name: true, slug: true } },
+          branch: { select: { id: true, name: true } },
+          area: { select: { id: true, name: true } },
+          team: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+  if (!u) return res.status(404).json({ error: "Usuário não encontrado" });
+  res.json({
+    id: u.id,
+    email: u.email,
+    createdAt: u.createdAt,
+    profile: u.profile,
+    roles: u.roles.map((r) => r.role),
+    memberships: u.memberships,
+  });
+});
+
+const profilePatchSchema = z.object({
+  fullName: z.string().min(1).optional(),
+  avatarUrl: z.string().url().optional().nullable(),
+  jobTitle: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  cpf: z.string().optional().nullable(),
+  whatsapp: z.string().optional().nullable(),
+  mfaEnabled: z.boolean().optional(),
+  status: z.enum(["active", "inactive", "suspended"]).optional(),
+});
+
+platformRouter.patch("/users/:id/profile", async (req, res) => {
+  const parsed = profilePatchSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const p = await prisma.profile.upsert({
+    where: { id: req.params.id },
+    update: parsed.data,
+    create: { id: req.params.id, ...parsed.data },
+  });
+  await audit(req.userId, "user.profile.update", "user", req.params.id, parsed.data);
+  res.json(p);
+});
+
+platformRouter.patch("/users/:id/password", async (req, res) => {
+  const parsed = z.object({ password: z.string().min(8) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  await prisma.user.update({
+    where: { id: req.params.id },
+    data: { passwordHash: await bcrypt.hash(parsed.data.password, 10) },
+  });
+  await audit(req.userId, "user.password.reset", "user", req.params.id);
+  res.status(204).end();
+});
+
+const membershipSchema = z.object({
+  organizationId: z.string().uuid(),
+  role: z.enum(["super_admin", "neo_admin", "franchise_owner", "hr_admin", "leader", "collaborator"]).default("collaborator"),
+  branchId: z.string().uuid().optional().nullable(),
+  areaId: z.string().uuid().optional().nullable(),
+  teamId: z.string().uuid().optional().nullable(),
+  directLeaderId: z.string().uuid().optional().nullable(),
+});
+
+platformRouter.post("/users/:id/memberships", async (req, res) => {
+  const parsed = membershipSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const m = await prisma.membership.upsert({
+    where: { userId_organizationId: { userId: req.params.id, organizationId: parsed.data.organizationId } },
+    update: {
+      role: parsed.data.role,
+      branchId: parsed.data.branchId ?? null,
+      areaId: parsed.data.areaId ?? null,
+      teamId: parsed.data.teamId ?? null,
+      directLeaderId: parsed.data.directLeaderId ?? null,
+    },
+    create: {
+      userId: req.params.id,
+      organizationId: parsed.data.organizationId,
+      role: parsed.data.role,
+      branchId: parsed.data.branchId ?? null,
+      areaId: parsed.data.areaId ?? null,
+      teamId: parsed.data.teamId ?? null,
+      directLeaderId: parsed.data.directLeaderId ?? null,
+    },
+  });
+  await audit(req.userId, "user.membership.upsert", "user", req.params.id, parsed.data as never);
+  res.status(201).json(m);
+});
+
+platformRouter.delete("/users/:id/memberships/:orgId", async (req, res) => {
+  await prisma.membership
+    .delete({ where: { userId_organizationId: { userId: req.params.id, organizationId: req.params.orgId } } })
+    .catch(() => null);
+  await audit(req.userId, "user.membership.remove", "user", req.params.id, { organizationId: req.params.orgId });
+  res.status(204).end();
+});
+
+// ============================================================
+// USER BATCH IMPORT (CSV/JSON rows)
+// ============================================================
+const importRowSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(1),
+  password: z.string().min(8).optional(),
+  jobTitle: z.string().optional(),
+  phone: z.string().optional(),
+  cpf: z.string().optional(),
+  whatsapp: z.string().optional(),
+});
+const importSchema = z.object({
+  organizationId: z.string().uuid().optional(),
+  defaultRole: z.enum(["leader", "collaborator", "hr_admin"]).default("collaborator"),
+  rows: z.array(importRowSchema).min(1).max(500),
+});
+
+platformRouter.post("/users/import", async (req, res) => {
+  const parsed = importSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const results: { email: string; status: "created" | "updated" | "skipped"; id?: string; error?: string }[] = [];
+
+  for (const row of parsed.data.rows) {
+    try {
+      const existing = await prisma.user.findUnique({ where: { email: row.email } });
+      let userId: string;
+      if (existing) {
+        userId = existing.id;
+        await prisma.profile.upsert({
+          where: { id: userId },
+          update: {
+            fullName: row.fullName,
+            jobTitle: row.jobTitle ?? undefined,
+            phone: row.phone ?? undefined,
+            cpf: row.cpf ?? undefined,
+            whatsapp: row.whatsapp ?? undefined,
+          },
+          create: {
+            id: userId,
+            fullName: row.fullName,
+            jobTitle: row.jobTitle ?? null,
+            phone: row.phone ?? null,
+            cpf: row.cpf ?? null,
+            whatsapp: row.whatsapp ?? null,
+          },
+        });
+        results.push({ email: row.email, status: "updated", id: userId });
+      } else {
+        const pass = row.password ?? Math.random().toString(36).slice(2, 12) + "A1!";
+        const created = await prisma.user.create({
+          data: {
+            email: row.email,
+            passwordHash: await bcrypt.hash(pass, 10),
+            profile: {
+              create: {
+                fullName: row.fullName,
+                jobTitle: row.jobTitle ?? null,
+                phone: row.phone ?? null,
+                cpf: row.cpf ?? null,
+                whatsapp: row.whatsapp ?? null,
+              },
+            },
+          },
+        });
+        userId = created.id;
+        results.push({ email: row.email, status: "created", id: userId });
+      }
+
+      if (parsed.data.organizationId) {
+        await prisma.membership.upsert({
+          where: { userId_organizationId: { userId, organizationId: parsed.data.organizationId } },
+          update: {},
+          create: {
+            userId,
+            organizationId: parsed.data.organizationId,
+            role: parsed.data.defaultRole,
+          },
+        });
+      }
+    } catch (err) {
+      results.push({ email: row.email, status: "skipped", error: (err as Error).message });
+    }
+  }
+
+  await audit(req.userId, "users.import", "batch", undefined, {
+    total: parsed.data.rows.length,
+    created: results.filter((r) => r.status === "created").length,
+    updated: results.filter((r) => r.status === "updated").length,
+    skipped: results.filter((r) => r.status === "skipped").length,
+  });
+
+  res.status(201).json({
+    total: parsed.data.rows.length,
+    created: results.filter((r) => r.status === "created").length,
+    updated: results.filter((r) => r.status === "updated").length,
+    skipped: results.filter((r) => r.status === "skipped").length,
+    results,
+  });
+});
