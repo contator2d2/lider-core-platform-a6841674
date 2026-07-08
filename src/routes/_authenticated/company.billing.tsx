@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useBillingMe } from "@/lib/plan-features";
+import { useBillingMe, type BillingMe } from "@/lib/plan-billing";
 import { CreditCard, Zap, Check } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/company/billing")({ component: CompanyBilling });
@@ -53,8 +53,8 @@ function CompanyBilling() {
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Uso de licenças</div>
             <div className="mt-1 font-display text-xl">
-              {me.data?.licenses.reduce((s, l) => s + l.used, 0) ?? 0}
-              <span className="text-muted-foreground"> / {me.data?.licenses.reduce((s, l) => s + l.seats, 0) ?? 0}</span>
+              {me.data?.licenses.reduce((s: number, l: BillingMe["licenses"][number]) => s + l.used, 0) ?? 0}
+              <span className="text-muted-foreground"> / {me.data?.licenses.reduce((s: number, l: BillingMe["licenses"][number]) => s + l.seats, 0) ?? 0}</span>
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@ function CompanyBilling() {
                 </tr>
               </thead>
               <tbody>
-                {sub.invoices.map((inv) => (
+                {sub.invoices.map((inv: NonNullable<BillingMe["subscription"]>["invoices"][number]) => (
                   <tr key={inv.id} className="border-t border-border">
                     <td className="px-4 py-2">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("pt-BR") : "—"}</td>
                     <td className="px-4 py-2">{money(inv.amountCents)}</td>
