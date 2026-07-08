@@ -1,0 +1,796 @@
+import { Router, type Response } from "express";
+import { z } from "zod";
+import { prisma } from "../prisma.js";
+import { requireAuth } from "../auth.js";
+
+/**
+ * MÓDULO ORGANIZAÇÃO — base operacional da liderança.
+ *
+ * Endpoints agrupados por entidade. Toda entidade é preparada para IA:
+ * traz createdAt/updatedAt, createdBy/updatedBy, tags[], contextMd,
+ * e (quando aplicável) history[] append-only para diagnóstico futuro.
+ *
+ * Acesso: exige autenticação + membership na organização (ou super_admin).
+ */
+export const organizationRouter = Router();
+organizationRouter.use(requireAuth);
+
+// ------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------
+async function isSuper(userId: string) {
+  const r = await prisma.userRole.findFirst({
+    where: { userId, role: { in: ["super_admin", "neo_admin"] } },
+  });
+  return !!r;
+}
+
+async function assertOrgAccess(userId: string, orgId: string) {
+  if (await isSuper(userId)) return true;
+  const m = await prisma.membership.findFirst({
+    where: { userId, organizationId: orgId },
+  });
+  return !!m;
+}
+
+async function audit(actorUserId: string | undefined, action: string, targetType?: string, targetId?: string, metadata?: Record<string, unknown>) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: actorUserId ?? null,
+        action,
+        targetType: targetType ?? null,
+        targetId: targetId ?? null,
+        metadata: metadata ? (metadata as never) : undefined,
+      },
+    });
+  } catch (err) {
+    console.error("[audit] falha", err);
+  }
+}
+
+function badReq(res: Response, err: unknown) {
+  return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+}
+
+// Middleware para todas as rotas /:orgId/*
+organizationRouter.param("orgId", async (req, res, next, orgId) => {
+  if (!(await assertOrgAccess(req.userId!, orgId))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+});
+
+// ============================================================
+// 1. ORG MAP — árvore agregada com contagens e líderes
+// ============================================================
+organizationRouter.get("/:orgId/map", async (req, res) => {
+  const orgId = req.params.orgId;
+  const [org, branches, areas, teams, memberships] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: orgId } }),
+    prisma.branch.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }),
+    prisma.area.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }),
+    prisma.team.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }),
+    prisma.membership.findMany({
+      where: { organizationId: orgId },
+      include: { user: { include: { profile: true } } },
+    }),
+  ]);
+  if (!org) return res.status(404).json({ error: "Organização não encontrada" });
+
+  const membersByTeam = new Map<string, typeof memberships>();
+  const membersByArea = new Map<string, typeof memberships>();
+  const membersByBranch = new Map<string, typeof memberships>();
+  const pushInto = (map: Map<string, typeof memberships>, key: string, item: (typeof memberships)[number]) => {
+    const arr = map.get(key);
+    if (arr) arr.push(item); else map.set(key, [item]);
+  };
+  for (const m of memberships) {
+    if (m.teamId) pushInto(membersByTeam, m.teamId, m);
+    if (m.areaId) pushInto(membersByArea, m.areaId, m);
+    if (m.branchId) pushInto(membersByBranch, m.branchId, m);
+  }
+
+  const mapMember = (m: (typeof memberships)[number]) => ({
+    id: m.id,
+    userId: m.userId,
+    name: m.user.profile?.fullName ?? m.user.email,
+    email: m.user.email,
+    avatar: m.user.profile?.avatarUrl ?? null,
+    role: m.role,
+  });
+
+  const areasTree = areas.map((a) => ({
+    id: a.id,
+    name: a.name,
+    branchId: a.branchId,
+    mission: a.mission,
+    objective: a.objective,
+    kpis: a.kpis,
+    managerUserId: a.managerUserId,
+    peopleCount: membersByArea.get(a.id)?.length ?? 0,
+    teams: teams.filter((t) => t.areaId === a.id).map((t) => ({
+      id: t.id,
+      name: t.name,
+      objectives: t.objectives,
+      mission: t.mission,
+      leaderMembershipId: t.leaderMembershipId,
+      peopleCount: membersByTeam.get(t.id)?.length ?? 0,
+      members: (membersByTeam.get(t.id) ?? []).map(mapMember),
+    })),
+  }));
+
+  const branchesTree = branches.map((b) => ({
+    id: b.id,
+    name: b.name,
+    code: b.code,
+    city: b.city,
+    peopleCount: membersByBranch.get(b.id)?.length ?? 0,
+    areas: areasTree.filter((a) => a.branchId === b.id),
+  }));
+
+  const areasWithoutBranch = areasTree.filter((a) => !a.branchId);
+
+  res.json({
+    organization: { id: org.id, name: org.name, slug: org.slug, logoUrl: org.logoUrl },
+    totals: {
+      branches: branches.length,
+      areas: areas.length,
+      teams: teams.length,
+      people: memberships.length,
+      leaders: memberships.filter((m) => m.role === "leader" || m.role === "hr_admin").length,
+    },
+    branches: branchesTree,
+    areasWithoutBranch,
+  });
+});
+
+// ============================================================
+// 2. AREAS — extensão (mission, objective, kpis, contextMd)
+// ============================================================
+const areaExtSchema = z.object({
+  mission: z.string().optional().nullable(),
+  objective: z.string().optional().nullable(),
+  kpis: z.array(z.string()).optional(),
+  contextMd: z.string().optional().nullable(),
+  tags: z.array(z.string()).optional(),
+  managerUserId: z.string().uuid().optional().nullable(),
+});
+
+organizationRouter.patch("/:orgId/areas/:id", async (req, res) => {
+  try {
+    const data = areaExtSchema.parse(req.body);
+    const a = await prisma.area.update({
+      where: { id: req.params.id },
+      data: { ...data, updatedAt: new Date() },
+    });
+    await audit(req.userId, "area.update", "area", a.id, data);
+    res.json(a);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.get("/:orgId/areas/:id", async (req, res) => {
+  const area = await prisma.area.findUnique({
+    where: { id: req.params.id },
+    include: {
+      branch: true,
+      teams: { include: { _count: { select: { memberships: true } } } },
+      _count: { select: { memberships: true } },
+    },
+  });
+  if (!area) return res.status(404).json({ error: "Área não encontrada" });
+  res.json(area);
+});
+
+// ============================================================
+// 3. TEAMS — extensão
+// ============================================================
+const teamExtSchema = z.object({
+  mission: z.string().optional().nullable(),
+  objectives: z.string().optional().nullable(),
+  kpis: z.array(z.string()).optional(),
+  leaderMembershipId: z.string().uuid().optional().nullable(),
+  contextMd: z.string().optional().nullable(),
+  tags: z.array(z.string()).optional(),
+});
+
+organizationRouter.patch("/:orgId/teams/:id", async (req, res) => {
+  try {
+    const data = teamExtSchema.parse(req.body);
+    const t = await prisma.team.update({ where: { id: req.params.id }, data: { ...data, updatedAt: new Date() } });
+    await audit(req.userId, "team.update", "team", t.id, data);
+    res.json(t);
+  } catch (err) { badReq(res, err); }
+});
+
+// ============================================================
+// 4. ROLES — cargos e responsabilidades
+// ============================================================
+const roleSchema = z.object({
+  title: z.string().min(1),
+  mission: z.string().optional().nullable(),
+  responsibilities: z.array(z.string()).default([]),
+  deliverables: z.array(z.string()).default([]),
+  competencies: z.array(z.string()).default([]),
+  relationships: z.array(z.string()).default([]),
+  isLeader: z.boolean().default(false),
+  contextMd: z.string().optional().nullable(),
+  tags: z.array(z.string()).default([]),
+});
+
+organizationRouter.get("/:orgId/roles", async (req, res) => {
+  const roles = await prisma.orgRole.findMany({
+    where: { organizationId: req.params.orgId },
+    orderBy: { title: "asc" },
+    include: { _count: { select: { assignments: true } } },
+  });
+  res.json(roles);
+});
+
+organizationRouter.post("/:orgId/roles", async (req, res) => {
+  try {
+    const data = roleSchema.parse(req.body);
+    const r = await prisma.orgRole.create({
+      data: { ...data, organizationId: req.params.orgId, createdBy: req.userId, updatedBy: req.userId },
+    });
+    await audit(req.userId, "role.create", "role", r.id);
+    res.status(201).json(r);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.patch("/:orgId/roles/:id", async (req, res) => {
+  try {
+    const data = roleSchema.partial().parse(req.body);
+    const r = await prisma.orgRole.update({
+      where: { id: req.params.id },
+      data: { ...data, updatedBy: req.userId },
+    });
+    await audit(req.userId, "role.update", "role", r.id, data);
+    res.json(r);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.delete("/:orgId/roles/:id", async (req, res) => {
+  await prisma.orgRole.delete({ where: { id: req.params.id } }).catch(() => null);
+  await audit(req.userId, "role.delete", "role", req.params.id);
+  res.status(204).end();
+});
+
+// ============================================================
+// 5. RITUALS
+// ============================================================
+const ritualSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["daily", "weekly", "one_on_one", "feedback", "action_plan", "indicators", "strategic", "day_one", "checkpoint", "retro", "custom"]).default("custom"),
+  scope: z.enum(["org", "branch", "area", "team"]).default("team"),
+  scopeId: z.string().uuid().optional().nullable(),
+  objective: z.string().optional().nullable(),
+  cadence: z.string().optional().nullable(),
+  ownerId: z.string().uuid().optional().nullable(),
+  durationMin: z.number().int().min(5).max(600).default(30),
+  agendaTemplate: z.string().optional().nullable(),
+  checklist: z.array(z.string()).optional(),
+  tags: z.array(z.string()).default([]),
+  contextMd: z.string().optional().nullable(),
+  participantMembershipIds: z.array(z.string().uuid()).optional(),
+});
+
+organizationRouter.get("/:orgId/rituals", async (req, res) => {
+  const scope = req.query.scope as string | undefined;
+  const scopeId = req.query.scopeId as string | undefined;
+  const rituals = await prisma.ritual.findMany({
+    where: {
+      organizationId: req.params.orgId,
+      ...(scope ? { scope: scope as never } : {}),
+      ...(scopeId ? { scopeId } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      _count: { select: { participants: true, occurrences: true } },
+      occurrences: {
+        orderBy: { scheduledAt: "desc" },
+        take: 1,
+      },
+    },
+  });
+  res.json(rituals);
+});
+
+organizationRouter.get("/:orgId/rituals/:id", async (req, res) => {
+  const r = await prisma.ritual.findUnique({
+    where: { id: req.params.id },
+    include: {
+      participants: { include: { membership: { include: { user: { include: { profile: true } } } } } },
+      occurrences: { orderBy: { scheduledAt: "desc" }, take: 20 },
+    },
+  });
+  if (!r) return res.status(404).json({ error: "Ritual não encontrado" });
+  res.json(r);
+});
+
+organizationRouter.post("/:orgId/rituals", async (req, res) => {
+  try {
+    const { participantMembershipIds, checklist, ...data } = ritualSchema.parse(req.body);
+    const r = await prisma.ritual.create({
+      data: {
+        ...data,
+        checklist: checklist ? (checklist as never) : undefined,
+        organizationId: req.params.orgId,
+        createdBy: req.userId,
+        updatedBy: req.userId,
+      },
+    });
+    if (participantMembershipIds?.length) {
+      await prisma.ritualParticipant.createMany({
+        data: participantMembershipIds.map((membershipId) => ({ ritualId: r.id, membershipId })),
+        skipDuplicates: true,
+      });
+    }
+    await audit(req.userId, "ritual.create", "ritual", r.id);
+    res.status(201).json(r);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.patch("/:orgId/rituals/:id", async (req, res) => {
+  try {
+    const { participantMembershipIds, checklist, ...data } = ritualSchema.partial().parse(req.body);
+    const r = await prisma.ritual.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        checklist: checklist ? (checklist as never) : undefined,
+        updatedBy: req.userId,
+      },
+    });
+    if (participantMembershipIds) {
+      await prisma.ritualParticipant.deleteMany({ where: { ritualId: r.id } });
+      if (participantMembershipIds.length) {
+        await prisma.ritualParticipant.createMany({
+          data: participantMembershipIds.map((membershipId) => ({ ritualId: r.id, membershipId })),
+          skipDuplicates: true,
+        });
+      }
+    }
+    await audit(req.userId, "ritual.update", "ritual", r.id);
+    res.json(r);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.delete("/:orgId/rituals/:id", async (req, res) => {
+  await prisma.ritual.delete({ where: { id: req.params.id } }).catch(() => null);
+  await audit(req.userId, "ritual.delete", "ritual", req.params.id);
+  res.status(204).end();
+});
+
+// Ocorrências
+const occurrenceSchema = z.object({
+  scheduledAt: z.string().datetime().or(z.date()),
+  notes: z.string().optional().nullable(),
+});
+
+organizationRouter.post("/:orgId/rituals/:id/occurrences", async (req, res) => {
+  try {
+    const data = occurrenceSchema.parse(req.body);
+    const o = await prisma.ritualOccurrence.create({
+      data: {
+        ritualId: req.params.id,
+        scheduledAt: new Date(data.scheduledAt),
+        notes: data.notes ?? undefined,
+      },
+    });
+    await audit(req.userId, "occurrence.create", "ritual_occurrence", o.id);
+    res.status(201).json(o);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.patch("/:orgId/occurrences/:id", async (req, res) => {
+  try {
+    const body = z.object({
+      status: z.enum(["scheduled", "in_progress", "done", "missed", "canceled"]).optional(),
+      startedAt: z.string().datetime().optional(),
+      endedAt: z.string().datetime().optional(),
+      minutes: z.string().optional(),
+      notes: z.string().optional(),
+      pendings: z.array(z.object({ text: z.string(), owner: z.string().optional(), due: z.string().optional() })).optional(),
+    }).parse(req.body);
+    const o = await prisma.ritualOccurrence.update({
+      where: { id: req.params.id },
+      data: {
+        ...body,
+        startedAt: body.startedAt ? new Date(body.startedAt) : undefined,
+        endedAt: body.endedAt ? new Date(body.endedAt) : undefined,
+        pendings: body.pendings ? (body.pendings as never) : undefined,
+      },
+    });
+    await audit(req.userId, "occurrence.update", "ritual_occurrence", o.id, body);
+    res.json(o);
+  } catch (err) { badReq(res, err); }
+});
+
+// ============================================================
+// 6. DELEGATIONS
+// ============================================================
+const delegationSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional().nullable(),
+  assigneeId: z.string().uuid().optional().nullable(),
+  areaId: z.string().uuid().optional().nullable(),
+  teamId: z.string().uuid().optional().nullable(),
+  dueAt: z.string().datetime().optional().nullable(),
+  priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+  doneCriteria: z.string().optional().nullable(),
+  status: z.enum(["open", "in_progress", "blocked", "done", "canceled"]).default("open"),
+  tags: z.array(z.string()).default([]),
+  contextMd: z.string().optional().nullable(),
+});
+
+organizationRouter.get("/:orgId/delegations", async (req, res) => {
+  const status = req.query.status as string | undefined;
+  const d = await prisma.delegation.findMany({
+    where: {
+      organizationId: req.params.orgId,
+      ...(status ? { status: status as never } : {}),
+    },
+    orderBy: [{ status: "asc" }, { dueAt: "asc" }],
+    include: { _count: { select: { comments: true } } },
+  });
+  res.json(d);
+});
+
+organizationRouter.post("/:orgId/delegations", async (req, res) => {
+  try {
+    const data = delegationSchema.parse(req.body);
+    const d = await prisma.delegation.create({
+      data: {
+        ...data,
+        dueAt: data.dueAt ? new Date(data.dueAt) : null,
+        organizationId: req.params.orgId,
+        delegatorId: req.userId,
+        createdBy: req.userId,
+        updatedBy: req.userId,
+        history: [{ at: new Date().toISOString(), by: req.userId, action: "create" }] as never,
+      },
+    });
+    await audit(req.userId, "delegation.create", "delegation", d.id);
+    res.status(201).json(d);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.patch("/:orgId/delegations/:id", async (req, res) => {
+  try {
+    const data = delegationSchema.partial().parse(req.body);
+    const existing = await prisma.delegation.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: "Não encontrada" });
+    const hist = Array.isArray(existing.history) ? (existing.history as unknown[]) : [];
+    hist.push({ at: new Date().toISOString(), by: req.userId, changes: data });
+    const d = await prisma.delegation.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        dueAt: data.dueAt ? new Date(data.dueAt) : data.dueAt === null ? null : undefined,
+        doneAt: data.status === "done" ? new Date() : data.status && data.status !== "done" ? null : undefined,
+        updatedBy: req.userId,
+        history: hist as never,
+      },
+    });
+    await audit(req.userId, "delegation.update", "delegation", d.id, data);
+    res.json(d);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.delete("/:orgId/delegations/:id", async (req, res) => {
+  await prisma.delegation.delete({ where: { id: req.params.id } }).catch(() => null);
+  await audit(req.userId, "delegation.delete", "delegation", req.params.id);
+  res.status(204).end();
+});
+
+organizationRouter.post("/:orgId/delegations/:id/comments", async (req, res) => {
+  try {
+    const { body } = z.object({ body: z.string().min(1) }).parse(req.body);
+    const c = await prisma.delegationComment.create({
+      data: { delegationId: req.params.id, authorId: req.userId, body },
+    });
+    res.status(201).json(c);
+  } catch (err) { badReq(res, err); }
+});
+
+// ============================================================
+// 7. DECISIONS
+// ============================================================
+const decisionSchema = z.object({
+  title: z.string().min(1),
+  context: z.string().optional().nullable(),
+  decision: z.string().min(1),
+  ownerId: z.string().uuid().optional().nullable(),
+  dueAt: z.string().datetime().optional().nullable(),
+  expectedResult: z.string().optional().nullable(),
+  ritualOccurrenceId: z.string().uuid().optional().nullable(),
+  status: z.enum(["open", "in_progress", "done", "reverted"]).default("open"),
+  tags: z.array(z.string()).default([]),
+});
+
+organizationRouter.get("/:orgId/decisions", async (req, res) => {
+  const d = await prisma.decision.findMany({
+    where: { organizationId: req.params.orgId },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(d);
+});
+
+organizationRouter.post("/:orgId/decisions", async (req, res) => {
+  try {
+    const data = decisionSchema.parse(req.body);
+    const d = await prisma.decision.create({
+      data: {
+        ...data,
+        dueAt: data.dueAt ? new Date(data.dueAt) : null,
+        organizationId: req.params.orgId,
+        createdBy: req.userId,
+        updatedBy: req.userId,
+        history: [{ at: new Date().toISOString(), by: req.userId, action: "create" }] as never,
+      },
+    });
+    await audit(req.userId, "decision.create", "decision", d.id);
+    res.status(201).json(d);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.patch("/:orgId/decisions/:id", async (req, res) => {
+  try {
+    const data = decisionSchema.partial().parse(req.body);
+    const existing = await prisma.decision.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: "Não encontrada" });
+    const hist = Array.isArray(existing.history) ? (existing.history as unknown[]) : [];
+    hist.push({ at: new Date().toISOString(), by: req.userId, changes: data });
+    const d = await prisma.decision.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        dueAt: data.dueAt ? new Date(data.dueAt) : data.dueAt === null ? null : undefined,
+        updatedBy: req.userId,
+        history: hist as never,
+      },
+    });
+    await audit(req.userId, "decision.update", "decision", d.id, data);
+    res.json(d);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.delete("/:orgId/decisions/:id", async (req, res) => {
+  await prisma.decision.delete({ where: { id: req.params.id } }).catch(() => null);
+  await audit(req.userId, "decision.delete", "decision", req.params.id);
+  res.status(204).end();
+});
+
+// ============================================================
+// 8. DOCUMENTS (metadata; upload de arquivo pode reusar /uploads existente)
+// ============================================================
+const docSchema = z.object({
+  title: z.string().min(1),
+  kind: z.enum(["policy", "procedure", "flow", "material", "video", "pdf", "link", "other"]).default("other"),
+  url: z.string().url().optional().nullable(),
+  mime: z.string().optional().nullable(),
+  size: z.number().int().optional().nullable(),
+  scope: z.enum(["org", "branch", "area", "team"]).default("area"),
+  scopeId: z.string().uuid().optional().nullable(),
+  tags: z.array(z.string()).default([]),
+  description: z.string().optional().nullable(),
+});
+
+organizationRouter.get("/:orgId/documents", async (req, res) => {
+  const scope = req.query.scope as string | undefined;
+  const scopeId = req.query.scopeId as string | undefined;
+  const docs = await prisma.orgDocument.findMany({
+    where: {
+      organizationId: req.params.orgId,
+      ...(scope ? { scope: scope as never } : {}),
+      ...(scopeId ? { scopeId } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(docs);
+});
+
+organizationRouter.post("/:orgId/documents", async (req, res) => {
+  try {
+    const data = docSchema.parse(req.body);
+    const d = await prisma.orgDocument.create({
+      data: { ...data, organizationId: req.params.orgId, uploadedBy: req.userId },
+    });
+    await audit(req.userId, "document.create", "document", d.id);
+    res.status(201).json(d);
+  } catch (err) { badReq(res, err); }
+});
+
+organizationRouter.delete("/:orgId/documents/:id", async (req, res) => {
+  await prisma.orgDocument.delete({ where: { id: req.params.id } }).catch(() => null);
+  await audit(req.userId, "document.delete", "document", req.params.id);
+  res.status(204).end();
+});
+
+// ============================================================
+// 9. AGENDA — visão agregada (rituais planejados + delegações + decisões)
+// ============================================================
+organizationRouter.get("/:orgId/agenda", async (req, res) => {
+  const range = (req.query.range as string) || "week";
+  const now = new Date();
+  const days = range === "day" ? 1 : range === "month" ? 30 : 7;
+  const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const [occurrences, delegations, decisions] = await Promise.all([
+    prisma.ritualOccurrence.findMany({
+      where: {
+        ritual: { organizationId: req.params.orgId },
+        scheduledAt: { gte: now, lte: until },
+      },
+      include: { ritual: { select: { name: true, type: true, durationMin: true } } },
+      orderBy: { scheduledAt: "asc" },
+    }),
+    prisma.delegation.findMany({
+      where: {
+        organizationId: req.params.orgId,
+        dueAt: { gte: now, lte: until },
+        status: { notIn: ["done", "canceled"] },
+      },
+      orderBy: { dueAt: "asc" },
+    }),
+    prisma.decision.findMany({
+      where: {
+        organizationId: req.params.orgId,
+        dueAt: { gte: now, lte: until },
+        status: { notIn: ["done", "reverted"] },
+      },
+      orderBy: { dueAt: "asc" },
+    }),
+  ]);
+
+  const entries = [
+    ...occurrences.map((o) => ({
+      kind: "ritual" as const,
+      id: o.id,
+      at: o.scheduledAt,
+      title: o.ritual.name,
+      subtitle: o.ritual.type,
+      duration: o.ritual.durationMin,
+      status: o.status,
+    })),
+    ...delegations.map((d) => ({
+      kind: "delegation" as const,
+      id: d.id,
+      at: d.dueAt!,
+      title: d.title,
+      subtitle: `Prioridade ${d.priority}`,
+      status: d.status,
+    })),
+    ...decisions.map((d) => ({
+      kind: "decision" as const,
+      id: d.id,
+      at: d.dueAt!,
+      title: d.title,
+      subtitle: "Decisão pendente",
+      status: d.status,
+    })),
+  ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+  res.json({ range, from: now, until, entries });
+});
+
+// ============================================================
+// 10. HEALTH SCORE — cálculo on-demand
+// ============================================================
+organizationRouter.get("/:orgId/health-score", async (req, res) => {
+  const orgId = req.params.orgId;
+  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [areas, teams, rituals, occurrences, delegations, allDelegations] = await Promise.all([
+    prisma.area.findMany({ where: { organizationId: orgId } }),
+    prisma.team.findMany({ where: { organizationId: orgId } }),
+    prisma.ritual.count({ where: { organizationId: orgId, status: "active" } }),
+    prisma.ritualOccurrence.findMany({
+      where: { ritual: { organizationId: orgId }, scheduledAt: { gte: since30 } },
+      select: { status: true },
+    }),
+    prisma.delegation.findMany({
+      where: { organizationId: orgId, status: { notIn: ["done", "canceled"] } },
+      select: { dueAt: true },
+    }),
+    prisma.delegation.count({ where: { organizationId: orgId } }),
+  ]);
+
+  // Estrutura (15%)
+  const totalStruct = areas.length + teams.length;
+  const okStruct =
+    areas.filter((a) => a.mission && a.kpis.length && a.managerUserId).length +
+    teams.filter((t) => t.mission && t.kpis.length && t.leaderMembershipId).length;
+  const scoreStruct = totalStruct ? okStruct / totalStruct : 0.5;
+
+  // Rituais (25%)
+  const done = occurrences.filter((o) => o.status === "done").length;
+  const planned = occurrences.length;
+  const scoreRituals = planned ? done / planned : rituals > 0 ? 0.5 : 0;
+
+  // Delegações (20%)
+  const now = Date.now();
+  const overdue = delegations.filter((d) => d.dueAt && d.dueAt.getTime() < now).length;
+  const scoreDeleg = delegations.length ? 1 - overdue / delegations.length : allDelegations > 0 ? 0.7 : 0;
+
+  // Indicadores (15%) — placeholder até integração
+  const scoreKpis = areas.filter((a) => a.kpis.length).length / Math.max(1, areas.length);
+
+  // Atualização (10%)
+  const days = (dt: Date) => (Date.now() - dt.getTime()) / (24 * 60 * 60 * 1000);
+  const avgDays = [...areas, ...teams].reduce((s, e) => s + days(e.updatedAt), 0) / Math.max(1, areas.length + teams.length);
+  const scoreUpd = Math.max(0, 1 - avgDays / 30);
+
+  // Pendências (15%) — proxy: 1 - overdue/planned
+  const scorePend = planned ? 1 - Math.max(0, planned - done) / planned : 0.5;
+
+  const breakdown = {
+    estrutura: { weight: 0.15, score: round2(scoreStruct) },
+    rituais: { weight: 0.25, score: round2(scoreRituals) },
+    delegacoes: { weight: 0.2, score: round2(scoreDeleg) },
+    indicadores: { weight: 0.15, score: round2(scoreKpis) },
+    atualizacao: { weight: 0.1, score: round2(scoreUpd) },
+    pendencias: { weight: 0.15, score: round2(scorePend) },
+  };
+  const total = Object.values(breakdown).reduce((s, v) => s + v.weight * v.score, 0);
+  const score = Math.round(total * 100);
+
+  res.json({ score, breakdown, computedAt: new Date() });
+});
+
+function round2(n: number) { return Math.round(n * 100) / 100; }
+
+// ============================================================
+// 11. DASHBOARD — resumo consolidado
+// ============================================================
+organizationRouter.get("/:orgId/dashboard", async (req, res) => {
+  const orgId = req.params.orgId;
+  const now = new Date();
+  const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const [
+    ritualsCount,
+    upcomingOccurrences,
+    overdueDelegations,
+    openDecisions,
+    docsCount,
+    areasCount,
+    teamsCount,
+  ] = await Promise.all([
+    prisma.ritual.count({ where: { organizationId: orgId, status: "active" } }),
+    prisma.ritualOccurrence.findMany({
+      where: {
+        ritual: { organizationId: orgId },
+        scheduledAt: { gte: now, lte: in7 },
+        status: "scheduled",
+      },
+      include: { ritual: { select: { name: true, type: true } } },
+      orderBy: { scheduledAt: "asc" },
+      take: 6,
+    }),
+    prisma.delegation.count({
+      where: {
+        organizationId: orgId,
+        status: { notIn: ["done", "canceled"] },
+        dueAt: { lt: now },
+      },
+    }),
+    prisma.decision.count({
+      where: { organizationId: orgId, status: { in: ["open", "in_progress"] } },
+    }),
+    prisma.orgDocument.count({ where: { organizationId: orgId } }),
+    prisma.area.count({ where: { organizationId: orgId } }),
+    prisma.team.count({ where: { organizationId: orgId } }),
+  ]);
+
+  res.json({
+    ritualsCount,
+    upcomingOccurrences,
+    overdueDelegations,
+    openDecisions,
+    docsCount,
+    areasCount,
+    teamsCount,
+  });
+});
