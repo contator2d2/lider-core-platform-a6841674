@@ -25,6 +25,7 @@ import { Route as AuthenticatedFranchiseCompaniesRouteImport } from './routes/_a
 import { Route as AuthenticatedFranchiseBillingRouteImport } from './routes/_authenticated/franchise.billing'
 import { Route as AuthenticatedCompanyMembersRouteImport } from './routes/_authenticated/company.members'
 import { Route as AuthenticatedCompanyLeadersRouteImport } from './routes/_authenticated/company.leaders'
+import { Route as AuthenticatedCompanyBillingRouteImport } from './routes/_authenticated/company.billing'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
 import { Route as AuthenticatedAppRitualsRouteImport } from './routes/_authenticated/app.rituals'
 import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticated/app.pdis'
@@ -48,6 +49,7 @@ import { Route as AuthenticatedAdminInvoicesRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminHierarchyRouteImport } from './routes/_authenticated/admin.hierarchy'
 import { Route as AuthenticatedAdminFranchisesRouteImport } from './routes/_authenticated/admin.franchises'
 import { Route as AuthenticatedAdminBrandingRouteImport } from './routes/_authenticated/admin.branding'
+import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
 import { Route as AuthenticatedAdminAppsRouteImport } from './routes/_authenticated/admin.apps'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated/admin.ai'
 
@@ -135,6 +137,12 @@ const AuthenticatedCompanyLeadersRoute =
   AuthenticatedCompanyLeadersRouteImport.update({
     id: '/leaders',
     path: '/leaders',
+    getParentRoute: () => AuthenticatedCompanyRoute,
+  } as any)
+const AuthenticatedCompanyBillingRoute =
+  AuthenticatedCompanyBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
     getParentRoute: () => AuthenticatedCompanyRoute,
   } as any)
 const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
@@ -268,6 +276,12 @@ const AuthenticatedAdminBrandingRoute =
     path: '/branding',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminBillingRoute =
+  AuthenticatedAdminBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAppsRoute = AuthenticatedAdminAppsRouteImport.update({
   id: '/apps',
   path: '/apps',
@@ -288,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/franchise': typeof AuthenticatedFranchiseRouteWithChildren
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
@@ -311,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/app/pdis': typeof AuthenticatedAppPdisRoute
   '/app/rituals': typeof AuthenticatedAppRitualsRoute
   '/app/team': typeof AuthenticatedAppTeamRoute
+  '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/members': typeof AuthenticatedCompanyMembersRoute
   '/franchise/billing': typeof AuthenticatedFranchiseBillingRoute
@@ -326,6 +342,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
@@ -349,6 +366,7 @@ export interface FileRoutesByTo {
   '/app/pdis': typeof AuthenticatedAppPdisRoute
   '/app/rituals': typeof AuthenticatedAppRitualsRoute
   '/app/team': typeof AuthenticatedAppTeamRoute
+  '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/members': typeof AuthenticatedCompanyMembersRoute
   '/franchise/billing': typeof AuthenticatedFranchiseBillingRoute
@@ -370,6 +388,7 @@ export interface FileRoutesById {
   '/_authenticated/franchise': typeof AuthenticatedFranchiseRouteWithChildren
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRoute
   '/_authenticated/admin/apps': typeof AuthenticatedAdminAppsRoute
+  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/_authenticated/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/_authenticated/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
@@ -393,6 +412,7 @@ export interface FileRoutesById {
   '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
   '/_authenticated/app/rituals': typeof AuthenticatedAppRitualsRoute
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
+  '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/_authenticated/company/members': typeof AuthenticatedCompanyMembersRoute
   '/_authenticated/franchise/billing': typeof AuthenticatedFranchiseBillingRoute
@@ -414,6 +434,7 @@ export interface FileRouteTypes {
     | '/franchise'
     | '/admin/ai'
     | '/admin/apps'
+    | '/admin/billing'
     | '/admin/branding'
     | '/admin/franchises'
     | '/admin/hierarchy'
@@ -437,6 +458,7 @@ export interface FileRouteTypes {
     | '/app/pdis'
     | '/app/rituals'
     | '/app/team'
+    | '/company/billing'
     | '/company/leaders'
     | '/company/members'
     | '/franchise/billing'
@@ -452,6 +474,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin/ai'
     | '/admin/apps'
+    | '/admin/billing'
     | '/admin/branding'
     | '/admin/franchises'
     | '/admin/hierarchy'
@@ -475,6 +498,7 @@ export interface FileRouteTypes {
     | '/app/pdis'
     | '/app/rituals'
     | '/app/team'
+    | '/company/billing'
     | '/company/leaders'
     | '/company/members'
     | '/franchise/billing'
@@ -495,6 +519,7 @@ export interface FileRouteTypes {
     | '/_authenticated/franchise'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/apps'
+    | '/_authenticated/admin/billing'
     | '/_authenticated/admin/branding'
     | '/_authenticated/admin/franchises'
     | '/_authenticated/admin/hierarchy'
@@ -518,6 +543,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/pdis'
     | '/_authenticated/app/rituals'
     | '/_authenticated/app/team'
+    | '/_authenticated/company/billing'
     | '/_authenticated/company/leaders'
     | '/_authenticated/company/members'
     | '/_authenticated/franchise/billing'
@@ -647,6 +673,13 @@ declare module '@tanstack/react-router' {
       path: '/leaders'
       fullPath: '/company/leaders'
       preLoaderRoute: typeof AuthenticatedCompanyLeadersRouteImport
+      parentRoute: typeof AuthenticatedCompanyRoute
+    }
+    '/_authenticated/company/billing': {
+      id: '/_authenticated/company/billing'
+      path: '/billing'
+      fullPath: '/company/billing'
+      preLoaderRoute: typeof AuthenticatedCompanyBillingRouteImport
       parentRoute: typeof AuthenticatedCompanyRoute
     }
     '/_authenticated/app/team': {
@@ -810,6 +843,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBrandingRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/billing': {
+      id: '/_authenticated/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/apps': {
       id: '/_authenticated/admin/apps'
       path: '/apps'
@@ -830,6 +870,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRoute
   AuthenticatedAdminAppsRoute: typeof AuthenticatedAdminAppsRoute
+  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBrandingRoute: typeof AuthenticatedAdminBrandingRoute
   AuthenticatedAdminFranchisesRoute: typeof AuthenticatedAdminFranchisesRoute
   AuthenticatedAdminHierarchyRoute: typeof AuthenticatedAdminHierarchyRoute
@@ -851,6 +892,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAiRoute: AuthenticatedAdminAiRoute,
   AuthenticatedAdminAppsRoute: AuthenticatedAdminAppsRoute,
+  AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
   AuthenticatedAdminBrandingRoute: AuthenticatedAdminBrandingRoute,
   AuthenticatedAdminFranchisesRoute: AuthenticatedAdminFranchisesRoute,
   AuthenticatedAdminHierarchyRoute: AuthenticatedAdminHierarchyRoute,
@@ -900,12 +942,14 @@ const AuthenticatedAppRouteWithChildren =
   AuthenticatedAppRoute._addFileChildren(AuthenticatedAppRouteChildren)
 
 interface AuthenticatedCompanyRouteChildren {
+  AuthenticatedCompanyBillingRoute: typeof AuthenticatedCompanyBillingRoute
   AuthenticatedCompanyLeadersRoute: typeof AuthenticatedCompanyLeadersRoute
   AuthenticatedCompanyMembersRoute: typeof AuthenticatedCompanyMembersRoute
   AuthenticatedCompanyIndexRoute: typeof AuthenticatedCompanyIndexRoute
 }
 
 const AuthenticatedCompanyRouteChildren: AuthenticatedCompanyRouteChildren = {
+  AuthenticatedCompanyBillingRoute: AuthenticatedCompanyBillingRoute,
   AuthenticatedCompanyLeadersRoute: AuthenticatedCompanyLeadersRoute,
   AuthenticatedCompanyMembersRoute: AuthenticatedCompanyMembersRoute,
   AuthenticatedCompanyIndexRoute: AuthenticatedCompanyIndexRoute,
