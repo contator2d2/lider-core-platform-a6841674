@@ -55,6 +55,7 @@ const navSections: NavSection[] = [
       { to: "/admin/licenses", label: "Licenças", icon: KeyRound },
       { to: "/admin/subscriptions", label: "Assinaturas", icon: CreditCard },
       { to: "/admin/invoices", label: "Faturas", icon: Receipt },
+      { to: "/admin/billing", label: "Cobrança (Asaas)", icon: CreditCard },
     ],
   },
   {
