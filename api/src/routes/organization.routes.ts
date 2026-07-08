@@ -794,3 +794,138 @@ organizationRouter.get("/:orgId/dashboard", async (req, res) => {
     teamsCount,
   });
 });
+
+// ============================================================
+// 12. LEADERSHIP ROOM — visão de comando pessoal do líder
+// ============================================================
+organizationRouter.get("/:orgId/leadership-room", async (req, res) => {
+  const orgId = req.params.orgId;
+  const now = new Date();
+  const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const since30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [
+    memberships,
+    upcomingOccurrences,
+    lastOccurrences,
+    delegations,
+    decisions,
+    ritualsActive,
+    areas,
+    teams,
+  ] = await Promise.all([
+    prisma.membership.findMany({
+      where: { organizationId: orgId },
+      include: { user: { include: { profile: true } } },
+      take: 200,
+    }),
+    prisma.ritualOccurrence.findMany({
+      where: {
+        ritual: { organizationId: orgId },
+        scheduledAt: { gte: now, lte: in7 },
+      },
+      include: { ritual: { select: { name: true, type: true } } },
+      orderBy: { scheduledAt: "asc" },
+      take: 12,
+    }),
+    prisma.ritualOccurrence.findMany({
+      where: {
+        ritual: { organizationId: orgId },
+        scheduledAt: { gte: since30, lt: now },
+      },
+      select: { status: true },
+    }),
+    prisma.delegation.findMany({
+      where: { organizationId: orgId, status: { notIn: ["done", "canceled"] } },
+      orderBy: [{ dueAt: "asc" }],
+      take: 20,
+    }),
+    prisma.decision.findMany({
+      where: { organizationId: orgId },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+    }),
+    prisma.ritual.count({ where: { organizationId: orgId, status: "active" } }),
+    prisma.area.findMany({ where: { organizationId: orgId }, select: { id: true, name: true, updatedAt: true, mission: true, kpis: true, managerUserId: true } }),
+    prisma.team.findMany({ where: { organizationId: orgId }, select: { id: true, name: true, updatedAt: true, mission: true, kpis: true, leaderMembershipId: true } }),
+  ]);
+
+  // Pessoas que precisam de atenção — heurísticas
+  const attention = memberships.slice(0, 30).map((m) => {
+    const daysSinceUpdate = Math.floor((now.getTime() - (m.user.updatedAt?.getTime() ?? now.getTime())) / 86400000);
+    const name = m.user.profile?.fullName || m.user.email;
+    const signals: Array<{ kind: string; reason: string; severity: "high" | "medium" | "low"; action: string }> = [];
+    if (daysSinceUpdate > 30) signals.push({ kind: "one_on_one", reason: `Sem 1:1 há ${daysSinceUpdate} dias`, severity: daysSinceUpdate > 45 ? "high" : "medium", action: "Agendar 1:1" });
+    return { userId: m.userId, membershipId: m.id, name, avatarUrl: m.user.profile?.avatarUrl ?? null, signals };
+  }).filter((p) => p.signals.length > 0).sort((a, b) => {
+    const rank = { high: 0, medium: 1, low: 2 } as const;
+    return rank[a.signals[0].severity] - rank[b.signals[0].severity];
+  }).slice(0, 8);
+
+  // Delegações
+  const overdue = delegations.filter((d) => d.dueAt && d.dueAt < now);
+  const upcomingDeleg = delegations.filter((d) => !d.dueAt || d.dueAt >= now).slice(0, 6);
+
+  // Rituais
+  const done = lastOccurrences.filter((o) => o.status === "done").length;
+  const missed = lastOccurrences.filter((o) => o.status === "missed").length;
+  const planned = lastOccurrences.length;
+  const adherence = planned ? Math.round((done / planned) * 100) : null;
+
+  // Decisões
+  const openDecisions = decisions.filter((d) => d.status === "open" || d.status === "in_progress");
+
+  // Próxima melhor ação
+  let nextBestAction: { title: string; description: string; cta: string; href: string } | null = null;
+  if (overdue[0]) {
+    nextBestAction = {
+      title: "Retome a delegação atrasada",
+      description: `"${overdue[0].title}" está fora do prazo. Alinhe status e novo compromisso.`,
+      cta: "Abrir delegação",
+      href: "/app/organization/delegations",
+    };
+  } else if (attention[0]) {
+    nextBestAction = {
+      title: `Converse com ${attention[0].name}`,
+      description: attention[0].signals[0].reason + ". Um 1:1 curto recoloca o combinado.",
+      cta: "Agendar 1:1",
+      href: "/app/one-on-ones",
+    };
+  } else if (upcomingOccurrences[0]) {
+    nextBestAction = {
+      title: `Prepare-se para ${upcomingOccurrences[0].ritual.name}`,
+      description: `Próximo ritual em ${new Date(upcomingOccurrences[0].scheduledAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.`,
+      cta: "Ver pauta",
+      href: "/app/organization/rituals",
+    };
+  } else {
+    nextBestAction = {
+      title: "Configure sua sala de liderança",
+      description: "Cadastre áreas, equipes e rituais para começar a receber recomendações da IA.",
+      cta: "Ir para Organização",
+      href: "/app/organization",
+    };
+  }
+
+  res.json({
+    generatedAt: now,
+    attention,
+    upcomingOccurrences,
+    rituals: { active: ritualsActive, done, missed, planned, adherence },
+    delegations: {
+      overdue: overdue.slice(0, 6).map((d) => ({ id: d.id, title: d.title, dueAt: d.dueAt, priority: d.priority, status: d.status })),
+      upcoming: upcomingDeleg.map((d) => ({ id: d.id, title: d.title, dueAt: d.dueAt, priority: d.priority, status: d.status })),
+      overdueCount: overdue.length,
+    },
+    decisions: {
+      recent: decisions.slice(0, 5).map((d) => ({ id: d.id, title: d.title, status: d.status, dueAt: d.dueAt, updatedAt: d.updatedAt })),
+      openCount: openDecisions.length,
+    },
+    structure: {
+      areas: areas.length,
+      teams: teams.length,
+      peopleCount: memberships.length,
+    },
+    nextBestAction,
+  });
+});
