@@ -3,6 +3,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
+import { GlobalSearch } from "@/components/admin/GlobalSearch";
+import { useEffect, useState } from "react";
 import {
   LogOut,
   LayoutDashboard,
@@ -22,6 +24,7 @@ import {
   ClipboardCheck,
   FileText,
   Boxes,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 
@@ -76,6 +79,18 @@ export function AdminShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((s) => !s);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -87,6 +102,7 @@ export function AdminShell() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
           <div className="flex items-center gap-3 border-b border-border px-5 py-4">
@@ -95,6 +111,14 @@ export function AdminShell() {
               Super Admin
             </span>
           </div>
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="mx-3 mt-3 flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span className="flex-1 text-left">Buscar em tudo…</span>
+            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+          </button>
           <nav className="flex-1 space-y-4 overflow-y-auto p-3">
             {navSections.map((section) => (
               <div key={section.title} className="space-y-0.5">
