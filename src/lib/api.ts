@@ -111,6 +111,10 @@ export type Me = {
     role: string;
     organization: { id: string; name: string; slug: string; plan: string };
   }>;
+  franchiseMemberships?: Array<{
+    role: string;
+    franchise: { id: string; name: string; slug: string; status: string };
+  }>;
 };
 
 export const authApi = {
@@ -125,4 +129,9 @@ export const authApi = {
       { method: "POST", body: { email, password, fullName }, auth: false },
     ),
   me: () => api<Me>("/auth/me", { method: "GET" }),
+  permissions: () =>
+    api<{ roles: string[]; grants: { resource: string; action: string }[]; super: boolean }>(
+      "/auth/me/permissions",
+      { method: "GET" },
+    ),
 };

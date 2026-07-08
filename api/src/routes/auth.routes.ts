@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { signToken, requireAuth } from "../auth.js";
+import { resolveUserPermissions } from "../rbac.js";
 
 export const authRouter = Router();
 
@@ -73,6 +74,9 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       memberships: {
         include: { organization: { select: { id: true, name: true, slug: true, plan: true } } },
       },
+      franchiseMemberships: {
+        include: { franchise: { select: { id: true, name: true, slug: true, status: true } } },
+      },
     },
   });
   if (!user) return res.status(404).json({ error: "Not found" });
@@ -87,5 +91,14 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       role: m.role,
       organization: m.organization,
     })),
+    franchiseMemberships: user.franchiseMemberships.map((m: { role: string; franchise: { id: string; name: string; slug: string; status: string } }) => ({
+      role: m.role,
+      franchise: m.franchise,
+    })),
   });
+});
+
+authRouter.get("/me/permissions", requireAuth, async (req, res) => {
+  const perms = await resolveUserPermissions(req.userId!);
+  res.json(perms);
 });

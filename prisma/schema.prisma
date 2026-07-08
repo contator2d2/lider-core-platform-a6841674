@@ -571,3 +571,31 @@ model AuditLog {
   @@index([targetType, targetId])
   @@map("audit_log")
 }
+
+enum SettingCategory {
+  general
+  smtp
+  whatsapp
+  sso
+  backup
+  billing
+  security
+  integrations
+}
+
+model PlatformSetting {
+  id         String          @id @default(uuid()) @db.Uuid
+  scope      ScopeType       @default(global)
+  scopeId    String?         @map("scope_id") @db.Uuid
+  category   SettingCategory @default(general)
+  key        String
+  value      String?
+  secret     Boolean         @default(false)
+  updatedBy  String?         @map("updated_by") @db.Uuid
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  @@unique([scope, scopeId, category, key])
+  @@index([category])
+  @@map("platform_settings")
+}

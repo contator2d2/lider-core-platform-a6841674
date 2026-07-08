@@ -121,3 +121,36 @@ franchiseRouter.post("/:id/organizations", async (req, res) => {
   });
   res.status(201).json(org);
 });
+// KPIs consolidados da franquia
+franchiseRouter.get("/:id/kpis", async (req, res) => {
+  if (!(await assertFranchiseAccess(req.userId!, req.params.id))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const [orgs, orgsActive, leaders, licenses, aiUsage, members] = await Promise.all([
+    prisma.organization.count({ where: { franchiseId: req.params.id } }),
+    prisma.organization.count({ where: { franchiseId: req.params.id, status: "active" } }),
+    prisma.membership.count({
+      where: { organization: { franchiseId: req.params.id }, role: { in: ["leader", "hr_admin"] } },
+    }),
+    prisma.license.count({
+      where: { organization: { franchiseId: req.params.id }, status: "active" },
+    }),
+    prisma.aIUsage.aggregate({
+      _sum: { promptTokens: true, completionTokens: true, costCents: true },
+      where: {
+        franchiseId: req.params.id,
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    }),
+    prisma.franchiseMember.count({ where: { franchiseId: req.params.id } }),
+  ]);
+  res.json({
+    organizations: orgs,
+    organizationsActive: orgsActive,
+    leaders,
+    activeLicenses: licenses,
+    members,
+    aiTokens30d: (aiUsage._sum.promptTokens ?? 0) + (aiUsage._sum.completionTokens ?? 0),
+    aiCostCents30d: aiUsage._sum.costCents ?? 0,
+  });
+});
