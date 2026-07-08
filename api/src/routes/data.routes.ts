@@ -106,20 +106,14 @@ dataRouter.post("/import/hierarchy", async (req, res) => {
     try {
       let branchId: string | null = null;
       if (d.branch_code || d.branch_name) {
-        const branch = await prisma.branch.upsert({
-          where: {
-            organizationId_code: {
-              organizationId: org.id,
-              code: d.branch_code ?? d.branch_name ?? "default",
-            },
-          },
-          update: { name: d.branch_name ?? d.branch_code ?? "Filial" },
-          create: {
-            organizationId: org.id,
-            code: d.branch_code ?? null,
-            name: d.branch_name ?? d.branch_code ?? "Filial",
-          },
-        });
+        const code = d.branch_code ?? null;
+        const name = d.branch_name ?? d.branch_code ?? "Filial";
+        const existing = code
+          ? await prisma.branch.findFirst({ where: { organizationId: org.id, code } })
+          : await prisma.branch.findFirst({ where: { organizationId: org.id, name } });
+        const branch = existing
+          ? await prisma.branch.update({ where: { id: existing.id }, data: { name } })
+          : await prisma.branch.create({ data: { organizationId: org.id, code, name } });
         branchId = branch.id;
       }
       let areaId: string | null = null;
