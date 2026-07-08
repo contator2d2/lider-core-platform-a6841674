@@ -14,6 +14,7 @@ import { billingRouter } from "./routes/billing.routes.js";
 import { webhooksRouter } from "./routes/webhooks.routes.js";
 import { notificationsRouter } from "./routes/notifications.routes.js";
 import { dataRouter } from "./routes/data.routes.js";
+import { organizationRouter } from "./routes/organization.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -109,6 +110,7 @@ app.use("/platform", platformRouter);
 app.use("/billing", billingRouter);
 app.use("/notifications", notificationsRouter);
 app.use("/data", dataRouter);
+app.use("/organization", organizationRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 

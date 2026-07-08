@@ -206,6 +206,13 @@ model Organization {
   licenses    License[]
   onboardingItems OnboardingItem[]
 
+  orgRoles           OrgRole[]
+  rituals            Ritual[]
+  delegations        Delegation[]
+  decisions          Decision[]
+  documents          OrgDocument[]
+  healthSnapshots    HealthScoreSnapshot[]
+
   @@map("organizations")
 }
 
@@ -225,6 +232,9 @@ model Membership {
   branch       Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
   area         Area?        @relation(fields: [areaId], references: [id], onDelete: SetNull)
   team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  ritualParticipations RitualParticipant[]
+  roleAssignments      RoleAssignment[]
 
   @@unique([userId, organizationId])
   @@map("memberships")
@@ -262,6 +272,11 @@ model Area {
   description    String?
   managerUserId  String?  @map("manager_user_id") @db.Uuid
   active         Boolean  @default(true)
+  mission        String?
+  objective      String?
+  kpis           String[] @default([])
+  contextMd      String?  @map("context_md")
+  tags           String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -282,6 +297,11 @@ model Team {
   objectives     String?
   responsibleUserId String? @map("responsible_user_id") @db.Uuid
   active         Boolean  @default(true)
+  mission        String?
+  kpis           String[] @default([])
+  leaderMembershipId String? @map("leader_membership_id") @db.Uuid
+  contextMd      String?  @map("context_md")
+  tags           String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -665,4 +685,292 @@ model NotificationLog {
   @@index([createdAt])
   @@index([to])
   @@map("notification_logs")
+}
+
+// ============================================================
+// MÓDULO ORGANIZAÇÃO — base operacional da liderança.
+// Toda entidade traz auditoria + campos preparados para IA
+// (contextMd, tags, history) para o Coach usar depois.
+// ============================================================
+
+enum RitualType {
+  daily
+  weekly
+  one_on_one
+  feedback
+  action_plan
+  indicators
+  strategic
+  day_one
+  checkpoint
+  retro
+  custom
+}
+
+enum RitualScope {
+  org
+  branch
+  area
+  team
+}
+
+enum RitualStatus {
+  active
+  paused
+  archived
+}
+
+enum RitualOccurrenceStatus {
+  scheduled
+  in_progress
+  done
+  missed
+  canceled
+}
+
+enum DelegationStatus {
+  open
+  in_progress
+  blocked
+  done
+  canceled
+}
+
+enum DelegationPriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum DecisionStatus {
+  open
+  in_progress
+  done
+  reverted
+}
+
+enum DocumentKind {
+  policy
+  procedure
+  flow
+  material
+  video
+  pdf
+  link
+  other
+}
+
+model OrgRole {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  title            String
+  mission          String?
+  responsibilities String[] @default([])
+  deliverables     String[] @default([])
+  competencies     String[] @default([])
+  relationships    String[] @default([])
+  isLeader         Boolean  @default(false) @map("is_leader")
+  contextMd        String?  @map("context_md")
+  tags             String[] @default([])
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignments  RoleAssignment[]
+
+  @@index([organizationId])
+  @@map("org_roles")
+}
+
+model RoleAssignment {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       OrgRole    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, membershipId])
+  @@map("role_assignments")
+}
+
+model Ritual {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  scope          RitualScope  @default(team)
+  scopeId        String?      @map("scope_id") @db.Uuid
+  name           String
+  type           RitualType   @default(custom)
+  objective      String?
+  cadence        String?
+  ownerId        String?      @map("owner_id") @db.Uuid
+  durationMin    Int          @default(30) @map("duration_min")
+  agendaTemplate String?      @map("agenda_template")
+  checklist      Json?
+  status         RitualStatus @default(active)
+  tags           String[]     @default([])
+  contextMd      String?      @map("context_md")
+  createdBy      String?      @map("created_by") @db.Uuid
+  updatedBy      String?      @map("updated_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants RitualParticipant[]
+  occurrences  RitualOccurrence[]
+
+  @@index([organizationId])
+  @@index([scope, scopeId])
+  @@map("rituals")
+}
+
+model RitualParticipant {
+  id           String   @id @default(uuid()) @db.Uuid
+  ritualId     String   @map("ritual_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  role         String   @default("required")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  ritual     Ritual     @relation(fields: [ritualId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([ritualId, membershipId])
+  @@map("ritual_participants")
+}
+
+model RitualOccurrence {
+  id          String                 @id @default(uuid()) @db.Uuid
+  ritualId    String                 @map("ritual_id") @db.Uuid
+  scheduledAt DateTime               @map("scheduled_at")
+  startedAt   DateTime?              @map("started_at")
+  endedAt     DateTime?              @map("ended_at")
+  status      RitualOccurrenceStatus @default(scheduled)
+  minutes     String?
+  aiSummary   String?                @map("ai_summary")
+  notes       String?
+  pendings    Json?
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  ritual    Ritual     @relation(fields: [ritualId], references: [id], onDelete: Cascade)
+  decisions Decision[]
+
+  @@index([ritualId])
+  @@index([scheduledAt])
+  @@map("ritual_occurrences")
+}
+
+model Delegation {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  areaId         String?            @map("area_id") @db.Uuid
+  teamId         String?            @map("team_id") @db.Uuid
+  title          String
+  description    String?
+  assigneeId     String?            @map("assignee_id") @db.Uuid
+  delegatorId    String?            @map("delegator_id") @db.Uuid
+  dueAt          DateTime?          @map("due_at")
+  priority       DelegationPriority @default(medium)
+  doneCriteria   String?            @map("done_criteria")
+  doneAt         DateTime?          @map("done_at")
+  status         DelegationStatus   @default(open)
+  tags           String[]           @default([])
+  contextMd      String?            @map("context_md")
+  attachments    Json?
+  history        Json?
+  createdBy      String?            @map("created_by") @db.Uuid
+  updatedBy      String?            @map("updated_by") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  comments     DelegationComment[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([dueAt])
+  @@map("delegations")
+}
+
+model DelegationComment {
+  id           String   @id @default(uuid()) @db.Uuid
+  delegationId String   @map("delegation_id") @db.Uuid
+  authorId     String?  @map("author_id") @db.Uuid
+  body         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  delegation Delegation @relation(fields: [delegationId], references: [id], onDelete: Cascade)
+
+  @@index([delegationId])
+  @@map("delegation_comments")
+}
+
+model Decision {
+  id                 String         @id @default(uuid()) @db.Uuid
+  organizationId     String         @map("organization_id") @db.Uuid
+  ritualOccurrenceId String?        @map("ritual_occurrence_id") @db.Uuid
+  title              String
+  context            String?
+  decision           String
+  ownerId            String?        @map("owner_id") @db.Uuid
+  dueAt              DateTime?      @map("due_at")
+  expectedResult     String?        @map("expected_result")
+  status             DecisionStatus @default(open)
+  tags               String[]       @default([])
+  history            Json?
+  createdBy          String?        @map("created_by") @db.Uuid
+  updatedBy          String?        @map("updated_by") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ritualOccurrence RitualOccurrence? @relation(fields: [ritualOccurrenceId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("decisions")
+}
+
+model OrgDocument {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  scope          RitualScope  @default(area)
+  scopeId        String?      @map("scope_id") @db.Uuid
+  title          String
+  kind           DocumentKind @default(other)
+  url            String?
+  mime           String?
+  size           Int?
+  tags           String[]     @default([])
+  description    String?
+  uploadedBy     String?      @map("uploaded_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([scope, scopeId])
+  @@map("org_documents")
+}
+
+model HealthScoreSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  areaId         String?  @map("area_id") @db.Uuid
+  teamId         String?  @map("team_id") @db.Uuid
+  score          Int
+  breakdown      Json
+  computedAt     DateTime @default(now()) @map("computed_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, computedAt])
+  @@index([areaId])
+  @@index([teamId])
+  @@map("health_score_snapshots")
 }
