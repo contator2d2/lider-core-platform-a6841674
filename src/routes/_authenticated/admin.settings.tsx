@@ -81,14 +81,18 @@ const CATEGORIES: { key: Category; label: string; description: string; icon: typ
   },
   {
     key: "billing",
-    label: "Cobrança",
-    description: "Provedor de pagamentos e configurações fiscais.",
+    label: "Cobrança (Asaas)",
+    description:
+      "Integração com Asaas — PIX, boleto e cartão. Cadastre a API Key do painel Asaas → Integrações → API. O Webhook Token é uma string aleatória que você define aqui e cola no painel Asaas em Configurações → Notificações → URL: /api/public/asaas.",
     icon: CreditCard,
     keys: [
-      { key: "provider", label: "Provider", placeholder: "stripe | pagarme | manual" },
-      { key: "api_key", label: "API Key", secret: true },
-      { key: "webhook_secret", label: "Webhook Secret", secret: true },
+      { key: "asaas_env", label: "Ambiente", placeholder: "sandbox | production" },
+      { key: "asaas_api_key", label: "API Key (access_token)", secret: true, placeholder: "$aact_..." },
+      { key: "asaas_webhook_token", label: "Webhook Token (você define)", secret: true, placeholder: "string aleatória" },
+      { key: "asaas_wallet_id", label: "Wallet ID (opcional — split)", placeholder: "UUID" },
+      { key: "default_billing_type", label: "Cobrança padrão", placeholder: "PIX | BOLETO | CREDIT_CARD | UNDEFINED" },
       { key: "default_currency", label: "Moeda", placeholder: "BRL" },
+      { key: "cron_secret", label: "Cron Secret (dunning)", secret: true, placeholder: "string aleatória" },
     ],
   },
   {

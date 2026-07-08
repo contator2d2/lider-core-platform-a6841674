@@ -10,6 +10,8 @@ import { adminRouter } from "./routes/admin.routes.js";
 import { franchiseRouter } from "./routes/franchise.routes.js";
 import { companyRouter } from "./routes/company.routes.js";
 import { platformRouter } from "./routes/platform.routes.js";
+import { billingRouter } from "./routes/billing.routes.js";
+import { webhooksRouter } from "./routes/webhooks.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -92,12 +94,17 @@ app.use(
 
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
+// PUBLIC endpoints (webhooks + cron) — mounted BEFORE auth. Each handler
+// authenticates itself via the token/secret stored in PlatformSetting.
+app.use("/api/public", webhooksRouter);
+
 app.use("/auth", authRouter);
 app.use("/organizations", orgsRouter);
 app.use("/admin", adminRouter);
 app.use("/franchises", franchiseRouter);
 app.use("/companies", companyRouter);
 app.use("/platform", platformRouter);
+app.use("/billing", billingRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
