@@ -23,7 +23,8 @@ function AgendaPage() {
   const groups = new Map<string, Entry[]>();
   for (const e of q.data?.entries ?? []) {
     const day = new Date(e.at).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
-    (groups.get(day) ?? groups.set(day, []).get(day)!).push(e);
+    const arr = groups.get(day);
+    if (arr) arr.push(e); else groups.set(day, [e]);
   }
 
   return (
