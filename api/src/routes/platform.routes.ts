@@ -1,10 +1,36 @@
 import { Router } from "express";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 
 export const platformRouter = Router();
 platformRouter.use(requireAuth, requireRoles("super_admin", "neo_admin"));
+
+// ------------------------------------------------------------
+// Audit helper — every mutation should call this.
+// ------------------------------------------------------------
+async function audit(
+  actorUserId: string | undefined,
+  action: string,
+  targetType?: string,
+  targetId?: string,
+  metadata?: Record<string, unknown>,
+) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: actorUserId ?? null,
+        action,
+        targetType: targetType ?? null,
+        targetId: targetId ?? null,
+        metadata: metadata ? (metadata as never) : undefined,
+      },
+    });
+  } catch (err) {
+    console.error("[audit] falha ao gravar", err);
+  }
+}
 
 // ============================================================
 // DASHBOARD KPIs
