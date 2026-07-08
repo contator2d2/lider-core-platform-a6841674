@@ -60,6 +60,7 @@ import { Route as AuthenticatedAppOrganizationRolesRouteImport } from './routes/
 import { Route as AuthenticatedAppOrganizationRitualsRouteImport } from './routes/_authenticated/app.organization.rituals'
 import { Route as AuthenticatedAppOrganizationMapRouteImport } from './routes/_authenticated/app.organization.map'
 import { Route as AuthenticatedAppOrganizationDelegationsRouteImport } from './routes/_authenticated/app.organization.delegations'
+import { Route as AuthenticatedAppOrganizationDecisionsRouteImport } from './routes/_authenticated/app.organization.decisions'
 import { Route as AuthenticatedAppOrganizationAreasRouteImport } from './routes/_authenticated/app.organization.areas'
 import { Route as AuthenticatedAppOrganizationAgendaRouteImport } from './routes/_authenticated/app.organization.agenda'
 
@@ -349,6 +350,12 @@ const AuthenticatedAppOrganizationDelegationsRoute =
     path: '/delegations',
     getParentRoute: () => AuthenticatedAppOrganizationRoute,
   } as any)
+const AuthenticatedAppOrganizationDecisionsRoute =
+  AuthenticatedAppOrganizationDecisionsRouteImport.update({
+    id: '/decisions',
+    path: '/decisions',
+    getParentRoute: () => AuthenticatedAppOrganizationRoute,
+  } as any)
 const AuthenticatedAppOrganizationAreasRoute =
   AuthenticatedAppOrganizationAreasRouteImport.update({
     id: '/areas',
@@ -410,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/franchise/': typeof AuthenticatedFranchiseIndexRoute
   '/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
+  '/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
   '/app/organization/delegations': typeof AuthenticatedAppOrganizationDelegationsRoute
   '/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
@@ -459,6 +467,7 @@ export interface FileRoutesByTo {
   '/franchise': typeof AuthenticatedFranchiseIndexRoute
   '/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
+  '/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
   '/app/organization/delegations': typeof AuthenticatedAppOrganizationDelegationsRoute
   '/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
@@ -515,6 +524,7 @@ export interface FileRoutesById {
   '/_authenticated/franchise/': typeof AuthenticatedFranchiseIndexRoute
   '/_authenticated/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/_authenticated/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
+  '/_authenticated/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
   '/_authenticated/app/organization/delegations': typeof AuthenticatedAppOrganizationDelegationsRoute
   '/_authenticated/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/_authenticated/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
@@ -571,6 +581,7 @@ export interface FileRouteTypes {
     | '/franchise/'
     | '/app/organization/agenda'
     | '/app/organization/areas'
+    | '/app/organization/decisions'
     | '/app/organization/delegations'
     | '/app/organization/map'
     | '/app/organization/rituals'
@@ -620,6 +631,7 @@ export interface FileRouteTypes {
     | '/franchise'
     | '/app/organization/agenda'
     | '/app/organization/areas'
+    | '/app/organization/decisions'
     | '/app/organization/delegations'
     | '/app/organization/map'
     | '/app/organization/rituals'
@@ -675,6 +687,7 @@ export interface FileRouteTypes {
     | '/_authenticated/franchise/'
     | '/_authenticated/app/organization/agenda'
     | '/_authenticated/app/organization/areas'
+    | '/_authenticated/app/organization/decisions'
     | '/_authenticated/app/organization/delegations'
     | '/_authenticated/app/organization/map'
     | '/_authenticated/app/organization/rituals'
@@ -1047,6 +1060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationDelegationsRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationRoute
     }
+    '/_authenticated/app/organization/decisions': {
+      id: '/_authenticated/app/organization/decisions'
+      path: '/decisions'
+      fullPath: '/app/organization/decisions'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationDecisionsRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationRoute
+    }
     '/_authenticated/app/organization/areas': {
       id: '/_authenticated/app/organization/areas'
       path: '/areas'
@@ -1118,6 +1138,7 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedAppOrganizationRouteChildren {
   AuthenticatedAppOrganizationAgendaRoute: typeof AuthenticatedAppOrganizationAgendaRoute
   AuthenticatedAppOrganizationAreasRoute: typeof AuthenticatedAppOrganizationAreasRoute
+  AuthenticatedAppOrganizationDecisionsRoute: typeof AuthenticatedAppOrganizationDecisionsRoute
   AuthenticatedAppOrganizationDelegationsRoute: typeof AuthenticatedAppOrganizationDelegationsRoute
   AuthenticatedAppOrganizationMapRoute: typeof AuthenticatedAppOrganizationMapRoute
   AuthenticatedAppOrganizationRitualsRoute: typeof AuthenticatedAppOrganizationRitualsRoute
@@ -1131,6 +1152,8 @@ const AuthenticatedAppOrganizationRouteChildren: AuthenticatedAppOrganizationRou
       AuthenticatedAppOrganizationAgendaRoute,
     AuthenticatedAppOrganizationAreasRoute:
       AuthenticatedAppOrganizationAreasRoute,
+    AuthenticatedAppOrganizationDecisionsRoute:
+      AuthenticatedAppOrganizationDecisionsRoute,
     AuthenticatedAppOrganizationDelegationsRoute:
       AuthenticatedAppOrganizationDelegationsRoute,
     AuthenticatedAppOrganizationMapRoute: AuthenticatedAppOrganizationMapRoute,
