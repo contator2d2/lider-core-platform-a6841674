@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { TenantShell } from "@/components/tenant/TenantShell";
-import { LayoutDashboard, Users, UserCheck, Settings2 } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Settings2, CreditCard } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/company")({ component: CompanyLayout });
 
@@ -27,6 +27,7 @@ function CompanyLayout() {
         { to: "/company", label: "Dashboard", icon: LayoutDashboard },
         { to: "/company/members", label: "Colaboradores", icon: Users },
         { to: "/company/leaders", label: "Líderes", icon: UserCheck },
+        { to: "/company/billing", label: "Plano e cobrança", icon: CreditCard },
         { to: "/admin/branding", label: "Configurações", icon: Settings2 },
       ]}
     />
