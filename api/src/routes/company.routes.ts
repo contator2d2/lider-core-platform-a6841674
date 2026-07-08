@@ -102,3 +102,52 @@ companyRouter.delete("/:id/members/:userId", async (req, res) => {
     .catch(() => null);
   res.status(204).end();
 });
+// KPIs consolidados da empresa
+companyRouter.get("/:id/kpis", async (req, res) => {
+  if (!(await assertCompanyAccess(req.userId!, req.params.id))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const [members, leaders, branches, areas, teams, licenses, aiUsage] = await Promise.all([
+    prisma.membership.count({ where: { organizationId: req.params.id } }),
+    prisma.membership.count({ where: { organizationId: req.params.id, role: "leader" } }),
+    prisma.branch.count({ where: { organizationId: req.params.id } }),
+    prisma.area.count({ where: { organizationId: req.params.id } }),
+    prisma.team.count({ where: { organizationId: req.params.id } }),
+    prisma.license.count({ where: { organizationId: req.params.id, status: "active" } }),
+    prisma.aIUsage.aggregate({
+      _sum: { promptTokens: true, completionTokens: true, costCents: true },
+      where: {
+        organizationId: req.params.id,
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    }),
+  ]);
+  res.json({
+    members,
+    leaders,
+    branches,
+    areas,
+    teams,
+    activeLicenses: licenses,
+    aiTokens30d: (aiUsage._sum.promptTokens ?? 0) + (aiUsage._sum.completionTokens ?? 0),
+    aiCostCents30d: aiUsage._sum.costCents ?? 0,
+  });
+});
+
+// Líderes da empresa (útil para o painel Company)
+companyRouter.get("/:id/leaders", async (req, res) => {
+  if (!(await assertCompanyAccess(req.userId!, req.params.id))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const list = await prisma.membership.findMany({
+    where: { organizationId: req.params.id, role: "leader" },
+    include: {
+      user: { include: { profile: true } },
+      branch: { select: { id: true, name: true } },
+      area: { select: { id: true, name: true } },
+      team: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(list);
+});
