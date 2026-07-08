@@ -59,6 +59,7 @@ import { Route as AuthenticatedAppOrganizationIndexRouteImport } from './routes/
 import { Route as AuthenticatedAppOrganizationRolesRouteImport } from './routes/_authenticated/app.organization.roles'
 import { Route as AuthenticatedAppOrganizationRitualsRouteImport } from './routes/_authenticated/app.organization.rituals'
 import { Route as AuthenticatedAppOrganizationMapRouteImport } from './routes/_authenticated/app.organization.map'
+import { Route as AuthenticatedAppOrganizationDocumentsRouteImport } from './routes/_authenticated/app.organization.documents'
 import { Route as AuthenticatedAppOrganizationDelegationsRouteImport } from './routes/_authenticated/app.organization.delegations'
 import { Route as AuthenticatedAppOrganizationDecisionsRouteImport } from './routes/_authenticated/app.organization.decisions'
 import { Route as AuthenticatedAppOrganizationAreasRouteImport } from './routes/_authenticated/app.organization.areas'
@@ -344,6 +345,12 @@ const AuthenticatedAppOrganizationMapRoute =
     path: '/map',
     getParentRoute: () => AuthenticatedAppOrganizationRoute,
   } as any)
+const AuthenticatedAppOrganizationDocumentsRoute =
+  AuthenticatedAppOrganizationDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => AuthenticatedAppOrganizationRoute,
+  } as any)
 const AuthenticatedAppOrganizationDelegationsRoute =
   AuthenticatedAppOrganizationDelegationsRouteImport.update({
     id: '/delegations',
@@ -419,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
   '/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
   '/app/organization/delegations': typeof AuthenticatedAppOrganizationDelegationsRoute
+  '/app/organization/documents': typeof AuthenticatedAppOrganizationDocumentsRoute
   '/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
@@ -469,6 +477,7 @@ export interface FileRoutesByTo {
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
   '/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
   '/app/organization/delegations': typeof AuthenticatedAppOrganizationDelegationsRoute
+  '/app/organization/documents': typeof AuthenticatedAppOrganizationDocumentsRoute
   '/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
@@ -526,6 +535,7 @@ export interface FileRoutesById {
   '/_authenticated/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
   '/_authenticated/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
   '/_authenticated/app/organization/delegations': typeof AuthenticatedAppOrganizationDelegationsRoute
+  '/_authenticated/app/organization/documents': typeof AuthenticatedAppOrganizationDocumentsRoute
   '/_authenticated/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/_authenticated/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/_authenticated/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
@@ -583,6 +593,7 @@ export interface FileRouteTypes {
     | '/app/organization/areas'
     | '/app/organization/decisions'
     | '/app/organization/delegations'
+    | '/app/organization/documents'
     | '/app/organization/map'
     | '/app/organization/rituals'
     | '/app/organization/roles'
@@ -633,6 +644,7 @@ export interface FileRouteTypes {
     | '/app/organization/areas'
     | '/app/organization/decisions'
     | '/app/organization/delegations'
+    | '/app/organization/documents'
     | '/app/organization/map'
     | '/app/organization/rituals'
     | '/app/organization/roles'
@@ -689,6 +701,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/organization/areas'
     | '/_authenticated/app/organization/decisions'
     | '/_authenticated/app/organization/delegations'
+    | '/_authenticated/app/organization/documents'
     | '/_authenticated/app/organization/map'
     | '/_authenticated/app/organization/rituals'
     | '/_authenticated/app/organization/roles'
@@ -1053,6 +1066,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationMapRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationRoute
     }
+    '/_authenticated/app/organization/documents': {
+      id: '/_authenticated/app/organization/documents'
+      path: '/documents'
+      fullPath: '/app/organization/documents'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationDocumentsRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationRoute
+    }
     '/_authenticated/app/organization/delegations': {
       id: '/_authenticated/app/organization/delegations'
       path: '/delegations'
@@ -1140,6 +1160,7 @@ interface AuthenticatedAppOrganizationRouteChildren {
   AuthenticatedAppOrganizationAreasRoute: typeof AuthenticatedAppOrganizationAreasRoute
   AuthenticatedAppOrganizationDecisionsRoute: typeof AuthenticatedAppOrganizationDecisionsRoute
   AuthenticatedAppOrganizationDelegationsRoute: typeof AuthenticatedAppOrganizationDelegationsRoute
+  AuthenticatedAppOrganizationDocumentsRoute: typeof AuthenticatedAppOrganizationDocumentsRoute
   AuthenticatedAppOrganizationMapRoute: typeof AuthenticatedAppOrganizationMapRoute
   AuthenticatedAppOrganizationRitualsRoute: typeof AuthenticatedAppOrganizationRitualsRoute
   AuthenticatedAppOrganizationRolesRoute: typeof AuthenticatedAppOrganizationRolesRoute
@@ -1156,6 +1177,8 @@ const AuthenticatedAppOrganizationRouteChildren: AuthenticatedAppOrganizationRou
       AuthenticatedAppOrganizationDecisionsRoute,
     AuthenticatedAppOrganizationDelegationsRoute:
       AuthenticatedAppOrganizationDelegationsRoute,
+    AuthenticatedAppOrganizationDocumentsRoute:
+      AuthenticatedAppOrganizationDocumentsRoute,
     AuthenticatedAppOrganizationMapRoute: AuthenticatedAppOrganizationMapRoute,
     AuthenticatedAppOrganizationRitualsRoute:
       AuthenticatedAppOrganizationRitualsRoute,

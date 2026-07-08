@@ -10,9 +10,8 @@ import {
   Sparkles,
   Target,
   Users,
-  Workflow,
   BookOpen,
-  ClipboardList,
+  Building,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -24,9 +23,8 @@ export const Route = createFileRoute("/_authenticated/app")({
 const nav = [
   { to: "/app", label: "Hoje", icon: Home, section: "Consciência" },
   { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência" },
-  { to: "/app/rituals", label: "Rituais", icon: Workflow, section: "Organização" },
+  { to: "/app/organization", label: "Organização", icon: Building, section: "Organização" },
   { to: "/app/one-on-ones", label: "1:1s", icon: MessageSquare, section: "Organização" },
-  { to: "/app/delegations", label: "Delegações", icon: ClipboardList, section: "Organização" },
   { to: "/app/indicators", label: "Indicadores", icon: Target, section: "Resultado" },
   { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução" },
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução" },
