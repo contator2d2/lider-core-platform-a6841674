@@ -27,13 +27,11 @@ import { Route as AuthenticatedCompanyMembersRouteImport } from './routes/_authe
 import { Route as AuthenticatedCompanyLeadersRouteImport } from './routes/_authenticated/company.leaders'
 import { Route as AuthenticatedCompanyBillingRouteImport } from './routes/_authenticated/company.billing'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
-import { Route as AuthenticatedAppRitualsRouteImport } from './routes/_authenticated/app.rituals'
 import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticated/app.pdis'
 import { Route as AuthenticatedAppOrganizationRouteImport } from './routes/_authenticated/app.organization'
 import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
 import { Route as AuthenticatedAppIndicatorsRouteImport } from './routes/_authenticated/app.indicators'
 import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authenticated/app.feedbacks'
-import { Route as AuthenticatedAppDelegationsRouteImport } from './routes/_authenticated/app.delegations'
 import { Route as AuthenticatedAppAiRouteImport } from './routes/_authenticated/app.ai'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
@@ -162,11 +160,6 @@ const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const AuthenticatedAppRitualsRoute = AuthenticatedAppRitualsRouteImport.update({
-  id: '/rituals',
-  path: '/rituals',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
 const AuthenticatedAppPdisRoute = AuthenticatedAppPdisRouteImport.update({
   id: '/pdis',
   path: '/pdis',
@@ -194,12 +187,6 @@ const AuthenticatedAppFeedbacksRoute =
   AuthenticatedAppFeedbacksRouteImport.update({
     id: '/feedbacks',
     path: '/feedbacks',
-    getParentRoute: () => AuthenticatedAppRoute,
-  } as any)
-const AuthenticatedAppDelegationsRoute =
-  AuthenticatedAppDelegationsRouteImport.update({
-    id: '/delegations',
-    path: '/delegations',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppAiRoute = AuthenticatedAppAiRouteImport.update({
@@ -404,13 +391,11 @@ export interface FileRoutesByFullPath {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/app/ai': typeof AuthenticatedAppAiRoute
-  '/app/delegations': typeof AuthenticatedAppDelegationsRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/app/rituals': typeof AuthenticatedAppRitualsRoute
   '/app/team': typeof AuthenticatedAppTeamRoute
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -456,12 +441,10 @@ export interface FileRoutesByTo {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/app/ai': typeof AuthenticatedAppAiRoute
-  '/app/delegations': typeof AuthenticatedAppDelegationsRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/app/rituals': typeof AuthenticatedAppRitualsRoute
   '/app/team': typeof AuthenticatedAppTeamRoute
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -513,13 +496,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/app/ai': typeof AuthenticatedAppAiRoute
-  '/_authenticated/app/delegations': typeof AuthenticatedAppDelegationsRoute
   '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/_authenticated/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/_authenticated/app/rituals': typeof AuthenticatedAppRitualsRoute
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -571,13 +552,11 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/users'
     | '/app/ai'
-    | '/app/delegations'
     | '/app/feedbacks'
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/organization'
     | '/app/pdis'
-    | '/app/rituals'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -623,12 +602,10 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/users'
     | '/app/ai'
-    | '/app/delegations'
     | '/app/feedbacks'
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/pdis'
-    | '/app/rituals'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -679,13 +656,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/users'
     | '/_authenticated/app/ai'
-    | '/_authenticated/app/delegations'
     | '/_authenticated/app/feedbacks'
     | '/_authenticated/app/indicators'
     | '/_authenticated/app/one-on-ones'
     | '/_authenticated/app/organization'
     | '/_authenticated/app/pdis'
-    | '/_authenticated/app/rituals'
     | '/_authenticated/app/team'
     | '/_authenticated/company/billing'
     | '/_authenticated/company/leaders'
@@ -842,13 +817,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
-    '/_authenticated/app/rituals': {
-      id: '/_authenticated/app/rituals'
-      path: '/rituals'
-      fullPath: '/app/rituals'
-      preLoaderRoute: typeof AuthenticatedAppRitualsRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
     '/_authenticated/app/pdis': {
       id: '/_authenticated/app/pdis'
       path: '/pdis'
@@ -882,13 +850,6 @@ declare module '@tanstack/react-router' {
       path: '/feedbacks'
       fullPath: '/app/feedbacks'
       preLoaderRoute: typeof AuthenticatedAppFeedbacksRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
-    '/_authenticated/app/delegations': {
-      id: '/_authenticated/app/delegations'
-      path: '/delegations'
-      fullPath: '/app/delegations'
-      preLoaderRoute: typeof AuthenticatedAppDelegationsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/ai': {
@@ -1195,27 +1156,23 @@ const AuthenticatedAppOrganizationRouteWithChildren =
 
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
-  AuthenticatedAppDelegationsRoute: typeof AuthenticatedAppDelegationsRoute
   AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
   AuthenticatedAppIndicatorsRoute: typeof AuthenticatedAppIndicatorsRoute
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
   AuthenticatedAppPdisRoute: typeof AuthenticatedAppPdisRoute
-  AuthenticatedAppRitualsRoute: typeof AuthenticatedAppRitualsRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAiRoute: AuthenticatedAppAiRoute,
-  AuthenticatedAppDelegationsRoute: AuthenticatedAppDelegationsRoute,
   AuthenticatedAppFeedbacksRoute: AuthenticatedAppFeedbacksRoute,
   AuthenticatedAppIndicatorsRoute: AuthenticatedAppIndicatorsRoute,
   AuthenticatedAppOneOnOnesRoute: AuthenticatedAppOneOnOnesRoute,
   AuthenticatedAppOrganizationRoute:
     AuthenticatedAppOrganizationRouteWithChildren,
   AuthenticatedAppPdisRoute: AuthenticatedAppPdisRoute,
-  AuthenticatedAppRitualsRoute: AuthenticatedAppRitualsRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
