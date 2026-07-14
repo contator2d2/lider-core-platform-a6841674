@@ -1,0 +1,212 @@
+import { Router, type Response } from "express";
+import { z } from "zod";
+import { prisma } from "../prisma.js";
+import { requireAuth } from "../auth.js";
+import { completeChat, streamChat, type ChatMessage } from "../lib/ai-gateway.js";
+
+/**
+ * IA Coach — usa Lovable AI Gateway com contexto real do líder.
+ * - POST /ai/coach/context : retorna o snapshot que o modelo receberia (debug/preview)
+ * - POST /ai/coach/insight : one-shot com insight semanal (JSON estruturado)
+ * - POST /ai/coach/chat    : streaming SSE de resposta conversacional
+ */
+export const aiRouter = Router();
+aiRouter.use(requireAuth);
+
+const MODEL = "google/gemini-2.5-flash";
+
+async function assertOrgAccess(userId: string, orgId: string) {
+  const superRole = await prisma.userRole.findFirst({
+    where: { userId, role: { in: ["super_admin", "neo_admin"] } },
+  });
+  if (superRole) return true;
+  const m = await prisma.membership.findFirst({ where: { userId, organizationId: orgId } });
+  return !!m;
+}
+
+/**
+ * Coleta os fatos que a plataforma já registra sobre este líder.
+ * Tudo em pt-BR, agregado — sem PII de terceiros.
+ */
+async function buildLeaderContext(userId: string, orgId: string) {
+  const now = new Date();
+  const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+
+  const [membership, org, profile, signals, delegs, rituals, snapshot, commitments] = await Promise.all([
+    prisma.membership.findFirst({
+      where: { userId, organizationId: orgId },
+      include: { user: { select: { fullName: true } } },
+    }),
+    prisma.organization.findUnique({ where: { id: orgId }, select: { name: true } }),
+    prisma.leaderProfile.findUnique({
+      where: { organizationId_userId: { organizationId: orgId, userId } },
+    }).catch(() => null),
+    prisma.crossSignal.findMany({
+      where: { organizationId: orgId, userId, dismissedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }).catch(() => []),
+    prisma.delegation.findMany({
+      where: { organizationId: orgId, ownerId: userId, status: { in: ["open", "in_progress", "overdue"] as never } },
+      orderBy: [{ dueAt: "asc" }],
+      take: 15,
+    }).catch(() => []),
+    prisma.ritualOccurrence.findMany({
+      where: { organizationId: orgId, ritual: { ownerId: userId }, scheduledAt: { gte: from } },
+      include: { ritual: { select: { name: true, type: true } } },
+      orderBy: { scheduledAt: "desc" },
+      take: 30,
+    }).catch(() => []),
+    prisma.leadershipScoreSnapshot.findFirst({
+      where: { organizationId: orgId, userId },
+      orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+    }).catch(() => null),
+    prisma.mentorshipCommitment.findMany({
+      where: { organizationId: orgId, userId, status: "active" as never },
+      take: 10,
+    }).catch(() => []),
+  ]);
+
+  const done = rituals.filter((r) => r.status === "done").length;
+  const missed = rituals.filter((r) => r.status === "missed").length;
+  const overdue = delegs.filter((d) => d.status === "overdue").length;
+
+  return {
+    leader: membership?.user.fullName ?? "líder",
+    organization: org?.name ?? "empresa",
+    profile: profile
+      ? {
+          strengths: profile.strengths ?? [],
+          risks: profile.behavioralRisks ?? [],
+          communicationStyle: profile.communicationStyle,
+          decisionStyle: profile.decisionStyle,
+          assessmentAt: profile.assessmentAt,
+        }
+      : null,
+    score: snapshot
+      ? {
+          total: snapshot.score,
+          rituals: snapshot.ritualsScore,
+          delegations: snapshot.delegScore,
+          indicators: snapshot.indicatorsScore,
+          diagnostic: snapshot.diagnostic,
+        }
+      : null,
+    rituals30d: { done, missed, planned: rituals.length },
+    delegations: {
+      total: delegs.length,
+      overdue,
+      titles: delegs.slice(0, 8).map((d) => ({
+        title: d.title,
+        status: d.status,
+        dueAt: d.dueAt,
+      })),
+    },
+    signals: signals.map((s) => ({ kind: s.kind, severity: s.severity, reason: s.reason })),
+    commitments: commitments.map((c) => c.phrase),
+  };
+}
+
+function systemPrompt() {
+  return `Você é o Coach C.O.R.E. — um coach executivo brasileiro que ajuda líderes a evoluir com base em FATOS da plataforma Líder C.O.R.E. (Consciência, Organização, Resultado, Evolução).
+
+Regras:
+- Sempre responda em português do Brasil, tom direto, claro, respeitoso.
+- Use os fatos do contexto (rituais, delegações, sinais, score) — nunca invente números.
+- Priorize ações concretas: quem, o quê, quando. No máximo 3 recomendações por resposta.
+- Prefira perguntas provocativas a diagnósticos genéricos.
+- Se faltar dado, diga que ainda não há evidência suficiente e sugira o que registrar.
+- Nunca julgue caráter. Foque em comportamento observado.
+- Formate em markdown enxuto: bullets curtos, títulos leves, sem emojis.`;
+}
+
+function contextMessage(ctx: unknown): ChatMessage {
+  return {
+    role: "system",
+    content: `Contexto atual do líder (JSON):\n\`\`\`json\n${JSON.stringify(ctx, null, 2)}\n\`\`\``,
+  };
+}
+
+// --- POST /:orgId/ai/coach/context (debug) ---
+aiRouter.post("/:orgId/ai/coach/context", async (req, res) => {
+  const orgId = req.params.orgId;
+  if (!(await assertOrgAccess(req.userId!, orgId))) return res.status(403).json({ error: "Forbidden" });
+  const ctx = await buildLeaderContext(req.userId!, orgId);
+  res.json(ctx);
+});
+
+// --- POST /:orgId/ai/coach/insight ---
+aiRouter.post("/:orgId/ai/coach/insight", async (req, res) => {
+  const orgId = req.params.orgId;
+  if (!(await assertOrgAccess(req.userId!, orgId))) return res.status(403).json({ error: "Forbidden" });
+
+  try {
+    const ctx = await buildLeaderContext(req.userId!, orgId);
+    const text = await completeChat({
+      model: MODEL,
+      messages: [
+        { role: "system", content: systemPrompt() },
+        contextMessage(ctx),
+        {
+          role: "user",
+          content:
+            "Gere o INSIGHT DA SEMANA — 3 blocos curtos:\n" +
+            "1) 'O que está funcionando' (2 linhas).\n" +
+            "2) 'Onde há atrito' (2 linhas — cite delegação ou ritual específico do contexto).\n" +
+            "3) 'Próximo movimento' (1 ação concreta para os próximos 7 dias).",
+        },
+      ],
+    });
+    res.json({ insight: text, generatedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error("[ai/insight]", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao gerar insight" });
+  }
+});
+
+// --- POST /:orgId/ai/coach/chat (SSE) ---
+const chatSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().max(4000),
+    }),
+  ).min(1).max(30),
+});
+
+aiRouter.post("/:orgId/ai/coach/chat", async (req, res: Response) => {
+  const orgId = req.params.orgId;
+  if (!(await assertOrgAccess(req.userId!, orgId))) return res.status(403).json({ error: "Forbidden" });
+
+  const parsed = chatSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders?.();
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    const ctx = await buildLeaderContext(req.userId!, orgId);
+    const messages: ChatMessage[] = [
+      { role: "system", content: systemPrompt() },
+      contextMessage(ctx),
+      ...parsed.data.messages,
+    ];
+    for await (const delta of streamChat({ model: MODEL, messages })) {
+      send("delta", { text: delta });
+    }
+    send("done", { ok: true });
+    res.end();
+  } catch (err) {
+    console.error("[ai/chat]", err);
+    send("error", { message: err instanceof Error ? err.message : "Falha" });
+    res.end();
+  }
+});
