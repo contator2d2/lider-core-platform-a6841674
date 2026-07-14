@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import {
   Bell,
+  Brain,
   Compass,
   Home,
   LogOut,
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/_authenticated/app")({
 
 const nav = [
   { to: "/app", label: "Hoje", icon: Home, section: "Consciência" },
+  { to: "/app/consciencia", label: "Meu perfil", icon: Brain, section: "Consciência" },
   { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência" },
   { to: "/app/organization", label: "Organização", icon: Building, section: "Organização" },
   { to: "/app/one-on-ones", label: "1:1s", icon: MessageSquare, section: "Organização" },

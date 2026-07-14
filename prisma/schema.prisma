@@ -778,6 +778,88 @@ enum IndicatorReadingSource {
   api
 }
 
+// ============================================================
+// MÓDULO C — Consciência (perfil do líder + compromissos + alertas cruzados)
+// ============================================================
+enum AssessmentType {
+  disc
+  big_five
+  other
+}
+
+enum CommitmentStatus {
+  active
+  in_progress
+  done
+  dropped
+}
+
+enum CrossSignalKind {
+  ritual_drop_control
+  delegation_delay_conflict_avoidance
+  concentration_high
+  self_awareness_stale
+  other
+}
+
+enum CrossSignalSeverity {
+  low
+  medium
+  high
+}
+
+model LeaderProfile {
+  id                 String          @id @default(uuid()) @db.Uuid
+  organizationId     String          @map("organization_id") @db.Uuid
+  userId             String          @map("user_id") @db.Uuid
+  declaredRole       String?         @map("declared_role")
+  assessmentType     AssessmentType? @map("assessment_type")
+  assessmentTraits   Json?           @map("assessment_traits")
+  sabotages          String[]        @default([])
+  communicationStyle String?         @map("communication_style")
+  riskFlags          String[]        @default([]) @map("risk_flags")
+  strengths          String[]        @default([])
+  notes              String?
+  assessmentAt       DateTime?       @map("assessment_at")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@map("leader_profiles")
+}
+
+model MentorshipCommitment {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  phrase         String
+  status         CommitmentStatus @default(active)
+  reviewAt       DateTime?        @map("review_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@index([organizationId, userId])
+  @@map("mentorship_commitments")
+}
+
+model CrossSignal {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  userId         String?             @map("user_id") @db.Uuid
+  kind           CrossSignalKind
+  severity       CrossSignalSeverity @default(medium)
+  title          String
+  detail         String
+  sourceRefs     Json?               @map("source_refs")
+  dismissedAt    DateTime?           @map("dismissed_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  @@index([organizationId, userId])
+  @@index([kind])
+  @@map("cross_signals")
+}
+
 model OrgRole {
   id               String   @id @default(uuid()) @db.Uuid
   organizationId   String   @map("organization_id") @db.Uuid

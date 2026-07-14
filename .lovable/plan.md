@@ -59,8 +59,8 @@ Cumprir seções 6 e 7.
 
 ## Ordem de execução proposta
 
-1. **Sprint A** — Fase 2 Indicadores completa + concentração + integração com Sala.
-2. **Sprint B** — Módulo C (perfil + compromissos + alertas cruzados).
+1. **Sprint A** — Fase 2 Indicadores completa + concentração + integração com Sala. ✅
+2. **Sprint B** — Módulo C (perfil + compromissos + alertas cruzados). ✅
 3. **Sprint C** — Módulo E (score + leitura diagnóstica) + Dashboard Executivo.
 4. **Sprint D** — Feedbacks (Tela 6) + Mapa da Equipe (Tela 3) + PDIs.
 

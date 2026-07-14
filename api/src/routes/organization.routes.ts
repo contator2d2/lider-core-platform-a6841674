@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 import { computeIndicatorSignals } from "./indicators.routes.js";
+import { computeCrossSignals } from "./consciencia.routes.js";
 
 /**
  * MÓDULO ORGANIZAÇÃO — base operacional da liderança.
@@ -935,6 +936,23 @@ organizationRouter.get("/:orgId/leadership-room", async (req, res) => {
 // 13. LEADERSHIP SIGNALS — sinais cruzados (indicadores + concentração)
 // ============================================================
 organizationRouter.get("/:orgId/leadership-signals", async (req, res) => {
-  const { signals, concentration } = await computeIndicatorSignals(req.params.orgId);
-  res.json({ signals, concentration });
+  const orgId = req.params.orgId;
+  const [{ signals, concentration }] = await Promise.all([
+    computeIndicatorSignals(orgId),
+    computeCrossSignals(orgId).catch(() => ({ created: [] })),
+  ]);
+  const cross = await prisma.crossSignal.findMany({
+    where: { organizationId: orgId, dismissedAt: null },
+    orderBy: { createdAt: "desc" },
+    take: 40,
+  });
+  const crossSignals = cross.map((c) => ({
+    id: c.id,
+    kind: c.kind,
+    severity: c.severity,
+    title: c.title,
+    detail: c.detail,
+    userId: c.userId,
+  }));
+  res.json({ signals, concentration, crossSignals });
 });
