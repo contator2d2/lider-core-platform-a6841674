@@ -761,6 +761,23 @@ enum DocumentKind {
   other
 }
 
+enum IndicatorLevel {
+  area
+  team
+  leadership
+}
+
+enum IndicatorDirection {
+  higher_better
+  lower_better
+}
+
+enum IndicatorReadingSource {
+  manual
+  csv
+  api
+}
+
 model OrgRole {
   id               String   @id @default(uuid()) @db.Uuid
   organizationId   String   @map("organization_id") @db.Uuid
@@ -973,4 +990,56 @@ model HealthScoreSnapshot {
   @@index([areaId])
   @@index([teamId])
   @@map("health_score_snapshots")
+}
+
+// ============================================================
+// MÓDULO R — Indicadores (3 níveis) + leituras mensais
+// ============================================================
+model Indicator {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  level          IndicatorLevel     @default(area)
+  areaId         String?            @map("area_id") @db.Uuid
+  teamId         String?            @map("team_id") @db.Uuid
+  ownerUserId    String?            @map("owner_user_id") @db.Uuid
+  name           String
+  description    String?
+  unit           String?            // %, R$, un, dias, etc.
+  direction      IndicatorDirection @default(higher_better)
+  target         Float?
+  minTarget      Float?             @map("min_target")
+  maxTarget      Float?             @map("max_target")
+  tags           String[]           @default([])
+  active         Boolean            @default(true)
+  createdBy      String?            @map("created_by") @db.Uuid
+  updatedBy      String?            @map("updated_by") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  readings IndicatorReading[]
+
+  @@index([organizationId])
+  @@index([level])
+  @@index([areaId])
+  @@index([teamId])
+  @@map("indicators")
+}
+
+model IndicatorReading {
+  id          String                 @id @default(uuid()) @db.Uuid
+  indicatorId String                 @map("indicator_id") @db.Uuid
+  periodYear  Int                    @map("period_year")
+  periodMonth Int                    @map("period_month") // 1-12
+  value       Float
+  notes       String?
+  source      IndicatorReadingSource @default(manual)
+  recordedBy  String?                @map("recorded_by") @db.Uuid
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  indicator Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  @@unique([indicatorId, periodYear, periodMonth])
+  @@index([indicatorId])
+  @@map("indicator_readings")
 }
