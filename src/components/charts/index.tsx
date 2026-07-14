@@ -202,7 +202,7 @@ export function RankBars({
             tickLine={false}
             axisLine={false}
             width={140}
-            tick={{ fontSize: 11, fill: "var(--foreground)", textTransform: "none", letterSpacing: 0 }}
+            tick={{ fontSize: 11, fill: "var(--foreground)" }}
           />
           <Tooltip content={<TinyTooltip format={(v) => `${v}${suffix}`} />} cursor={{ fill: "var(--secondary)", opacity: 0.5 }} />
           <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={14}>
