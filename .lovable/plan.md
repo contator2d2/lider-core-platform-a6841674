@@ -64,6 +64,9 @@ Cumprir seções 6 e 7.
 3. **Sprint C** — Módulo E (score + leitura diagnóstica) + Dashboard Executivo.
    ✅ Concluído — LeadershipScoreSnapshot, /evolution/me, /evolution/dashboard, tela /app/evolution e /company/leadership.
 4. **Sprint D** — Feedbacks (Tela 6) + Mapa da Equipe (Tela 3) + PDIs.
+   ✅ Concluído — FeedbackRecord, TeamMemberProfile, Pdi/PdiGoal + rotas
+   `/organization/:orgId/feedbacks`, `/team`, `/pdis` e telas `/app/feedbacks`,
+   `/app/team`, `/app/pdis`.
 
 Cada sprint entrega backend + frontend + integração à Sala de Liderança.
 

@@ -779,6 +779,49 @@ enum IndicatorReadingSource {
 }
 
 // ============================================================
+// MÓDULO PESSOAS — Feedbacks / Team Map / PDIs
+// (Sprint D — Tela 6, Tela 3, PDIs)
+// ============================================================
+enum FeedbackType {
+  positivo
+  corretivo
+  alinhamento
+  cobranca
+  conflito
+  desligamento
+  reconhecimento
+}
+
+enum FeedbackStatus {
+  registrado
+  em_acompanhamento
+  concluido
+  reaberto
+}
+
+enum AutonomyLevel {
+  n1_direciono
+  n2_acompanho
+  n3_valido
+  n4_delego
+  n5_autonomo
+}
+
+enum PdiStatus {
+  ativo
+  concluido
+  pausado
+  cancelado
+}
+
+enum PdiGoalStatus {
+  a_fazer
+  em_andamento
+  concluido
+  atrasado
+}
+
+// ============================================================
 // MÓDULO C — Consciência (perfil do líder + compromissos + alertas cruzados)
 // ============================================================
 enum AssessmentType {
@@ -1146,4 +1189,94 @@ model IndicatorReading {
   @@unique([indicatorId, periodYear, periodMonth])
   @@index([indicatorId])
   @@map("indicator_readings")
+}
+
+// ============================================================
+// FEEDBACKS — Tela 6 (Fato → Impacto → Expectativa → Combinado → Prazo)
+// ============================================================
+model FeedbackRecord {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  authorId       String         @map("author_id") @db.Uuid
+  subjectUserId  String?        @map("subject_user_id") @db.Uuid
+  subjectLabel   String?        @map("subject_label") // livre quando não é usuário do sistema
+  type           FeedbackType   @default(alinhamento)
+  fact           String         // Fato observável
+  impact         String         // Impacto no time/negócio
+  expectation    String         // O que se espera
+  agreement      String?        // O que ficou combinado
+  dueAt          DateTime?      @map("due_at")
+  followUpAt     DateTime?      @map("follow_up_at")
+  status         FeedbackStatus @default(registrado)
+  tags           String[]       @default([])
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([subjectUserId])
+  @@index([status])
+  @@map("feedback_records")
+}
+
+// ============================================================
+// TEAM MEMBER PROFILE — Tela 3 (Mapa da Equipe)
+// ============================================================
+model TeamMemberProfile {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  membershipId   String         @unique @map("membership_id") @db.Uuid
+  roleTitle      String?        @map("role_title")
+  expectedDeliverables String[] @default([]) @map("expected_deliverables")
+  keyIndicators  String[]       @default([]) @map("key_indicators")
+  autonomyLevel  AutonomyLevel  @default(n2_acompanho) @map("autonomy_level")
+  strengths      String[]       @default([])
+  developPoints  String[]       @default([]) @map("develop_points")
+  notes          String?
+  updatedBy      String?        @map("updated_by") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("team_member_profiles")
+}
+
+// ============================================================
+// PDIs — Planos de Desenvolvimento Individual
+// ============================================================
+model Pdi {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  subjectUserId  String    @map("subject_user_id") @db.Uuid
+  authorId       String    @map("author_id") @db.Uuid
+  title          String
+  focus          String?   // foco central (competência / módulo C.O.R.E.)
+  startAt        DateTime  @default(now()) @map("start_at")
+  reviewAt       DateTime? @map("review_at")
+  status         PdiStatus @default(ativo)
+  summary        String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  goals PdiGoal[]
+
+  @@index([organizationId, subjectUserId])
+  @@index([status])
+  @@map("pdis")
+}
+
+model PdiGoal {
+  id          String        @id @default(uuid()) @db.Uuid
+  pdiId       String        @map("pdi_id") @db.Uuid
+  title       String
+  action      String?       // ação concreta
+  dueAt       DateTime?     @map("due_at")
+  status      PdiGoalStatus @default(a_fazer)
+  evidence    String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  pdi Pdi @relation(fields: [pdiId], references: [id], onDelete: Cascade)
+
+  @@index([pdiId])
+  @@map("pdi_goals")
 }
