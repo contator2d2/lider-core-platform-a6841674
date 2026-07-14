@@ -18,6 +18,9 @@ import { organizationRouter } from "./routes/organization.routes.js";
 import { indicatorsRouter } from "./routes/indicators.routes.js";
 import { conscienciaRouter } from "./routes/consciencia.routes.js";
 import { evolutionRouter } from "./routes/evolution.routes.js";
+import { feedbacksRouter } from "./routes/feedbacks.routes.js";
+import { teamRouter } from "./routes/team.routes.js";
+import { pdisRouter } from "./routes/pdis.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -117,6 +120,9 @@ app.use("/organization", organizationRouter);
 app.use("/organization", indicatorsRouter);
 app.use("/organization", conscienciaRouter);
 app.use("/organization", evolutionRouter);
+app.use("/organization", feedbacksRouter);
+app.use("/organization", teamRouter);
+app.use("/organization", pdisRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
