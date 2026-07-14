@@ -860,6 +860,28 @@ model CrossSignal {
   @@map("cross_signals")
 }
 
+// ============================================================
+// MÓDULO E — Evolução (score de sustentação por líder)
+// ============================================================
+model LeadershipScoreSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  periodYear     Int      @map("period_year")
+  periodMonth    Int      @map("period_month")
+  score          Int
+  ritualsScore   Float    @map("rituals_score")
+  delegScore     Float    @map("deleg_score")
+  indicatorsScore Float   @map("indicators_score")
+  diagnostic     String?
+  breakdown      Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([organizationId, userId, periodYear, periodMonth])
+  @@index([organizationId, userId])
+  @@map("leadership_score_snapshots")
+}
+
 model OrgRole {
   id               String   @id @default(uuid()) @db.Uuid
   organizationId   String   @map("organization_id") @db.Uuid
