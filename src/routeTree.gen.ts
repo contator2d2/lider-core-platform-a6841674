@@ -24,6 +24,7 @@ import { Route as AuthenticatedFranchiseMembersRouteImport } from './routes/_aut
 import { Route as AuthenticatedFranchiseCompaniesRouteImport } from './routes/_authenticated/franchise.companies'
 import { Route as AuthenticatedFranchiseBillingRouteImport } from './routes/_authenticated/franchise.billing'
 import { Route as AuthenticatedCompanyMembersRouteImport } from './routes/_authenticated/company.members'
+import { Route as AuthenticatedCompanyLeadershipRouteImport } from './routes/_authenticated/company.leadership'
 import { Route as AuthenticatedCompanyLeadersRouteImport } from './routes/_authenticated/company.leaders'
 import { Route as AuthenticatedCompanyBillingRouteImport } from './routes/_authenticated/company.billing'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
@@ -32,6 +33,7 @@ import { Route as AuthenticatedAppOrganizationRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
 import { Route as AuthenticatedAppIndicatorsRouteImport } from './routes/_authenticated/app.indicators'
 import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authenticated/app.feedbacks'
+import { Route as AuthenticatedAppEvolutionRouteImport } from './routes/_authenticated/app.evolution'
 import { Route as AuthenticatedAppConscienciaRouteImport } from './routes/_authenticated/app.consciencia'
 import { Route as AuthenticatedAppAiRouteImport } from './routes/_authenticated/app.ai'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -144,6 +146,12 @@ const AuthenticatedCompanyMembersRoute =
     path: '/members',
     getParentRoute: () => AuthenticatedCompanyRoute,
   } as any)
+const AuthenticatedCompanyLeadershipRoute =
+  AuthenticatedCompanyLeadershipRouteImport.update({
+    id: '/leadership',
+    path: '/leadership',
+    getParentRoute: () => AuthenticatedCompanyRoute,
+  } as any)
 const AuthenticatedCompanyLeadersRoute =
   AuthenticatedCompanyLeadersRouteImport.update({
     id: '/leaders',
@@ -188,6 +196,12 @@ const AuthenticatedAppFeedbacksRoute =
   AuthenticatedAppFeedbacksRouteImport.update({
     id: '/feedbacks',
     path: '/feedbacks',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppEvolutionRoute =
+  AuthenticatedAppEvolutionRouteImport.update({
+    id: '/evolution',
+    path: '/evolution',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppConscienciaRoute =
@@ -399,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/app/ai': typeof AuthenticatedAppAiRoute
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
+  '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
@@ -407,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/app/team': typeof AuthenticatedAppTeamRoute
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
+  '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
   '/company/members': typeof AuthenticatedCompanyMembersRoute
   '/franchise/billing': typeof AuthenticatedFranchiseBillingRoute
   '/franchise/companies': typeof AuthenticatedFranchiseCompaniesRoute
@@ -450,6 +466,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/app/ai': typeof AuthenticatedAppAiRoute
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
+  '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
@@ -457,6 +474,7 @@ export interface FileRoutesByTo {
   '/app/team': typeof AuthenticatedAppTeamRoute
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
+  '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
   '/company/members': typeof AuthenticatedCompanyMembersRoute
   '/franchise/billing': typeof AuthenticatedFranchiseBillingRoute
   '/franchise/companies': typeof AuthenticatedFranchiseCompaniesRoute
@@ -506,6 +524,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/app/ai': typeof AuthenticatedAppAiRoute
   '/_authenticated/app/consciencia': typeof AuthenticatedAppConscienciaRoute
+  '/_authenticated/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/_authenticated/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
@@ -514,6 +533,7 @@ export interface FileRoutesById {
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
+  '/_authenticated/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
   '/_authenticated/company/members': typeof AuthenticatedCompanyMembersRoute
   '/_authenticated/franchise/billing': typeof AuthenticatedFranchiseBillingRoute
   '/_authenticated/franchise/companies': typeof AuthenticatedFranchiseCompaniesRoute
@@ -563,6 +583,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/ai'
     | '/app/consciencia'
+    | '/app/evolution'
     | '/app/feedbacks'
     | '/app/indicators'
     | '/app/one-on-ones'
@@ -571,6 +592,7 @@ export interface FileRouteTypes {
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
+    | '/company/leadership'
     | '/company/members'
     | '/franchise/billing'
     | '/franchise/companies'
@@ -614,6 +636,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/ai'
     | '/app/consciencia'
+    | '/app/evolution'
     | '/app/feedbacks'
     | '/app/indicators'
     | '/app/one-on-ones'
@@ -621,6 +644,7 @@ export interface FileRouteTypes {
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
+    | '/company/leadership'
     | '/company/members'
     | '/franchise/billing'
     | '/franchise/companies'
@@ -669,6 +693,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/app/ai'
     | '/_authenticated/app/consciencia'
+    | '/_authenticated/app/evolution'
     | '/_authenticated/app/feedbacks'
     | '/_authenticated/app/indicators'
     | '/_authenticated/app/one-on-ones'
@@ -677,6 +702,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/team'
     | '/_authenticated/company/billing'
     | '/_authenticated/company/leaders'
+    | '/_authenticated/company/leadership'
     | '/_authenticated/company/members'
     | '/_authenticated/franchise/billing'
     | '/_authenticated/franchise/companies'
@@ -809,6 +835,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompanyMembersRouteImport
       parentRoute: typeof AuthenticatedCompanyRoute
     }
+    '/_authenticated/company/leadership': {
+      id: '/_authenticated/company/leadership'
+      path: '/leadership'
+      fullPath: '/company/leadership'
+      preLoaderRoute: typeof AuthenticatedCompanyLeadershipRouteImport
+      parentRoute: typeof AuthenticatedCompanyRoute
+    }
     '/_authenticated/company/leaders': {
       id: '/_authenticated/company/leaders'
       path: '/leaders'
@@ -863,6 +896,13 @@ declare module '@tanstack/react-router' {
       path: '/feedbacks'
       fullPath: '/app/feedbacks'
       preLoaderRoute: typeof AuthenticatedAppFeedbacksRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/evolution': {
+      id: '/_authenticated/app/evolution'
+      path: '/evolution'
+      fullPath: '/app/evolution'
+      preLoaderRoute: typeof AuthenticatedAppEvolutionRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/consciencia': {
@@ -1177,6 +1217,7 @@ const AuthenticatedAppOrganizationRouteWithChildren =
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRoute
+  AuthenticatedAppEvolutionRoute: typeof AuthenticatedAppEvolutionRoute
   AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
   AuthenticatedAppIndicatorsRoute: typeof AuthenticatedAppIndicatorsRoute
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
@@ -1189,6 +1230,7 @@ interface AuthenticatedAppRouteChildren {
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAiRoute: AuthenticatedAppAiRoute,
   AuthenticatedAppConscienciaRoute: AuthenticatedAppConscienciaRoute,
+  AuthenticatedAppEvolutionRoute: AuthenticatedAppEvolutionRoute,
   AuthenticatedAppFeedbacksRoute: AuthenticatedAppFeedbacksRoute,
   AuthenticatedAppIndicatorsRoute: AuthenticatedAppIndicatorsRoute,
   AuthenticatedAppOneOnOnesRoute: AuthenticatedAppOneOnOnesRoute,
@@ -1205,6 +1247,7 @@ const AuthenticatedAppRouteWithChildren =
 interface AuthenticatedCompanyRouteChildren {
   AuthenticatedCompanyBillingRoute: typeof AuthenticatedCompanyBillingRoute
   AuthenticatedCompanyLeadersRoute: typeof AuthenticatedCompanyLeadersRoute
+  AuthenticatedCompanyLeadershipRoute: typeof AuthenticatedCompanyLeadershipRoute
   AuthenticatedCompanyMembersRoute: typeof AuthenticatedCompanyMembersRoute
   AuthenticatedCompanyIndexRoute: typeof AuthenticatedCompanyIndexRoute
 }
@@ -1212,6 +1255,7 @@ interface AuthenticatedCompanyRouteChildren {
 const AuthenticatedCompanyRouteChildren: AuthenticatedCompanyRouteChildren = {
   AuthenticatedCompanyBillingRoute: AuthenticatedCompanyBillingRoute,
   AuthenticatedCompanyLeadersRoute: AuthenticatedCompanyLeadersRoute,
+  AuthenticatedCompanyLeadershipRoute: AuthenticatedCompanyLeadershipRoute,
   AuthenticatedCompanyMembersRoute: AuthenticatedCompanyMembersRoute,
   AuthenticatedCompanyIndexRoute: AuthenticatedCompanyIndexRoute,
 }

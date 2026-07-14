@@ -1,0 +1,375 @@
+import { Router, type Response } from "express";
+import { prisma } from "../prisma.js";
+import { requireAuth } from "../auth.js";
+
+/**
+ * MÓDULO E — Evolução.
+ *
+ * Score de sustentação (§6):
+ *   35% adesão a rituais (30d)
+ *   35% cumprimento de delegações no prazo
+ *   30% indicadores dentro da meta
+ *
+ * Leitura diagnóstica: sempre que o score cai, apontar o módulo de origem
+ * (não devolver número solto).
+ *
+ * Dashboard executivo (§7): agregado por líder/área para roles owner/hr.
+ * Nunca expõe conteúdo do módulo C individual — só cobertura e score.
+ */
+export const evolutionRouter = Router();
+evolutionRouter.use(requireAuth);
+
+async function isSuper(userId: string) {
+  const r = await prisma.userRole.findFirst({
+    where: { userId, role: { in: ["super_admin", "neo_admin"] } },
+  });
+  return !!r;
+}
+async function isExec(userId: string, orgId: string) {
+  if (await isSuper(userId)) return true;
+  const m = await prisma.membership.findFirst({
+    where: { userId, organizationId: orgId, role: { in: ["hr_admin", "franchise_owner"] } },
+  });
+  return !!m;
+}
+async function assertOrgAccess(userId: string, orgId: string) {
+  if (await isSuper(userId)) return true;
+  const m = await prisma.membership.findFirst({ where: { userId, organizationId: orgId } });
+  return !!m;
+}
+function badReq(res: Response, err: unknown) {
+  return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+}
+
+evolutionRouter.param("orgId", async (req, res, next, orgId) => {
+  if (!(await assertOrgAccess(req.userId!, orgId))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+});
+
+// ============================================================
+// Cálculo do score
+// ============================================================
+export type ScoreBreakdown = {
+  ritualsScore: number;
+  delegScore: number;
+  indicatorsScore: number;
+  rituals: { done: number; planned: number };
+  delegations: { onTime: number; total: number; overdue: number };
+  indicators: { onTarget: number; withReadings: number };
+};
+
+export type ScoreResult = {
+  score: number;
+  breakdown: ScoreBreakdown;
+  diagnostic: string;
+};
+
+export async function computeScoreForUser(orgId: string, userId: string): Promise<ScoreResult> {
+  const now = new Date();
+  const since30 = new Date(now.getTime() - 30 * 86400000);
+
+  // Rituais em que o líder é owner OU participante
+  const [ownerRituals, partRituals] = await Promise.all([
+    prisma.ritual.findMany({
+      where: { organizationId: orgId, ownerId: userId },
+      select: { id: true },
+    }),
+    prisma.ritualParticipant.findMany({
+      where: { membership: { organizationId: orgId, userId } },
+      select: { ritualId: true },
+    }),
+  ]);
+  const ritualIds = Array.from(new Set([...ownerRituals.map((r) => r.id), ...partRituals.map((r) => r.ritualId)]));
+
+  const occurrences = ritualIds.length
+    ? await prisma.ritualOccurrence.findMany({
+        where: { ritualId: { in: ritualIds }, scheduledAt: { gte: since30, lte: now } },
+        select: { status: true },
+      })
+    : [];
+  const done = occurrences.filter((o) => o.status === "done").length;
+  const planned = occurrences.length;
+  const ritualsScore = planned ? done / planned : ritualIds.length ? 0.5 : 0;
+
+  // Delegações do líder (que ele delegou)
+  const delegations = await prisma.delegation.findMany({
+    where: {
+      organizationId: orgId,
+      delegatorId: userId,
+      OR: [
+        { status: { in: ["done", "canceled"] } },
+        { status: { notIn: ["done", "canceled"] } },
+      ],
+    },
+    select: { status: true, dueAt: true, doneAt: true, updatedAt: true, createdAt: true },
+  });
+  let onTime = 0;
+  let counted = 0;
+  let overdue = 0;
+  for (const d of delegations) {
+    if (d.status === "done") {
+      counted += 1;
+      if (!d.dueAt || (d.doneAt && d.doneAt <= d.dueAt)) onTime += 1;
+    } else if (d.status !== "canceled") {
+      counted += 1;
+      if (d.dueAt && d.dueAt < now) overdue += 1;
+      else onTime += 1; // ainda no prazo
+    }
+  }
+  const delegScore = counted ? onTime / counted : 0;
+
+  // Indicadores sob owner = userId (nível liderança) OU sem owner explícito (todos os do org)
+  const indicators = await prisma.indicator.findMany({
+    where: {
+      organizationId: orgId,
+      active: true,
+      target: { not: null },
+      OR: [{ ownerUserId: userId }, { level: "leadership" }],
+    },
+    include: { readings: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 1 } },
+  });
+  let onTarget = 0;
+  let withReadings = 0;
+  for (const i of indicators) {
+    const last = i.readings[0];
+    if (!last || i.target == null) continue;
+    withReadings += 1;
+    const on = i.direction === "higher_better" ? last.value >= i.target : last.value <= i.target;
+    if (on) onTarget += 1;
+  }
+  const indicatorsScore = withReadings ? onTarget / withReadings : 0;
+
+  const score = Math.round(100 * (0.35 * ritualsScore + 0.35 * delegScore + 0.3 * indicatorsScore));
+
+  const diagnostic = buildDiagnostic({
+    ritualsScore,
+    delegScore,
+    indicatorsScore,
+    rituals: { done, planned },
+    delegations: { onTime, total: counted, overdue },
+    indicators: { onTarget, withReadings },
+  });
+
+  return {
+    score,
+    breakdown: {
+      ritualsScore,
+      delegScore,
+      indicatorsScore,
+      rituals: { done, planned },
+      delegations: { onTime, total: counted, overdue },
+      indicators: { onTarget, withReadings },
+    },
+    diagnostic,
+  };
+}
+
+function buildDiagnostic(b: ScoreBreakdown): string {
+  const parts: string[] = [];
+  if (b.rituals.planned && b.ritualsScore < 0.7) {
+    parts.push(`cadência dos rituais em ${Math.round(b.ritualsScore * 100)}% (${b.rituals.done}/${b.rituals.planned} feitos em 30d)`);
+  }
+  if (b.delegations.total && b.delegScore < 0.7) {
+    parts.push(`${b.delegations.overdue} delegação(ões) atrasada(s) em ${b.delegations.total} ativa(s)`);
+  }
+  if (b.indicators.withReadings && b.indicatorsScore < 0.7) {
+    parts.push(`${b.indicators.withReadings - b.indicators.onTarget} indicador(es) fora da meta em ${b.indicators.withReadings}`);
+  }
+  if (!parts.length) {
+    if (!b.rituals.planned && !b.delegations.total && !b.indicators.withReadings) {
+      return "Sem dados suficientes ainda. Registre rituais, delegue com prazo e alimente indicadores para o score começar a se formar.";
+    }
+    return "Sustentação em dia — cadência, entrega e resultado equilibrados.";
+  }
+  const source = parts.length === 1 ? "problema concentrado em um só ponto" : "queda distribuída entre módulos";
+  return `Queda acompanha: ${parts.join("; ")}. É ${source} — foco na causa, não no número.`;
+}
+
+// ============================================================
+// GET /:orgId/evolution/me — score + tendência + diagnóstico
+// ============================================================
+evolutionRouter.get("/:orgId/evolution/me", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    const current = await computeScoreForUser(orgId, userId);
+
+    const trend = await prisma.leadershipScoreSnapshot.findMany({
+      where: { organizationId: orgId, userId },
+      orderBy: [{ periodYear: "asc" }, { periodMonth: "asc" }],
+      take: 12,
+    });
+
+    const commitments = await prisma.mentorshipCommitment.findMany({
+      where: { organizationId: orgId, userId, status: { in: ["active", "in_progress"] } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ current, trend, commitments });
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// ============================================================
+// POST /:orgId/evolution/snapshot — grava snapshot do mês atual
+// ============================================================
+evolutionRouter.post("/:orgId/evolution/snapshot", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    const now = new Date();
+    const periodYear = now.getUTCFullYear();
+    const periodMonth = now.getUTCMonth() + 1;
+    const r = await computeScoreForUser(orgId, userId);
+    const snap = await prisma.leadershipScoreSnapshot.upsert({
+      where: {
+        organizationId_userId_periodYear_periodMonth: {
+          organizationId: orgId,
+          userId,
+          periodYear,
+          periodMonth,
+        },
+      },
+      update: {
+        score: r.score,
+        ritualsScore: r.breakdown.ritualsScore,
+        delegScore: r.breakdown.delegScore,
+        indicatorsScore: r.breakdown.indicatorsScore,
+        diagnostic: r.diagnostic,
+        breakdown: r.breakdown as never,
+      },
+      create: {
+        organizationId: orgId,
+        userId,
+        periodYear,
+        periodMonth,
+        score: r.score,
+        ritualsScore: r.breakdown.ritualsScore,
+        delegScore: r.breakdown.delegScore,
+        indicatorsScore: r.breakdown.indicatorsScore,
+        diagnostic: r.diagnostic,
+        breakdown: r.breakdown as never,
+      },
+    });
+    res.json(snap);
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// ============================================================
+// GET /:orgId/evolution/dashboard — visão executiva
+// Apenas roles: super_admin, neo_admin, hr_admin, franchise_owner
+// ============================================================
+evolutionRouter.get("/:orgId/evolution/dashboard", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    if (!(await isExec(req.userId!, orgId))) {
+      return res.status(403).json({ error: "Somente RH/dono podem ver o painel executivo" });
+    }
+
+    const memberships = await prisma.membership.findMany({
+      where: { organizationId: orgId, role: { in: ["leader", "hr_admin", "franchise_owner"] } },
+      include: { user: { include: { profile: true } }, area: true },
+    });
+
+    const leaders = await Promise.all(
+      memberships.map(async (m) => {
+        const r = await computeScoreForUser(orgId, m.userId);
+        const last = await prisma.leadershipScoreSnapshot.findFirst({
+          where: { organizationId: orgId, userId: m.userId },
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          skip: 1, // penúltimo, para tendência
+        });
+        const delta = last ? r.score - last.score : null;
+        return {
+          userId: m.userId,
+          name: m.user.profile?.fullName ?? m.user.email,
+          avatarUrl: m.user.profile?.avatarUrl ?? null,
+          areaId: m.areaId,
+          areaName: m.area?.name ?? null,
+          score: r.score,
+          ritualsScore: r.breakdown.ritualsScore,
+          delegScore: r.breakdown.delegScore,
+          indicatorsScore: r.breakdown.indicatorsScore,
+          diagnostic: r.diagnostic,
+          delta,
+        };
+      }),
+    );
+
+    // Agregados por área
+    const byArea = new Map<string, { areaId: string | null; areaName: string; scores: number[] }>();
+    for (const l of leaders) {
+      const key = l.areaId ?? "__none__";
+      const bucket = byArea.get(key) ?? {
+        areaId: l.areaId,
+        areaName: l.areaName ?? "Sem área",
+        scores: [],
+      };
+      bucket.scores.push(l.score);
+      byArea.set(key, bucket);
+    }
+    const areas = Array.from(byArea.values()).map((b) => ({
+      areaId: b.areaId,
+      areaName: b.areaName,
+      leaderCount: b.scores.length,
+      avgScore: b.scores.length ? Math.round(b.scores.reduce((s, v) => s + v, 0) / b.scores.length) : 0,
+    }));
+
+    // Mapa de risco: rituais quebrados, concentração, atraso sistemático
+    const [crossSignals, brokenRituals] = await Promise.all([
+      prisma.crossSignal.findMany({
+        where: { organizationId: orgId, dismissedAt: null },
+        select: { severity: true, kind: true },
+      }),
+      prisma.ritual.count({ where: { organizationId: orgId, status: "paused" } }),
+    ]);
+
+    const risk = {
+      highSignals: crossSignals.filter((s) => s.severity === "high").length,
+      mediumSignals: crossSignals.filter((s) => s.severity === "medium").length,
+      concentrationCount: crossSignals.filter((s) => s.kind === "concentration_high").length,
+      brokenRituals,
+    };
+
+    // Adesão ao programa
+    const [totalMembers, profiled, assessed, areasCount, teamsCount, ritualsCount] = await Promise.all([
+      prisma.membership.count({ where: { organizationId: orgId } }),
+      prisma.leaderProfile.count({ where: { organizationId: orgId } }),
+      prisma.leaderProfile.count({ where: { organizationId: orgId, assessmentType: { not: null } } }),
+      prisma.area.count({ where: { organizationId: orgId } }),
+      prisma.team.count({ where: { organizationId: orgId } }),
+      prisma.ritual.count({ where: { organizationId: orgId, status: "active" } }),
+    ]);
+
+    // Maturidade organizacional 1-5 (agregado, nunca individual)
+    const avgOrg = leaders.length ? leaders.reduce((s, v) => s + v.score, 0) / leaders.length : 0;
+    let maturity = 1;
+    if (avgOrg >= 80) maturity = 5;
+    else if (avgOrg >= 65) maturity = 4;
+    else if (avgOrg >= 50) maturity = 3;
+    else if (avgOrg >= 30) maturity = 2;
+
+    res.json({
+      leaders: leaders.sort((a, b) => b.score - a.score),
+      areas: areas.sort((a, b) => b.avgScore - a.avgScore),
+      risk,
+      adoption: {
+        totalMembers,
+        profiled,
+        assessed,
+        assessedPct: totalMembers ? Math.round((assessed / totalMembers) * 100) : 0,
+        profiledPct: totalMembers ? Math.round((profiled / totalMembers) * 100) : 0,
+        structureReady: areasCount > 0 && teamsCount > 0 && ritualsCount > 0,
+      },
+      maturity,
+      avgScore: Math.round(avgOrg),
+    });
+  } catch (err) {
+    badReq(res, err);
+  }
+});
