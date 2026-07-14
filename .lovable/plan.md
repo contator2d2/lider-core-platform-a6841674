@@ -62,6 +62,7 @@ Cumprir seções 6 e 7.
 1. **Sprint A** — Fase 2 Indicadores completa + concentração + integração com Sala. ✅
 2. **Sprint B** — Módulo C (perfil + compromissos + alertas cruzados). ✅
 3. **Sprint C** — Módulo E (score + leitura diagnóstica) + Dashboard Executivo.
+   ✅ Concluído — LeadershipScoreSnapshot, /evolution/me, /evolution/dashboard, tela /app/evolution e /company/leadership.
 4. **Sprint D** — Feedbacks (Tela 6) + Mapa da Equipe (Tela 3) + PDIs.
 
 Cada sprint entrega backend + frontend + integração à Sala de Liderança.
