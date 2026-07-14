@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   ArrowDown,
   ArrowUp,
   BarChart3,
@@ -696,5 +695,3 @@ function fmt(n: number) {
   return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 }
 
-// exportado para acalmar unused import quando algum ícone não é usado
-export const _unused = { AlertTriangle };
