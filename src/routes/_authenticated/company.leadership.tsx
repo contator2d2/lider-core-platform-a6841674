@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { MetricCard, SectionHeader } from "@/components/ui/metric-card";
+import { RankBars } from "@/components/charts";
+import { FadeIn, StaggerItem, StaggerList } from "@/components/motion";
 
 export const Route = createFileRoute("/_authenticated/company/leadership")({
   component: LeadershipDashboardPage,
@@ -74,15 +77,13 @@ function LeadershipDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">
-          Dashboard executivo
-        </div>
-        <h1 className="mt-2 font-display text-3xl leading-tight">Sustentação da liderança</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Visão agregada — nunca conteúdo individual de perfil, feedback ou decisão.
-        </p>
-      </header>
+      <FadeIn>
+        <SectionHeader
+          eyebrow="Dashboard executivo"
+          title="Sustentação da liderança"
+          description="Visão agregada — nunca conteúdo individual de perfil, feedback ou decisão."
+        />
+      </FadeIn>
 
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -98,36 +99,77 @@ function LeadershipDashboardPage() {
       {data && (
         <>
           <section className="grid gap-4 md:grid-cols-4">
-            <Kpi
-              icon={Gauge}
-              label="Score médio da organização"
-              value={`${data.avgScore}`}
+            <MetricCard
+              eyebrow="Score médio"
+              icon={<Gauge className="h-4 w-4" />}
+              value={data.avgScore}
               hint={`Maturidade nível ${data.maturity}/5`}
+              highlight
+              delay={0}
             />
-            <Kpi
-              icon={Users}
-              label="Líderes acompanhados"
-              value={`${data.leaders.length}`}
+            <MetricCard
+              eyebrow="Líderes acompanhados"
+              icon={<Users className="h-4 w-4" />}
+              value={data.leaders.length}
               hint={`${data.adoption.profiledPct}% com perfil no módulo C`}
+              delay={0.05}
             />
-            <Kpi
-              icon={ShieldAlert}
-              label="Sinais de alta severidade"
-              value={`${data.risk.highSignals}`}
+            <MetricCard
+              eyebrow="Sinais críticos"
+              icon={<ShieldAlert className="h-4 w-4" />}
+              value={data.risk.highSignals}
+              tone={data.risk.highSignals > 0 ? "bad" : "default"}
               hint={`${data.risk.mediumSignals} médios · ${data.risk.concentrationCount} concentração`}
-              warn={data.risk.highSignals > 0}
+              delay={0.1}
             />
-            <Kpi
-              icon={Building}
-              label="Estrutura pronta"
+            <MetricCard
+              eyebrow="Estrutura pronta"
+              icon={<Building className="h-4 w-4" />}
               value={data.adoption.structureReady ? "Sim" : "Parcial"}
               hint={`Assessment feito por ${data.adoption.assessedPct}%`}
+              delay={0.15}
             />
           </section>
 
-          <section>
-            <h2 className="mb-3 font-display text-xl">Score por líder</h2>
-            <div className="overflow-hidden rounded-2xl border border-border">
+          <FadeIn delay={0.2}>
+            <section className="card-elevated p-6">
+              <div className="mb-3 flex items-end justify-between">
+                <div>
+                  <div className="eyebrow">Ranking</div>
+                  <h3 className="mt-1 font-display text-xl">Score por líder</h3>
+                </div>
+                <div className="text-xs text-muted-foreground">{data.leaders.length} líder(es)</div>
+              </div>
+              {data.leaders.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-sm text-muted-foreground">
+                  Nenhum líder cadastrado ainda.
+                </div>
+              ) : (
+                <RankBars
+                  height={Math.max(200, data.leaders.length * 32 + 40)}
+                  data={data.leaders
+                    .slice()
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 12)
+                    .map((l) => ({
+                      label: l.name,
+                      value: l.score,
+                      tone: l.score >= 70 ? "good" : l.score >= 50 ? "warn" : "bad",
+                    }))}
+                />
+              )}
+            </section>
+          </FadeIn>
+
+          <FadeIn delay={0.25}>
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="eyebrow">Detalhamento</div>
+                  <h3 className="mt-1 font-display text-xl">Diagnóstico por líder</h3>
+                </div>
+              </div>
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
               <table className="w-full text-sm">
                 <thead className="bg-secondary/40 text-xs uppercase tracking-widest text-muted-foreground">
                   <tr>
@@ -186,36 +228,43 @@ function LeadershipDashboardPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+            </section>
+          </FadeIn>
 
+          <FadeIn delay={0.3}>
           <section className="grid gap-6 md:grid-cols-2">
             <div>
-              <h2 className="mb-3 font-display text-xl">Por área</h2>
-              <ul className="space-y-2">
+              <div className="mb-3">
+                <div className="eyebrow">Por área</div>
+                <h3 className="mt-1 font-display text-xl">Média de score</h3>
+              </div>
+              <StaggerList className="space-y-2">
                 {data.areas.map((a) => (
-                  <li
-                    key={a.areaId ?? "none"}
-                    className="flex items-center justify-between rounded-xl border border-border bg-background p-4"
-                  >
+                  <StaggerItem key={a.areaId ?? "none"}>
+                  <div className="card-elevated card-elevated-hover flex items-center justify-between p-4">
                     <div>
                       <div className="text-sm font-medium">{a.areaName}</div>
                       <div className="text-xs text-muted-foreground">
                         {a.leaderCount} líder(es)
                       </div>
                     </div>
-                    <div className="text-lg font-medium">{a.avgScore}</div>
-                  </li>
+                    <div className="metric-number text-2xl text-accent-gradient">{a.avgScore}</div>
+                  </div>
+                  </StaggerItem>
                 ))}
                 {data.areas.length === 0 && (
-                  <li className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
+                  <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
                     Sem áreas com líderes.
-                  </li>
+                  </div>
                 )}
-              </ul>
+              </StaggerList>
             </div>
 
             <div>
-              <h2 className="mb-3 font-display text-xl">Mapa de risco</h2>
+              <div className="mb-3">
+                <div className="eyebrow">Risco</div>
+                <h3 className="mt-1 font-display text-xl">Mapa consolidado</h3>
+              </div>
               <ul className="space-y-2">
                 <RiskRow label="Sinais críticos ativos" value={data.risk.highSignals} tone={data.risk.highSignals > 0 ? "high" : "ok"} />
                 <RiskRow label="Sinais médios" value={data.risk.mediumSignals} tone={data.risk.mediumSignals > 3 ? "med" : "ok"} />
@@ -224,8 +273,10 @@ function LeadershipDashboardPage() {
               </ul>
             </div>
           </section>
+          </FadeIn>
 
-          <section className="rounded-2xl border border-border bg-secondary/20 p-5">
+          <FadeIn delay={0.35}>
+          <section className="card-elevated p-6">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" /> Adesão ao programa
             </div>
@@ -235,32 +286,9 @@ function LeadershipDashboardPage() {
               <Adoption label="Maturidade organizacional" value={`Nível ${data.maturity}/5`} pct={data.maturity * 20} />
             </div>
           </section>
+          </FadeIn>
         </>
       )}
-    </div>
-  );
-}
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  warn,
-}: {
-  icon: typeof Gauge;
-  label: string;
-  value: string;
-  hint?: string;
-  warn?: boolean;
-}) {
-  return (
-    <div className={"rounded-2xl border p-5 " + (warn ? "border-destructive/40 bg-destructive/5" : "border-border bg-background")}>
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" /> {label}
-      </div>
-      <div className="mt-2 font-display text-3xl">{value}</div>
-      {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
     </div>
   );
 }
@@ -291,7 +319,10 @@ function Adoption({ label, value, pct }: { label: string; value: string; pct: nu
         <span>{value}</span>
       </div>
       <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary">
-        <div className="h-full bg-accent" style={{ width: `${Math.min(100, pct)}%` }} />
+        <div
+          className="h-full rounded-full bg-accent-gradient transition-[width] duration-700 ease-out"
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
       </div>
     </div>
   );

@@ -1,80 +1,87 @@
+## Objetivo
+Deixar o Líder C.O.R.E. com cara premium e ativar a IA Coach usando dados reais — em paralelo, uma única rodada.
 
-# Plano — completar o Líder C.O.R.E. conforme a Especificação Funcional
+## Parte 1 — Polimento visual (design system + motion)
 
-O documento consolida uma regra de ouro: **o líder registra fatos operacionais; o sistema infere padrões**. Nenhuma tela pode virar formulário de autoavaliação semanal. Todo módulo compartilha a mesma base de dados — os 4 motores são leituras diferentes sobre os mesmos fatos.
+### 1.1 Tokens e utilitários novos em `src/styles.css`
+- Novo gradiente `--gradient-accent` (laranja→laranja-suave) para números-chave, headers de destaque.
+- Sombras coloridas: `--shadow-accent` (laranja 15% de opacidade) e `--shadow-soft` (neutra).
+- Utility `.eyebrow` (uppercase 10px tracking-widest muted).
+- Utility `.card-elevated` (borda + sombra suave + hover lift).
+- Utility `.metric-number` (font-display, tabular-nums, tracking tight).
+- Toggle de dark mode funcional (hoje já tem tokens, falta o botão).
 
-## Onde estamos (o que já existe)
+### 1.2 Biblioteca de motion (framer-motion, intensidade 3)
+- `bun add framer-motion`.
+- Novo `src/components/motion/` com:
+  - `<FadeIn />` — entrada com fade+rise 8px, 300ms.
+  - `<StaggerList />` — filhos entram em cascata 60ms.
+  - `<CountUp />` — números animam de 0 ao valor final em 800ms.
+  - `<PageTransition />` — wrapper para o `<Outlet />` das rotas.
+- Aplicar em: `/app`, `/app/evolution`, `/app/consciencia`, `/company/leadership`, `/app/indicators`.
 
-- **Fase 1 (Esqueleto operacional)** — pronta: Mapa da área, rituais (feito/pendente/quebrado com regra de 2 ciclos), delegações com os 4 campos obrigatórios, decisões, documentos, Sala de Liderança com drawer e mutations.
-- **Fase 2 (Indicadores)** — parcial: rota `/app/indicators` existe como stub, sem cálculo real nem "carga na própria mão".
+### 1.3 Gráficos elegantes com Recharts
+- `bun add recharts` (se não estiver).
+- Novo `src/components/charts/`:
+  - `<TrendArea />` — gráfico de área com gradiente laranja→transparente, linha 1.5px, sem grid, tooltip minimalista dark.
+  - `<ScoreGauge />` — semi-círculo animado com arco laranja e valor central grande.
+  - `<RankBars />` — barras horizontais finas para ranking de líderes.
+  - `<SignalPulse />` — sparkline compacta para os cross-signals.
+- Substituir os SVGs manuais de `app.evolution.tsx` e `company.leadership.tsx`.
 
-## O que falta — construído em fases validáveis
+### 1.4 Header/sidebar refinados
+- Sidebar: seções com divisórias mais sutis, item ativo com barra lateral laranja de 2px em vez de background sólido.
+- Header: relógio ao vivo + toggle de tema + notificações com badge.
+- Logo com hover sutil (opacidade da versão "mark").
 
-### Fase 2 — Camada de Indicadores (Módulo R)
-Cumprir a seção 5 da spec.
-- Modelo `Indicator` em 3 níveis (`area` / `team` / `leadership`) com: nome, unidade, meta, tipo (maior=melhor / menor=melhor), owner opcional (pessoa), área.
-- Modelo `IndicatorReading` mensal (valor, período, fonte: manual/importado).
-- Cálculo automático do **Indicador de Concentração** ("carga na própria mão"): `% delegações ativas cujo owner = próprio líder`. Limiar 30% dispara sinal.
-- Import CSV simples como fallback (a spec pede integração externa como ideal; CSV é o fallback aceito).
-- Tela `/app/indicators`: painel por nível, cards com farol dentro/fora da meta, comparação mês a mês, alerta de concentração.
-- Sinais novos alimentando a Sala de Liderança: "indicador fora da meta há 2 meses", "concentração > 30%".
+### 1.5 Cards padrão em todas as telas
+- Componente `<MetricCard>` reutilizável (eyebrow + número + delta + sparkline opcional).
+- Componente `<SectionHeader>` (eyebrow + h2 display + descrição).
 
-### Fase 3 — Consciência (Módulo C) + Cruzamentos
-Cumprir seção 3.
-- Modelo `LeaderProfile` por membership: papel declarado, assessment (Big Five ou DISC — armazenar tipo + traços/percentis), sabotadores ativos (lista), estilo de comunicação (egograma), atualizado a cada 90 dias.
-- Modelo `MentorshipCommitment`: frase, data de revisão, status.
-- **Regra de visibilidade rígida**: perfil detalhado só o próprio líder vê. Empresa vê apenas *existência* do perfil (sim/não). RLS/guards no backend.
-- Tela `/app/consciencia` (renomear/estender `/app/ai` ou criar): perfil resumido (1 força, 1 risco), compromissos ativos, **alertas cruzados**.
-- **Motor de alertas cruzados** (regra fixa Fase 3): `perfil_risco[controle] + rituais caíram >30% em 14d → alerta`. `perfil_risco[evita_conflito] + delegação atrasada 2x mesmo owner → alerta`. `perfil_risco[cobrança_dura] + rotatividade/participação em queda → alerta`. Sempre com dado objetivo + leitura comportamental.
+## Parte 2 — IA Coach real
 
-### Fase 4 — Evolução (Módulo E) + Dashboard Executivo
-Cumprir seções 6 e 7.
-- **Score de sustentação** por líder, calculado (não pedido):
-  - 35% adesão a rituais (30d)
-  - 35% cumprimento de delegações no prazo
-  - 30% indicadores dentro da meta
-- Histórico mensal em `LeadershipScoreSnapshot`.
-- **Leitura diagnóstica automática**: sempre que o score cair, gerar frase apontando módulo de origem ("A queda acompanha rituais quebrados com X e atraso de Y — problema de cadência, não de indicador"). Sem número solto.
-- Tela `/app/evolution`: score atual + tendência 6 meses + leitura diagnóstica + plano de ação (compromissos da mentoria).
-- **Dashboard Executivo** (`/company/leadership` para roles de empresa/RH):
-  - Score por líder/área com evolução mês a mês
-  - Mapa de risco agregado (rituais quebrados recorrentes, concentração alta, atraso sistemático)
-  - Nível de maturidade 1–5 (aqui **sim**, só como agregado organizacional)
-  - Adesão ao programa (% mapa completo, % assessment feito)
-  - **Nunca**: conteúdo de perfil individual, decisões/feedbacks textuais.
+### 2.1 Backend
+- Novo `api/src/routes/ai.routes.ts`:
+  - `POST /ai/coach/chat` — streaming SSE. Monta contexto do líder (perfil de consciência, últimos rituais, delegações abertas/atrasadas, cross-signals ativos, score atual e trend) e chama `google/gemini-3.5-flash` via Lovable AI Gateway com system prompt de coach.
+  - `POST /ai/coach/insight` — one-shot que gera insight semanal a partir dos mesmos dados.
+- Helper `api/src/lib/ai-gateway.ts` — wrapper OpenAI-compatible pro gateway com `LOVABLE_API_KEY`.
+- Ferramentas expostas ao modelo (function calling):
+  - `registrar_delegacao` (needsApproval).
+  - `marcar_ritual_concluido` (needsApproval).
+  - `criar_compromisso_mentoria` (needsApproval).
 
-### Módulos-satélite alinhados à spec
-- **Tela 6 — Feedback e Conversas Difíceis** (`/app/feedbacks`): modelos prontos (positivo, corretivo, alinhamento, cobrança, conflito, desligamento, reconhecimento) na estrutura Fato → Impacto → Expectativa → Combinado → Prazo → Acompanhamento. Cada registro vira sinal para Sala.
-- **Tela 3 — Mapa da Equipe** (`/app/team`): visão por colaborador (cargo, entregas esperadas, indicadores, feedback histórico, nível de autonomia).
-- **1:1s** (`/app/one-on-ones`): já é ritual — integrar como tipo especial de Ritual, sem dobrar modelo.
-- **PDIs** (`/app/pdis`): plano de evolução do liderado, alimenta "pessoas que precisam de atenção" na Sala.
+### 2.2 Frontend `/app/ai`
+- Substituir stub por chat completo:
+  - Layout split: à esquerda, "insight da semana" gerado on-demand com botão de refresh; à direita, chat conversacional.
+  - Bolhas com markdown, streaming char-by-char.
+  - Chips de prompts sugeridos ("Analise minha semana", "Onde estou perdendo tempo?", "Prepare meu próximo 1:1").
+  - Tool-calls aparecem como cards de ação com botão "Aprovar" antes de executar.
+
+### 2.3 Secret
+- Garantir `LOVABLE_API_KEY` via `ai_gateway--create`.
+
+## Fora do escopo desta rodada
+- Módulo 1:1s (fica para próxima).
+- Central de notificações completa (só o badge no header aqui).
+- Export PDF de relatórios.
+- Onboarding guiado.
 
 ## Detalhes técnicos
 
-- **Schema Prisma**: adicionar `Indicator`, `IndicatorReading`, `LeaderProfile`, `MentorshipCommitment`, `CrossSignal` (alertas gerados), `LeadershipScore`, `FeedbackRecord`, `TeamMemberProfile` (autonomia/pontos).
-- **API**: rotas em `api/src/routes/` — `indicators.routes.ts`, `consciencia.routes.ts`, `evolution.routes.ts`, estender `organization.routes.ts` para expor sinais cruzados na Sala.
-- **Job de cálculo**: função `recomputeSignals(orgId)` chamada após mutations relevantes (delegação, ritual, reading) — não precisa cron nesta fase, cálculo síncrono.
-- **RBAC**: perfil detalhado do módulo C = só o próprio userId. Dashboard executivo = roles `owner` / `hr` da company.
-- **Frontend**: novas rotas em `src/routes/_authenticated/`, componentes reutilizando padrão da Sala (cards, drawer, mutations com `queryClient.invalidateQueries`).
+**Motion**: `framer-motion` com `<LazyMotion features={domAnimation}>` no root pra bundle enxuto. `prefers-reduced-motion` respeitado nativamente pelo motion.
 
-## Ordem de execução proposta
+**Recharts theme**: `<defs><linearGradient id="accentFill">...</linearGradient></defs>` usando `var(--accent)`; tooltip customizado com `bg-popover border-border`.
 
-1. **Sprint A** — Fase 2 Indicadores completa + concentração + integração com Sala. ✅
-2. **Sprint B** — Módulo C (perfil + compromissos + alertas cruzados). ✅
-3. **Sprint C** — Módulo E (score + leitura diagnóstica) + Dashboard Executivo.
-   ✅ Concluído — LeadershipScoreSnapshot, /evolution/me, /evolution/dashboard, tela /app/evolution e /company/leadership.
-4. **Sprint D** — Feedbacks (Tela 6) + Mapa da Equipe (Tela 3) + PDIs.
-   ✅ Concluído — FeedbackRecord, TeamMemberProfile, Pdi/PdiGoal + rotas
-   `/organization/:orgId/feedbacks`, `/team`, `/pdis` e telas `/app/feedbacks`,
-   `/app/team`, `/app/pdis`.
+**IA Coach streaming**: `res.setHeader('Content-Type', 'text/event-stream')` no Fastify + `ReadableStream` no cliente com `EventSource`-like handler manual (o api usa Fastify, não TanStack server routes).
 
-Cada sprint entrega backend + frontend + integração à Sala de Liderança.
+**Contexto do prompt**: query única no Prisma que agrega os últimos 30 dias de rituais/delegações/signals + score atual; token budget ~2k.
 
-## Confirmação antes de codar
+**Dark mode**: adicionar `<ThemeToggle />` no header que faz `document.documentElement.classList.toggle('dark')` e persiste em localStorage lido no `useEffect` (evita hydration mismatch já que o app é SPA client-side).
 
-Confirma:
-1. Seguir esta ordem (A → D)?
-2. Assessment inicial: começar com **DISC** (mais leve, 24 perguntas) ou **Big Five** (mais preciso, ~50)?
-3. Indicadores: começar com **input manual mensal** + CSV, ou já quer prever integração externa (planilha Google/BI)?
-
-Assim que confirmar, começo pela **Sprint A (Indicadores)**.
+## Ordem de execução
+1. Tokens + utilities em styles.css.
+2. Instalar framer-motion + recharts.
+3. Componentes de motion e charts.
+4. Refactor das 5 telas principais (dashboard, evolution, consciencia, leadership, indicators).
+5. Backend IA Coach + tela `/app/ai`.
+6. Header refinado + dark toggle.

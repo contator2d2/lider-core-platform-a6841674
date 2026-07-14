@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -100,6 +101,12 @@
   --sidebar-accent-foreground: oklch(0.16 0.01 40);
   --sidebar-border: oklch(0.91 0.005 50);
   --sidebar-ring: oklch(0.66 0.18 42);
+  /* Gradientes e sombras assinatura Líder C.O.R.E. */
+  --gradient-accent: linear-gradient(135deg, oklch(0.66 0.18 42) 0%, oklch(0.74 0.16 55) 100%);
+  --gradient-surface: linear-gradient(180deg, oklch(1 0 0) 0%, oklch(0.985 0.003 50) 100%);
+  --shadow-accent: 0 12px 32px -12px color-mix(in oklab, var(--accent) 45%, transparent);
+  --shadow-soft: 0 4px 20px -6px color-mix(in oklab, oklch(0 0 0) 8%, transparent);
+  --shadow-lift: 0 20px 50px -20px color-mix(in oklab, oklch(0 0 0) 22%, transparent);
 }
 
 .dark {
@@ -166,4 +173,65 @@
     linear-gradient(to right, oklch(0 0 0 / 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(0 0 0 / 0.04) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+
+@utility eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+@utility metric-number {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  line-height: 0.95;
+}
+
+@utility card-elevated {
+  background: var(--gradient-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-soft);
+  transition: transform 220ms cubic-bezier(0.2, 0.6, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.6, 0.2, 1),
+    border-color 220ms ease;
+}
+
+@utility card-elevated-hover {
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+    border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
+  }
+}
+
+@utility bg-accent-gradient {
+  background: var(--gradient-accent);
+}
+
+@utility text-accent-gradient {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility ring-accent-glow {
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent),
+    0 8px 30px -8px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+/* Refino visual do Recharts para casar com a marca */
+.recharts-cartesian-axis-tick text {
+  fill: var(--color-muted-foreground);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
 }
