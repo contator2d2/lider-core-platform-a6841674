@@ -779,6 +779,49 @@ enum IndicatorReadingSource {
 }
 
 // ============================================================
+// MÓDULO PESSOAS — Feedbacks / Team Map / PDIs
+// (Sprint D — Tela 6, Tela 3, PDIs)
+// ============================================================
+enum FeedbackType {
+  positivo
+  corretivo
+  alinhamento
+  cobranca
+  conflito
+  desligamento
+  reconhecimento
+}
+
+enum FeedbackStatus {
+  registrado
+  em_acompanhamento
+  concluido
+  reaberto
+}
+
+enum AutonomyLevel {
+  n1_direciono
+  n2_acompanho
+  n3_valido
+  n4_delego
+  n5_autonomo
+}
+
+enum PdiStatus {
+  ativo
+  concluido
+  pausado
+  cancelado
+}
+
+enum PdiGoalStatus {
+  a_fazer
+  em_andamento
+  concluido
+  atrasado
+}
+
+// ============================================================
 // MÓDULO C — Consciência (perfil do líder + compromissos + alertas cruzados)
 // ============================================================
 enum AssessmentType {
