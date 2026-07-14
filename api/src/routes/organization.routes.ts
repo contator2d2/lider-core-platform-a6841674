@@ -4,7 +4,6 @@ import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 import { computeIndicatorSignals } from "./indicators.routes.js";
 import { computeCrossSignals } from "./consciencia.routes.js";
-import { prisma as _prismaAlias } from "../prisma.js";
 
 /**
  * MÓDULO ORGANIZAÇÃO — base operacional da liderança.
