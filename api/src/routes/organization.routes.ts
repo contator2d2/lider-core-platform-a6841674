@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { computeIndicatorSignals } from "./indicators.routes.js";
 
 /**
  * MÓDULO ORGANIZAÇÃO — base operacional da liderança.
@@ -928,4 +929,12 @@ organizationRouter.get("/:orgId/leadership-room", async (req, res) => {
     },
     nextBestAction,
   });
+});
+
+// ============================================================
+// 13. LEADERSHIP SIGNALS — sinais cruzados (indicadores + concentração)
+// ============================================================
+organizationRouter.get("/:orgId/leadership-signals", async (req, res) => {
+  const { signals, concentration } = await computeIndicatorSignals(req.params.orgId);
+  res.json({ signals, concentration });
 });
