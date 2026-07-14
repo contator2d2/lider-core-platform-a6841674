@@ -1,17 +1,700 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  BarChart3,
+  CheckCircle2,
+  Gauge,
+  Loader2,
+  Minus,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
+import { api } from "@/lib/api";
+import { useCurrentOrg } from "@/lib/use-current-org";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/app/indicators")({
-  component: Stub,
+  component: IndicatorsPage,
 });
 
-function Stub() {
+type Reading = {
+  id: string;
+  periodYear: number;
+  periodMonth: number;
+  value: number;
+  source: string;
+};
+
+type Indicator = {
+  id: string;
+  level: "area" | "team" | "leadership";
+  name: string;
+  description: string | null;
+  unit: string | null;
+  direction: "higher_better" | "lower_better";
+  target: number | null;
+  areaId: string | null;
+  teamId: string | null;
+  ownerUserId: string | null;
+  tags: string[];
+  active: boolean;
+  readings: Reading[];
+  lastReading: Reading | null;
+  prevReading: Reading | null;
+  delta: number | null;
+  status: "on_target" | "off_target" | "warning" | "unknown";
+};
+
+type Concentration = {
+  threshold: number;
+  total: number;
+  byLeader: Array<{
+    leaderId: string;
+    total: number;
+    ownedByLeader: number;
+    ratio: number;
+    overThreshold: boolean;
+  }>;
+};
+
+const LEVELS: Array<{ key: "area" | "team" | "leadership"; label: string; hint: string }> = [
+  { key: "area", label: "Área", hint: "Resultado, produtividade, qualidade, prazo" },
+  { key: "team", label: "Equipe", hint: "Clareza, combinados, autonomia, participação" },
+  { key: "leadership", label: "Liderança", hint: "Rituais sustentados, decisões, feedbacks" },
+];
+
+function IndicatorsPage() {
+  const { orgId } = useCurrentOrg();
+  const [level, setLevel] = useState<"area" | "team" | "leadership">("area");
+
+  const list = useQuery({
+    queryKey: ["indicators", orgId, level],
+    queryFn: () => api<Indicator[]>(`/organization/${orgId}/indicators?level=${level}`),
+    enabled: !!orgId,
+  });
+
+  const concentration = useQuery({
+    queryKey: ["indicators-concentration", orgId],
+    queryFn: () => api<Concentration>(`/organization/${orgId}/indicators/concentration`),
+    enabled: !!orgId,
+  });
+
+  if (!orgId) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <p className="text-sm text-muted-foreground">Selecione uma organização.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="text-xs uppercase tracking-widest text-muted-foreground">Em construção</div>
-      <h1 className="mt-2 font-display text-4xl capitalize">indicators</h1>
-      <p className="mt-4 max-w-lg text-muted-foreground">
-        Este módulo entra na Fase 2 do roadmap — MVP da persona Líder. Cada tela nasce a partir de fatos que a plataforma já registra.
-      </p>
+    <div className="mx-auto max-w-7xl space-y-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+            <BarChart3 className="h-3.5 w-3.5" /> Módulo Resultado
+          </div>
+          <h1 className="mt-1 font-display text-4xl">Indicadores</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Fatos, não impressão. Cadastre indicadores em três níveis e registre leituras
+            mensais — o sistema lê o farol e sinaliza fora da meta e carga na própria mão.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <ImportCsvDialog orgId={orgId} />
+          <NewIndicatorDialog orgId={orgId} defaultLevel={level} />
+        </div>
+      </header>
+
+      <ConcentrationCard data={concentration.data} />
+
+      <nav className="flex flex-wrap gap-1 border-b border-border">
+        {LEVELS.map((l) => (
+          <button
+            key={l.key}
+            type="button"
+            onClick={() => setLevel(l.key)}
+            className={
+              "border-b-2 px-4 py-2.5 text-sm transition-colors " +
+              (level === l.key
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground")
+            }
+          >
+            <span className="font-medium">{l.label}</span>
+            <span className="ml-2 text-xs text-muted-foreground">{l.hint}</span>
+          </button>
+        ))}
+      </nav>
+
+      {list.isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+        </div>
+      ) : !list.data?.length ? (
+        <EmptyLevel level={level} orgId={orgId} />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {list.data.map((i) => (
+            <IndicatorCard key={i.id} orgId={orgId} indicator={i} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+function ConcentrationCard({ data }: { data: Concentration | undefined }) {
+  if (!data) return null;
+  const over = data.byLeader.filter((l) => l.overThreshold);
+  const anyRisk = over.length > 0;
+  return (
+    <div
+      className={
+        "rounded-2xl border p-5 " +
+        (anyRisk
+          ? "border-accent/40 bg-accent/5"
+          : "border-success/30 bg-success/5")
+      }
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={
+            "flex h-10 w-10 items-center justify-center rounded-full " +
+            (anyRisk ? "bg-accent/15 text-accent" : "bg-success/15 text-success")
+          }
+        >
+          <Gauge className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Carga na própria mão
+          </div>
+          <div className="mt-0.5 font-display text-xl">
+            {anyRisk
+              ? `${over.length} líder${over.length > 1 ? "es" : ""} acima do limiar de ${Math.round(data.threshold * 100)}%`
+              : "Distribuição saudável entre os líderes"}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            % das delegações ativas sob responsabilidade direta do próprio líder. Acima de{" "}
+            {Math.round(data.threshold * 100)}% indica risco de centralização.
+          </p>
+          {anyRisk && (
+            <ul className="mt-3 grid gap-1.5 text-sm">
+              {over.slice(0, 5).map((l) => (
+                <li key={l.leaderId} className="flex justify-between rounded-md bg-background/60 px-3 py-1.5">
+                  <span className="text-muted-foreground">líder <code className="text-foreground">{l.leaderId.slice(0, 8)}</code></span>
+                  <span className="font-medium">
+                    {Math.round(l.ratio * 100)}% ({l.ownedByLeader}/{l.total})
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IndicatorCard({ orgId, indicator }: { orgId: string; indicator: Indicator }) {
+  const qc = useQueryClient();
+  const [openReading, setOpenReading] = useState(false);
+
+  const remove = useMutation({
+    mutationFn: () =>
+      api(`/organization/${orgId}/indicators/${indicator.id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["indicators", orgId] });
+      qc.invalidateQueries({ queryKey: ["leadership-room", orgId] });
+      toast.success("Indicador removido");
+    },
+  });
+
+  const statusStyle =
+    indicator.status === "on_target"
+      ? "border-success/40 bg-success/5"
+      : indicator.status === "warning"
+      ? "border-warning/40 bg-warning/5"
+      : indicator.status === "off_target"
+      ? "border-destructive/40 bg-destructive/5"
+      : "border-border";
+
+  const statusLabel =
+    indicator.status === "on_target"
+      ? "Dentro da meta"
+      : indicator.status === "warning"
+      ? "Perto do limite"
+      : indicator.status === "off_target"
+      ? "Fora da meta"
+      : "Sem leitura";
+
+  return (
+    <div className={"rounded-2xl border p-5 " + statusStyle}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span>{statusLabel}</span>
+            <span>•</span>
+            <span>{indicator.direction === "higher_better" ? "quanto mais, melhor" : "quanto menos, melhor"}</span>
+          </div>
+          <h3 className="mt-1 truncate font-display text-lg">{indicator.name}</h3>
+          {indicator.description && (
+            <p className="mt-1 text-sm text-muted-foreground">{indicator.description}</p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => confirm(`Remover "${indicator.name}"?`) && remove.mutate()}
+          className="rounded-md p-1.5 text-muted-foreground hover:text-destructive"
+          aria-label="Remover indicador"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        <Metric
+          label="Última leitura"
+          value={
+            indicator.lastReading
+              ? `${fmt(indicator.lastReading.value)}${indicator.unit ?? ""}`
+              : "—"
+          }
+          hint={
+            indicator.lastReading
+              ? `${String(indicator.lastReading.periodMonth).padStart(2, "0")}/${indicator.lastReading.periodYear}`
+              : undefined
+          }
+        />
+        <Metric
+          label="Meta"
+          value={indicator.target != null ? `${fmt(indicator.target)}${indicator.unit ?? ""}` : "—"}
+        />
+        <Metric
+          label="Variação"
+          value={
+            indicator.delta == null ? (
+              "—"
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                {indicator.delta > 0 ? (
+                  <ArrowUp className="h-3.5 w-3.5" />
+                ) : indicator.delta < 0 ? (
+                  <ArrowDown className="h-3.5 w-3.5" />
+                ) : (
+                  <Minus className="h-3.5 w-3.5" />
+                )}
+                {fmt(Math.abs(indicator.delta))}
+                {indicator.unit ?? ""}
+              </span>
+            )
+          }
+        />
+      </div>
+
+      <Sparkline readings={indicator.readings} />
+
+      <div className="mt-4 flex justify-end">
+        <Dialog open={openReading} onOpenChange={setOpenReading}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Plus className="mr-1 h-3.5 w-3.5" /> Registrar leitura
+            </Button>
+          </DialogTrigger>
+          <NewReadingContent
+            orgId={orgId}
+            indicator={indicator}
+            onDone={() => setOpenReading(false)}
+          />
+        </Dialog>
+      </div>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background/60 p-3">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="mt-0.5 font-display text-lg">{value}</div>
+      {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
+
+function Sparkline({ readings }: { readings: Reading[] }) {
+  const sorted = useMemo(
+    () =>
+      [...readings].sort(
+        (a, b) => a.periodYear * 12 + a.periodMonth - (b.periodYear * 12 + b.periodMonth),
+      ),
+    [readings],
+  );
+  if (sorted.length < 2) return null;
+  const values = sorted.map((r) => r.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 260;
+  const h = 40;
+  const step = w / (sorted.length - 1);
+  const points = sorted
+    .map((r, i) => `${i * step},${h - ((r.value - min) / range) * h}`)
+    .join(" ");
+  return (
+    <div className="mt-4">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full text-foreground/70">
+        <polyline
+          points={points}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function NewReadingContent({
+  orgId,
+  indicator,
+  onDone,
+}: {
+  orgId: string;
+  indicator: Indicator;
+  onDone: () => void;
+}) {
+  const qc = useQueryClient();
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [value, setValue] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const create = useMutation({
+    mutationFn: () =>
+      api(`/organization/${orgId}/indicators/${indicator.id}/readings`, {
+        method: "POST",
+        body: {
+          periodYear: year,
+          periodMonth: month,
+          value: Number(String(value).replace(",", ".")),
+          notes: notes || undefined,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["indicators", orgId] });
+      qc.invalidateQueries({ queryKey: ["leadership-room", orgId] });
+      toast.success("Leitura registrada");
+      onDone();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Registrar leitura — {indicator.name}</DialogTitle>
+      </DialogHeader>
+      <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Mês</Label>
+            <Input
+              type="number"
+              min={1}
+              max={12}
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Ano</Label>
+            <Input
+              type="number"
+              min={2000}
+              max={2100}
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Valor {indicator.unit && <span className="text-muted-foreground">({indicator.unit})</span>}</Label>
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Ex.: 87.5"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Notas (opcional)</Label>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Contexto da leitura"
+          />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          onClick={() => create.mutate()}
+          disabled={!value || create.isPending}
+        >
+          {create.isPending ? "Salvando…" : "Salvar leitura"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function NewIndicatorDialog({
+  orgId,
+  defaultLevel,
+}: {
+  orgId: string;
+  defaultLevel: "area" | "team" | "leadership";
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    level: defaultLevel,
+    unit: "",
+    direction: "higher_better" as "higher_better" | "lower_better",
+    target: "",
+    description: "",
+  });
+
+  const create = useMutation({
+    mutationFn: () =>
+      api(`/organization/${orgId}/indicators`, {
+        method: "POST",
+        body: {
+          name: form.name,
+          level: form.level,
+          unit: form.unit || null,
+          direction: form.direction,
+          target: form.target ? Number(form.target.replace(",", ".")) : null,
+          description: form.description || null,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["indicators", orgId] });
+      toast.success("Indicador criado");
+      setOpen(false);
+      setForm({ ...form, name: "", unit: "", target: "", description: "" });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-1 h-4 w-4" /> Novo indicador
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Novo indicador</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="space-y-1.5">
+            <Label>Nome</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Ex.: Aderência a prazo"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Nível</Label>
+              <Select
+                value={form.level}
+                onValueChange={(v) => setForm({ ...form, level: v as never })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="area">Área</SelectItem>
+                  <SelectItem value="team">Equipe</SelectItem>
+                  <SelectItem value="leadership">Liderança</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Direção</Label>
+              <Select
+                value={form.direction}
+                onValueChange={(v) => setForm({ ...form, direction: v as never })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="higher_better">Quanto mais, melhor</SelectItem>
+                  <SelectItem value="lower_better">Quanto menos, melhor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Meta</Label>
+              <Input
+                value={form.target}
+                onChange={(e) => setForm({ ...form, target: e.target.value })}
+                placeholder="Ex.: 95"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Unidade</Label>
+              <Input
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                placeholder="%, R$, un, dias"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Descrição (opcional)</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Como é calculado, fonte, quem revisa"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => create.mutate()} disabled={!form.name || create.isPending}>
+            {create.isPending ? "Criando…" : "Criar indicador"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ImportCsvDialog({ orgId }: { orgId: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [csv, setCsv] = useState("");
+
+  const submit = useMutation({
+    mutationFn: () =>
+      api<{ imported: number; skipped: number; total: number }>(
+        `/organization/${orgId}/indicators/import`,
+        { method: "POST", body: { csv } },
+      ),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["indicators", orgId] });
+      toast.success(`Importadas ${r.imported}/${r.total} leituras (${r.skipped} ignoradas)`);
+      setOpen(false);
+      setCsv("");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <Upload className="mr-1 h-4 w-4" /> Importar CSV
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Importar leituras via CSV</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Colunas aceitas: <code>name,level,unit,target,year,month,value</code> — cria o
+            indicador se não existir. Ou <code>indicatorId,year,month,value</code> para adicionar
+            leituras em indicadores já existentes.
+          </p>
+          <Textarea
+            value={csv}
+            onChange={(e) => setCsv(e.target.value)}
+            placeholder={"name,level,unit,target,year,month,value\nAderência a prazo,area,%,95,2026,7,88\n..."}
+            className="min-h-[220px] font-mono text-xs"
+          />
+        </div>
+        <DialogFooter>
+          <Button onClick={() => submit.mutate()} disabled={!csv.trim() || submit.isPending}>
+            {submit.isPending ? "Importando…" : "Importar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EmptyLevel({
+  level,
+  orgId,
+}: {
+  level: "area" | "team" | "leadership";
+  orgId: string;
+}) {
+  const meta = LEVELS.find((l) => l.key === level)!;
+  return (
+    <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+      <CheckCircle2 className="mx-auto h-8 w-8 text-muted-foreground" />
+      <h3 className="mt-3 font-display text-xl">Nenhum indicador de {meta.label} ainda</h3>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+        Comece com 2–3 indicadores. Sugestões para {meta.label}: {meta.hint}.
+      </p>
+      <div className="mt-4 flex justify-center gap-2">
+        <NewIndicatorDialog orgId={orgId} defaultLevel={level} />
+      </div>
+    </div>
+  );
+}
+
+function fmt(n: number) {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1000) return n.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+}
+
+// exportado para acalmar unused import quando algum ícone não é usado
+export const _unused = { AlertTriangle };
