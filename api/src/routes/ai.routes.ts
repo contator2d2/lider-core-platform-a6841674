@@ -47,7 +47,11 @@ async function buildLeaderContext(userId: string, orgId: string) {
       take: 10,
     }).catch(() => []),
     prisma.delegation.findMany({
-      where: { organizationId: orgId, ownerId: userId, status: { in: ["open", "in_progress", "overdue"] as never } },
+      where: {
+        organizationId: orgId,
+        assigneeId: userId,
+        status: { in: ["open", "in_progress", "blocked"] },
+      },
       orderBy: [{ dueAt: "asc" }],
       take: 15,
     }).catch(() => []),
@@ -62,14 +66,15 @@ async function buildLeaderContext(userId: string, orgId: string) {
       orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
     }).catch(() => null),
     prisma.mentorshipCommitment.findMany({
-      where: { organizationId: orgId, userId, status: "active" as never },
+      where: { organizationId: orgId, userId, status: "active" },
       take: 10,
     }).catch(() => []),
   ]);
 
   const done = rituals.filter((r) => r.status === "done").length;
   const missed = rituals.filter((r) => r.status === "missed").length;
-  const overdue = delegs.filter((d) => d.status === "overdue").length;
+  const now2 = new Date();
+  const overdue = delegs.filter((d) => d.dueAt && d.dueAt < now2 && d.status !== "done").length;
 
   return {
     leader: membership?.user.fullName ?? "líder",
@@ -77,9 +82,9 @@ async function buildLeaderContext(userId: string, orgId: string) {
     profile: profile
       ? {
           strengths: profile.strengths ?? [],
-          risks: profile.behavioralRisks ?? [],
+          risks: profile.riskFlags ?? [],
           communicationStyle: profile.communicationStyle,
-          decisionStyle: profile.decisionStyle,
+          sabotages: profile.sabotages ?? [],
           assessmentAt: profile.assessmentAt,
         }
       : null,
@@ -102,7 +107,7 @@ async function buildLeaderContext(userId: string, orgId: string) {
         dueAt: d.dueAt,
       })),
     },
-    signals: signals.map((s) => ({ kind: s.kind, severity: s.severity, reason: s.reason })),
+    signals: signals.map((s) => ({ kind: s.kind, severity: s.severity, detail: s.detail, title: s.title })),
     commitments: commitments.map((c) => c.phrase),
   };
 }
