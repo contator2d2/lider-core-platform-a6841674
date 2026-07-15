@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { notifyInApp } from "../lib/notifications.js";
 
 /**
  * PDIs — Planos de Desenvolvimento Individual.
