@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { notifyInApp } from "../lib/notifications.js";
 
 /**
  * Tela 6 — Feedback e Conversas Difíceis.
@@ -95,6 +96,24 @@ feedbacksRouter.post("/:orgId/feedbacks", async (req, res) => {
         tags: data.tags,
       },
     });
+    if (created.subjectUserId && created.subjectUserId !== req.userId) {
+      const map: Record<string, string> = {
+        positivo: "Feedback positivo",
+        reconhecimento: "Reconhecimento",
+        corretivo: "Feedback corretivo",
+        alinhamento: "Alinhamento",
+        cobranca: "Cobrança",
+        conflito: "Conversa de conflito",
+        desligamento: "Comunicado importante",
+      };
+      void notifyInApp({
+        userId: created.subjectUserId,
+        organizationId: created.organizationId,
+        title: map[created.type] ?? "Novo feedback",
+        body: created.fact.slice(0, 140),
+        linkUrl: "/app/feedbacks",
+      }).catch(() => null);
+    }
     res.status(201).json(created);
   } catch (err) {
     badReq(res, err);

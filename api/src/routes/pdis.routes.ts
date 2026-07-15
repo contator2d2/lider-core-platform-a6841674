@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { notifyInApp } from "../lib/notifications.js";
 
 /**
  * PDIs — Planos de Desenvolvimento Individual.
@@ -71,6 +72,15 @@ pdisRouter.post("/:orgId/pdis", async (req, res) => {
         status: data.status,
       },
     });
+    if (created.subjectUserId && created.subjectUserId !== req.userId) {
+      void notifyInApp({
+        userId: created.subjectUserId,
+        organizationId: created.organizationId,
+        title: "Novo PDI para você",
+        body: created.title,
+        linkUrl: "/app/pdis",
+      }).catch(() => null);
+    }
     res.status(201).json(created);
   } catch (err) {
     badReq(res, err);

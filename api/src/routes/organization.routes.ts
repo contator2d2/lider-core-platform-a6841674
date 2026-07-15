@@ -4,6 +4,7 @@ import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 import { computeIndicatorSignals } from "./indicators.routes.js";
 import { computeCrossSignals } from "./consciencia.routes.js";
+import { notifyInApp } from "../lib/notifications.js";
 
 /**
  * MÓDULO ORGANIZAÇÃO — base operacional da liderança.
@@ -454,6 +455,15 @@ organizationRouter.post("/:orgId/delegations", async (req, res) => {
       },
     });
     await audit(req.userId, "delegation.create", "delegation", d.id);
+    if (d.assigneeId && d.assigneeId !== req.userId) {
+      void notifyInApp({
+        userId: d.assigneeId,
+        organizationId: d.organizationId,
+        title: "Nova delegação para você",
+        body: d.title + (d.dueAt ? ` — prazo ${new Date(d.dueAt).toLocaleDateString("pt-BR")}` : ""),
+        linkUrl: "/app/organization/delegations",
+      }).catch(() => null);
+    }
     res.status(201).json(d);
   } catch (err) { badReq(res, err); }
 });
@@ -476,6 +486,19 @@ organizationRouter.patch("/:orgId/delegations/:id", async (req, res) => {
       },
     });
     await audit(req.userId, "delegation.update", "delegation", d.id, data);
+    if (
+      data.assigneeId &&
+      data.assigneeId !== existing.assigneeId &&
+      data.assigneeId !== req.userId
+    ) {
+      void notifyInApp({
+        userId: data.assigneeId,
+        organizationId: d.organizationId,
+        title: "Delegação atribuída a você",
+        body: d.title,
+        linkUrl: "/app/organization/delegations",
+      }).catch(() => null);
+    }
     res.json(d);
   } catch (err) { badReq(res, err); }
 });

@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { notifyInApp } from "../lib/notifications.js";
 
 /**
  * 1:1s — reuniões guiadas entre Líder e Liderado.
@@ -101,6 +102,15 @@ oneOnOnesRouter.post("/:orgId/one-on-ones", async (req, res) => {
       },
       include: { items: true },
     });
+    if (created.subjectUserId && created.subjectUserId !== req.userId) {
+      void notifyInApp({
+        userId: created.subjectUserId,
+        organizationId: created.organizationId,
+        title: "Nova 1:1 agendada",
+        body: `Seu líder marcou uma conversa para ${new Date(created.scheduledAt).toLocaleString("pt-BR")}.`,
+        linkUrl: "/app/one-on-ones",
+      }).catch(() => null);
+    }
     res.status(201).json(created);
   } catch (err) {
     badReq(res, err);
