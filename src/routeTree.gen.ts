@@ -58,6 +58,8 @@ import { Route as AuthenticatedAdminBrandingRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
 import { Route as AuthenticatedAdminAppsRouteImport } from './routes/_authenticated/admin.apps'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated/admin.ai'
+import { Route as AuthenticatedAdminHelpRouteImport } from './routes/_authenticated/admin.help'
+import { Route as AuthenticatedAppHelpRouteImport } from './routes/_authenticated/app.help'
 import { Route as AuthenticatedAppOrganizationIndexRouteImport } from './routes/_authenticated/app.organization.index'
 import { Route as AuthenticatedAppOrganizationRolesRouteImport } from './routes/_authenticated/app.organization.roles'
 import { Route as AuthenticatedAppOrganizationRitualsRouteImport } from './routes/_authenticated/app.organization.rituals'
