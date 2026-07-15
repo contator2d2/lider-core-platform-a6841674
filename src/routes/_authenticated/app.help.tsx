@@ -179,12 +179,7 @@ function AppHelpPage() {
                 </div>
               </div>
             </div>
-            <a
-              href="/app"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
-            >
-              <Download className="h-4 w-4" /> Instalar agora
-            </a>
+            <InstallButton />
           </div>
         </section>
       </FadeIn>
