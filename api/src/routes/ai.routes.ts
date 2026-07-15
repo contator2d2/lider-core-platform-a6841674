@@ -5,15 +5,14 @@ import { requireAuth } from "../auth.js";
 import { completeChat, streamChat, type ChatMessage } from "../lib/ai-gateway.js";
 
 /**
- * IA Coach — usa Lovable AI Gateway com contexto real do líder.
+ * IA Coach — usa o provedor de IA (OpenAI ou Gemini) configurado pelo
+ * administrador em Admin → Provedor de IA, com contexto real do líder.
  * - POST /ai/coach/context : retorna o snapshot que o modelo receberia (debug/preview)
  * - POST /ai/coach/insight : one-shot com insight semanal (JSON estruturado)
  * - POST /ai/coach/chat    : streaming SSE de resposta conversacional
  */
 export const aiRouter = Router();
 aiRouter.use(requireAuth);
-
-const MODEL = "google/gemini-2.5-flash";
 
 async function assertOrgAccess(userId: string, orgId: string) {
   const superRole = await prisma.userRole.findFirst({
@@ -148,7 +147,6 @@ aiRouter.post("/:orgId/ai/coach/insight", async (req, res) => {
   try {
     const ctx = await buildLeaderContext(req.userId!, orgId);
     const text = await completeChat({
-      model: MODEL,
       messages: [
         { role: "system", content: systemPrompt() },
         contextMessage(ctx),
@@ -204,7 +202,7 @@ aiRouter.post("/:orgId/ai/coach/chat", async (req, res: Response) => {
       contextMessage(ctx),
       ...parsed.data.messages,
     ];
-    for await (const delta of streamChat({ model: MODEL, messages })) {
+    for await (const delta of streamChat({ messages })) {
       send("delta", { text: delta });
     }
     send("done", { ok: true });
