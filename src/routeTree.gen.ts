@@ -67,7 +67,6 @@ import { Route as AuthenticatedAppOrganizationDelegationsRouteImport } from './r
 import { Route as AuthenticatedAppOrganizationDecisionsRouteImport } from './routes/_authenticated/app.organization.decisions'
 import { Route as AuthenticatedAppOrganizationAreasRouteImport } from './routes/_authenticated/app.organization.areas'
 import { Route as AuthenticatedAppOrganizationAgendaRouteImport } from './routes/_authenticated/app.organization.agenda'
-import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team.'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -396,11 +395,6 @@ const AuthenticatedAppOrganizationAgendaRoute =
     path: '/agenda',
     getParentRoute: () => AuthenticatedAppOrganizationRoute,
   } as any)
-const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAppTeamRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -439,7 +433,7 @@ export interface FileRoutesByFullPath {
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
+  '/app/team': typeof AuthenticatedAppTeamRoute
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -451,7 +445,6 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AuthenticatedAppIndexRoute
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/franchise/': typeof AuthenticatedFranchiseIndexRoute
-  '/app/team/': typeof AuthenticatedAppTeamRoute
   '/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
   '/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
@@ -494,6 +487,7 @@ export interface FileRoutesByTo {
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/team': typeof AuthenticatedAppTeamRoute
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -505,7 +499,6 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppIndexRoute
   '/company': typeof AuthenticatedCompanyIndexRoute
   '/franchise': typeof AuthenticatedFranchiseIndexRoute
-  '/app/team': typeof AuthenticatedAppTeamRoute
   '/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
   '/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
@@ -555,7 +548,7 @@ export interface FileRoutesById {
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/_authenticated/app/team': typeof AuthenticatedAppTeamRouteWithChildren
+  '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/_authenticated/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -567,7 +560,6 @@ export interface FileRoutesById {
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/franchise/': typeof AuthenticatedFranchiseIndexRoute
-  '/_authenticated/app/team/': typeof AuthenticatedAppTeamRoute
   '/_authenticated/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/_authenticated/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
   '/_authenticated/app/organization/decisions': typeof AuthenticatedAppOrganizationDecisionsRoute
@@ -629,7 +621,6 @@ export interface FileRouteTypes {
     | '/app/'
     | '/company/'
     | '/franchise/'
-    | '/app/team/'
     | '/app/organization/agenda'
     | '/app/organization/areas'
     | '/app/organization/decisions'
@@ -672,6 +663,7 @@ export interface FileRouteTypes {
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/pdis'
+    | '/app/team'
     | '/company/billing'
     | '/company/leaders'
     | '/company/leadership'
@@ -683,7 +675,6 @@ export interface FileRouteTypes {
     | '/app'
     | '/company'
     | '/franchise'
-    | '/app/team'
     | '/app/organization/agenda'
     | '/app/organization/areas'
     | '/app/organization/decisions'
@@ -744,7 +735,6 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/company/'
     | '/_authenticated/franchise/'
-    | '/_authenticated/app/team/'
     | '/_authenticated/app/organization/agenda'
     | '/_authenticated/app/organization/areas'
     | '/_authenticated/app/organization/decisions'
@@ -1170,13 +1160,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationAgendaRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationRoute
     }
-    '/_authenticated/app/team/': {
-      id: '/_authenticated/app/team/'
-      path: '/'
-      fullPath: '/app/team/'
-      preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
-      parentRoute: typeof AuthenticatedAppTeamRoute
-    }
   }
 }
 
@@ -1271,17 +1254,6 @@ const AuthenticatedAppOrganizationRouteWithChildren =
     AuthenticatedAppOrganizationRouteChildren,
   )
 
-interface AuthenticatedAppTeamRouteChildren {
-  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
-}
-
-const AuthenticatedAppTeamRouteChildren: AuthenticatedAppTeamRouteChildren = {
-  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
-}
-
-const AuthenticatedAppTeamRouteWithChildren =
-  AuthenticatedAppTeamRoute._addFileChildren(AuthenticatedAppTeamRouteChildren)
-
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRoute
@@ -1292,7 +1264,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
   AuthenticatedAppPdisRoute: typeof AuthenticatedAppPdisRoute
-  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRouteWithChildren
+  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
@@ -1307,7 +1279,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppOrganizationRoute:
     AuthenticatedAppOrganizationRouteWithChildren,
   AuthenticatedAppPdisRoute: AuthenticatedAppPdisRoute,
-  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRouteWithChildren,
+  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
 
@@ -1378,13 +1350,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
