@@ -202,7 +202,6 @@ aiRouter.post("/:orgId/ai/coach/chat", async (req, res: Response) => {
       contextMessage(ctx),
       ...parsed.data.messages,
     ];
-    for await (const delta of streamChat({ model: MODEL, messages })) {
     for await (const delta of streamChat({ messages })) {
       send("delta", { text: delta });
     }
