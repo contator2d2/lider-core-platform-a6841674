@@ -41,13 +41,13 @@ const nav = [
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
 ] as const;
 
-const mobileNav: Array<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
-  { to: "/app", label: "Início", icon: Home, exact: true },
+const mobileNav = [
+  { to: "/app", label: "Início", icon: Home },
   { to: "/app/organization/agenda", label: "Agenda", icon: Calendar },
   { to: "/app/team", label: "Equipe", icon: Users },
   { to: "/app/ai", label: "Ações", icon: Zap },
   { to: "/app/help", label: "Mais", icon: MoreHorizontal },
-];
+] as const;
 
 function AppShell() {
   const navigate = useNavigate();
@@ -139,8 +139,8 @@ function AppShell() {
         {/* Bottom navigation (mobile) */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
           <ul className="mx-auto grid max-w-3xl grid-cols-5">
-            {mobileNav.map(({ to, label, icon: Icon, exact }) => {
-              const active = exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+            {mobileNav.map(({ to, label, icon: Icon }) => {
+              const active = to === "/app" ? pathname === "/app" : pathname === to || pathname.startsWith(to + "/");
               return (
                 <li key={to}>
                   <Link
