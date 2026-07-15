@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { LeadershipDrawer, type DrawerTarget } from "@/components/leadership/LeadershipDrawer";
 import {
   ArrowRight,
-  ArrowUpRight,
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
@@ -13,7 +12,6 @@ import {
   ScrollText,
   Sparkles,
   TrendingUp,
-  Users,
   Workflow,
   Plus,
 } from "lucide-react";
