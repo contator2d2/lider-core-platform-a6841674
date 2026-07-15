@@ -439,29 +439,45 @@ const aiSchema = z.object({
 });
 
 adminRouter.post("/ai-settings", async (req, res) => {
-  const parsed = aiSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  // Se o cliente mandou apiKey vazia, não sobrescrever a chave já salva.
-  const { apiKey, ...rest } = parsed.data;
-  const cleanKey = apiKey && apiKey.trim() ? apiKey.trim() : null;
-  const s = await prisma.aISettings.upsert({
-    where: {
-      scope_scopeId: {
-        scope: parsed.data.scope,
-        scopeId: parsed.data.scopeId ?? "",
-      },
-    } as never,
-    update: cleanKey ? { ...rest, apiKey: cleanKey } : rest,
-    create: { ...rest, apiKey: cleanKey },
-  });
-  // Nunca devolver a chave em claro
-  res.status(201).json({ ...s, apiKey: s.apiKey ? "••••••••" : null });
+  try {
+    const parsed = aiSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+    // Se o cliente mandou apiKey vazia, não sobrescrever a chave já salva.
+    const { apiKey, ...rest } = parsed.data;
+    const scopeId = rest.scope === "global" ? null : rest.scopeId;
+    const cleanKey = apiKey && apiKey.trim() ? apiKey.trim() : null;
+    const existing = await prisma.aISettings.findFirst({
+      where: { scope: rest.scope, scopeId },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const s = existing
+      ? await prisma.aISettings.update({
+          where: { id: existing.id },
+          data: cleanKey ? { ...rest, scopeId, apiKey: cleanKey } : { ...rest, scopeId },
+        })
+      : await prisma.aISettings.create({
+          data: { ...rest, scopeId, apiKey: cleanKey },
+        });
+
+    // Nunca devolver a chave em claro
+    res.status(201).json({ ...s, apiKey: s.apiKey ? "••••••••" : null });
+  } catch (err) {
+    console.error("[ai-settings] save failed", err);
+    res.status(500).json({ error: "Não foi possível salvar a configuração de IA." });
+  }
 });
 
 // GET mascarado — usado pela tela de admin
 adminRouter.get("/ai-settings", async (_req, res) => {
-  const list = await prisma.aISettings.findMany({ orderBy: { createdAt: "desc" } });
-  res.json(list.map((s) => ({ ...s, apiKey: s.apiKey ? "••••••••" : null })));
+  try {
+    const list = await prisma.aISettings.findMany({ orderBy: { createdAt: "desc" } });
+    res.json(list.map((s) => ({ ...s, apiKey: s.apiKey ? "••••••••" : null })));
+  } catch (err) {
+    console.error("[ai-settings] list failed", err);
+    res.status(500).json({ error: "Não foi possível carregar a configuração de IA." });
+  }
 });
 
 // POST /admin/ai-settings/test — envia um prompt curto e devolve a resposta
@@ -477,7 +493,8 @@ adminRouter.post("/ai-settings/test", async (_req, res) => {
     });
     res.json({ ok: true, latencyMs: Date.now() - started, sample: text.slice(0, 300) });
   } catch (err) {
-    res.status(400).json({
+    console.error("[ai-settings] test failed", err);
+    res.status(200).json({
       ok: false,
       error: err instanceof Error ? err.message : "Falha ao testar provedor de IA",
     });
