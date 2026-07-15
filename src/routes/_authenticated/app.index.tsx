@@ -154,29 +154,38 @@ function CoreScoreHero({ score, loading, adherence }: { score: number | undefine
           ? "Você está evoluindo! Foque nas ações de hoje para continuar avançando."
           : "Atenção: retome os rituais e conversas de 1:1 para reagir.";
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-[0_20px_60px_-24px_color-mix(in_oklab,black_50%,transparent)]">
-      <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-accent/30 blur-3xl" />
-      <div className="relative flex items-center justify-between">
+    <section
+      className="relative overflow-hidden rounded-[32px] p-7 text-white shadow-[0_24px_60px_-24px_color-mix(in_oklab,black_55%,transparent)]"
+      style={{ backgroundColor: "#1C1A19" }}
+    >
+      <div className="flex items-start justify-between gap-6">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-background/60">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
             CORE Score
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-success">
-              <TrendingUp className="h-3 w-3" /> +12 pts
+          </p>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="font-display text-[56px] font-medium leading-none tabular-nums">
+              {shown}
             </span>
+            <span className="text-lg font-light text-white/40">/ 100</span>
           </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="metric-number text-6xl">{shown}</span>
-            <span className="text-sm text-background/60">de 100</span>
+          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+            <TrendingUp className="h-3 w-3 text-accent" strokeWidth={2.5} />
+            <span className="text-[11px] font-bold text-accent">+12 pts</span>
           </div>
         </div>
         <ScoreGauge value={value} />
       </div>
-      <p className="relative mt-5 flex items-start gap-2 text-sm text-background/75">
-        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-        <span>{insight}</span>
-      </p>
+
+      <div className="mt-7 flex items-start gap-4 border-t border-white/5 pt-6">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/10">
+          <Sparkles className="h-4 w-4 text-accent" strokeWidth={1.5} />
+        </div>
+        <p className="text-[13px] italic leading-relaxed text-white/55">{insight}</p>
+      </div>
+
       {typeof adherence === "number" && (
-        <div className="relative mt-4 flex items-center gap-2 text-[11px] uppercase tracking-widest text-background/50">
+        <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
           <Workflow className="h-3 w-3" /> Adesão rituais · {adherence}%
         </div>
       )}
@@ -187,36 +196,72 @@ function CoreScoreHero({ score, loading, adherence }: { score: number | undefine
 function ScoreGauge({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(100, value));
   const size = 96;
-  const stroke = 10;
+  const stroke = 4;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const arc = c * 0.75; // 3/4 arc
-  const dash = (clamped / 100) * arc;
+  const dash = (clamped / 100) * c;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-[135deg]">
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-background/10"
-        strokeDasharray={`${arc} ${c}`} strokeLinecap="round" />
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-accent"
-        strokeDasharray={`${dash} ${c}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 500ms ease" }} />
-    </svg>
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          strokeWidth={stroke}
+          fill="transparent"
+          stroke="rgba(255,255,255,0.06)"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          strokeWidth={stroke}
+          fill="transparent"
+          stroke="var(--accent)"
+          strokeDasharray={`${dash} ${c}`}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dasharray 500ms ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-white/[0.04] backdrop-blur-sm">
+          <Shield className="h-4 w-4 text-accent" strokeWidth={1.5} />
+        </div>
+      </div>
+    </div>
   );
 }
 
 function AttentionSection({ people, loading, onOpen }: { people: AttentionPerson[]; loading: boolean; onOpen: (p: AttentionPerson) => void }) {
   return (
-    <section className="rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between px-4 py-3">
-        <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Pessoas que precisam da sua atenção
+    <section>
+      <header className="mb-4 flex items-baseline justify-between px-1">
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          Acompanhamento
         </h2>
-        <Link to="/app/team" className="text-xs font-medium text-accent hover:underline">Ver todas</Link>
+        <Link
+          to="/app/team"
+          className="border-b border-accent/30 pb-0.5 text-[11px] font-bold uppercase tracking-widest text-accent"
+        >
+          Ver todas
+        </Link>
       </header>
       {loading ? (
-        <SkeletonRows n={4} />
+        <div className="rounded-[28px] border border-border/60 bg-secondary/40 p-6">
+          <SkeletonRows n={4} />
+        </div>
       ) : people.length === 0 ? (
-        <EmptyRow icon={CheckCircle2} title="Ninguém em risco no radar" hint="A IA revisa sinais de acompanhamento diariamente." />
+        <div className="flex flex-col items-center rounded-[28px] border border-border/60 bg-secondary/40 p-10 text-center">
+          <div className="mb-5 grid h-14 w-14 place-items-center rounded-full border border-border bg-background shadow-sm">
+            <CheckCircle2 className="h-5 w-5 text-muted-foreground" strokeWidth={1.4} />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">Ninguém em risco no radar</h3>
+          <p className="mt-2 max-w-[260px] text-[12.5px] font-light leading-relaxed text-muted-foreground">
+            Sua inteligência revisa sinais de desempenho e bem-estar diariamente.
+          </p>
+        </div>
       ) : (
-        <ul className="divide-y divide-border/70">
+        <ul className="divide-y divide-border/60 overflow-hidden rounded-[28px] border border-border/60 bg-card">
           {people.slice(0, 4).map((p) => {
             const sig = p.signals[0];
             const badge = severityBadge(sig.severity);
@@ -225,7 +270,7 @@ function AttentionSection({ people, loading, onOpen }: { people: AttentionPerson
                 <button
                   type="button"
                   onClick={() => onOpen(p)}
-                  className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40"
+                  className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
                 >
                   <Avatar name={p.name} severity={sig.severity} />
                   <div className="min-w-0">
@@ -237,7 +282,7 @@ function AttentionSection({ people, loading, onOpen }: { people: AttentionPerson
                       <span className="truncate text-xs text-muted-foreground">{sig.reason}</span>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent" />
+                  <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent" />
                 </button>
               </li>
             );
