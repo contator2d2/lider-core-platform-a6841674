@@ -86,6 +86,10 @@ authRouter.get("/me", requireAuth, async (req, res) => {
     fullName: user.profile?.fullName ?? null,
     avatarUrl: user.profile?.avatarUrl ?? null,
     jobTitle: user.profile?.jobTitle ?? null,
+    phone: user.profile?.phone ?? null,
+    whatsapp: user.profile?.whatsapp ?? null,
+    onboardingCompletedAt: user.profile?.onboardingCompletedAt ?? null,
+    onboardingSteps: user.profile?.onboardingSteps ?? null,
     roles: user.roles.map((r: { role: string }) => r.role),
     memberships: user.memberships.map((m: { role: string; organization: { id: string; name: string; slug: string; plan: string } }) => ({
       role: m.role,
@@ -101,4 +105,49 @@ authRouter.get("/me", requireAuth, async (req, res) => {
 authRouter.get("/me/permissions", requireAuth, async (req, res) => {
   const perms = await resolveUserPermissions(req.userId!);
   res.json(perms);
+});
+
+// -----------------------------------------------------------
+// Onboarding do líder — marca etapas concluídas e o término.
+// Também aceita salvar dados básicos de perfil (nome, cargo,
+// telefone/WhatsApp) durante o fluxo.
+// -----------------------------------------------------------
+authRouter.post("/me/onboarding", requireAuth, async (req, res) => {
+  const body = (req.body ?? {}) as {
+    step?: string;
+    completed?: boolean;
+    profile?: {
+      fullName?: string;
+      jobTitle?: string;
+      phone?: string;
+      whatsapp?: string;
+    };
+  };
+
+  const current = await prisma.profile.findUnique({ where: { id: req.userId! } });
+  const steps =
+    (current?.onboardingSteps as Record<string, string> | null | undefined) ?? {};
+  if (body.step) steps[body.step] = new Date().toISOString();
+
+  const data: Record<string, unknown> = {
+    onboardingSteps: steps as never,
+  };
+  if (body.completed) data.onboardingCompletedAt = new Date();
+  if (body.profile) {
+    if (typeof body.profile.fullName === "string") data.fullName = body.profile.fullName.trim();
+    if (typeof body.profile.jobTitle === "string") data.jobTitle = body.profile.jobTitle.trim();
+    if (typeof body.profile.phone === "string") data.phone = body.profile.phone.trim();
+    if (typeof body.profile.whatsapp === "string") data.whatsapp = body.profile.whatsapp.trim();
+  }
+
+  const updated = await prisma.profile.upsert({
+    where: { id: req.userId! },
+    update: data,
+    create: { id: req.userId!, ...data },
+  });
+  res.json({
+    ok: true,
+    onboardingCompletedAt: updated.onboardingCompletedAt,
+    onboardingSteps: updated.onboardingSteps,
+  });
 });
