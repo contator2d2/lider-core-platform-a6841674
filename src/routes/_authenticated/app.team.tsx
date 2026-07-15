@@ -370,7 +370,6 @@ function MemberRow({
         <ChevronRight className="h-4 w-4" />
       </span>
       </Link>
-    </>
   );
 }
 
