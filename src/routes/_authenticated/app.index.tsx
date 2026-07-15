@@ -4,21 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { LeadershipDrawer, type DrawerTarget } from "@/components/leadership/LeadershipDrawer";
 import {
   ArrowRight,
-  ArrowUpRight,
-  Activity,
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
   Compass,
-  Flame,
-  MessageSquare,
   ScrollText,
   Sparkles,
-  Target,
-  Users,
+  TrendingUp,
   Workflow,
-  Zap,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -85,53 +80,51 @@ function LeadershipRoom() {
   const openDecision = (d: DecisionSummary) => setDrawer({ kind: "decision", orgId, decision: d });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
-      {/* Topo — saudação, data, status */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6 sm:flex sm:flex-wrap sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-            <Compass className="h-3.5 w-3.5" /> Sala de Liderança
-            {current && <span className="ml-1 hidden text-foreground/60 sm:inline">· {current.name}</span>}
-          </div>
-          <h1 className="mt-2 font-display text-3xl leading-tight sm:text-4xl md:text-5xl">
-            {greet()}, <span className="italic">{firstName}</span>.
-            <br className="hidden sm:block" />
-            <span className="text-muted-foreground">O que precisa da sua atenção hoje?</span>
-          </h1>
-          <p className="mt-3 text-sm text-muted-foreground">{formatToday()}</p>
-        </div>
-
-        <div className="flex shrink-0 items-stretch gap-3">
-          <ScoreChip label="CORE Score" value={health.data?.score ?? (health.isLoading ? "…" : "—")} tone={healthTone(health.data?.score)} />
-          <ScoreChip
-            label="Adesão rituais"
-            value={data?.rituals.adherence == null ? "—" : `${data.rituals.adherence}%`}
-            tone={data?.rituals.adherence == null ? "default" : data.rituals.adherence >= 70 ? "good" : "warn"}
-          />
-        </div>
+    <div className="mx-auto max-w-3xl space-y-5 pb-24 md:max-w-6xl md:pb-0">
+      {/* Saudação */}
+      <header className="px-1">
+        <h1 className="font-display text-3xl leading-tight sm:text-4xl">
+          {greet()}, {firstName} <span className="inline-block">👋</span>
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {formatToday()}
+          {current && <span className="ml-1 text-foreground/60">· {current.name}</span>}
+        </p>
       </header>
 
-      {/* Próxima melhor ação — hero */}
-      <NextBestActionCard action={data?.nextBestAction} loading={loading} />
+      {/* Hero: CORE Score com gauge */}
+      <CoreScoreHero
+        score={health.data?.score}
+        loading={health.isLoading}
+        adherence={data?.rituals.adherence}
+      />
 
-      {/* Bloco principal + lateral */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6">
-          <AttentionSection people={data?.attention ?? []} loading={loading} onOpen={openPerson} />
-          <div className="grid gap-6 md:grid-cols-2">
-            <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
-            <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
-          </div>
-        </div>
-        <aside className="space-y-6">
-          <AgendaCard occurrences={data?.upcomingOccurrences ?? []} loading={loading} />
-          <RitualsCard rituals={data?.rituals} loading={loading} />
-          <AiCoachCard planEnabled={!!current} />
-        </aside>
+      {/* Pessoas que precisam da sua atenção */}
+      <AttentionSection people={data?.attention ?? []} loading={loading} onOpen={openPerson} />
+
+      {/* Agenda + Rituais (grid 2 cols no mobile) */}
+      <div className="grid grid-cols-2 gap-3">
+        <AgendaCard occurrences={data?.upcomingOccurrences ?? []} loading={loading} />
+        <RitualsCard rituals={data?.rituals} loading={loading} />
       </div>
 
-      {/* Bloco inferior — indicadores rápidos */}
-      <QuickIndicators data={data} health={health.data} />
+      {/* Delegações */}
+      <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
+
+      {/* IA Coach */}
+      <AiCoachCard />
+
+      {/* Decisões recentes (colapsado, extra info) */}
+      <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
+
+      {/* FAB de nova ação */}
+      <Link
+        to="/app/organization/delegations"
+        aria-label="Nova delegação"
+        className="fixed bottom-24 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-accent text-accent-foreground shadow-[0_12px_32px_-8px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition-transform active:scale-95 md:bottom-8"
+      >
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
+      </Link>
 
       <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
     </div>
@@ -140,68 +133,102 @@ function LeadershipRoom() {
 
 // ---------- SUB-COMPONENTS ----------
 
-function NextBestActionCard({ action, loading }: { action: LeadershipRoomData["nextBestAction"] | undefined; loading: boolean }) {
+function CoreScoreHero({ score, loading, adherence }: { score: number | undefined; loading: boolean; adherence: number | null | undefined }) {
+  const value = typeof score === "number" ? score : 0;
+  const shown = typeof score === "number" ? score : loading ? "…" : "—";
+  const insight =
+    typeof score !== "number"
+      ? "Configure sua equipe para ativar o CORE Score."
+      : score >= 70
+        ? "Você está evoluindo! Mantenha a cadência dos rituais."
+        : score >= 40
+          ? "Você está evoluindo! Foque nas ações de hoje para continuar avançando."
+          : "Atenção: retome os rituais e conversas de 1:1 para reagir.";
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-foreground to-foreground/90 p-6 text-background sm:p-8">
-      <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-accent/25 blur-3xl" />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-[0_20px_60px_-24px_color-mix(in_oklab,black_50%,transparent)]">
+      <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-accent/30 blur-3xl" />
+      <div className="relative flex items-center justify-between">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-background/60">
-            <Zap className="h-3.5 w-3.5" /> Próxima melhor ação
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-background/60">
+            CORE Score
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-success">
+              <TrendingUp className="h-3 w-3" /> +12 pts
+            </span>
           </div>
-          <h2 className="mt-2 font-display text-2xl leading-tight sm:text-3xl">
-            {loading ? "Analisando o dia…" : (action?.title ?? "Sem ações prioritárias.")}
-          </h2>
-          {action?.description && (
-            <p className="mt-2 max-w-2xl text-sm text-background/70">{action.description}</p>
-          )}
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="metric-number text-6xl">{shown}</span>
+            <span className="text-sm text-background/60">de 100</span>
+          </div>
         </div>
-        {action && (
-          <Link
-            to={action.href}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-background px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-background/90"
-          >
-            {action.cta} <ArrowRight className="h-4 w-4" />
-          </Link>
-        )}
+        <ScoreGauge value={value} />
       </div>
+      <p className="relative mt-5 flex items-start gap-2 text-sm text-background/75">
+        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+        <span>{insight}</span>
+      </p>
+      {typeof adherence === "number" && (
+        <div className="relative mt-4 flex items-center gap-2 text-[11px] uppercase tracking-widest text-background/50">
+          <Workflow className="h-3 w-3" /> Adesão rituais · {adherence}%
+        </div>
+      )}
     </section>
+  );
+}
+
+function ScoreGauge({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(100, value));
+  const size = 96;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const arc = c * 0.75; // 3/4 arc
+  const dash = (clamped / 100) * arc;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-[135deg]">
+      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-background/10"
+        strokeDasharray={`${arc} ${c}`} strokeLinecap="round" />
+      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-accent"
+        strokeDasharray={`${dash} ${c}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 500ms ease" }} />
+    </svg>
   );
 }
 
 function AttentionSection({ people, loading, onOpen }: { people: AttentionPerson[]; loading: boolean; onOpen: (p: AttentionPerson) => void }) {
   return (
     <section className="rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between border-b border-border px-5 py-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-display text-lg">Pessoas que pedem atenção</h2>
-        </div>
-        <span className="text-xs text-muted-foreground">{people.length} mapeadas</span>
+      <header className="flex items-center justify-between px-4 py-3">
+        <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Pessoas que precisam da sua atenção
+        </h2>
+        <Link to="/app/team" className="text-xs font-medium text-accent hover:underline">Ver todas</Link>
       </header>
       {loading ? (
         <SkeletonRows n={4} />
       ) : people.length === 0 ? (
         <EmptyRow icon={CheckCircle2} title="Ninguém em risco no radar" hint="A IA revisa sinais de acompanhamento diariamente." />
       ) : (
-        <ul className="divide-y divide-border">
-          {people.map((p) => {
+        <ul className="divide-y divide-border/70">
+          {people.slice(0, 4).map((p) => {
             const sig = p.signals[0];
+            const badge = severityBadge(sig.severity);
             return (
               <li key={p.membershipId}>
                 <button
                   type="button"
                   onClick={() => onOpen(p)}
-                  className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
+                  className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40"
                 >
                   <Avatar name={p.name} severity={sig.severity} />
                   <div className="min-w-0">
-                    <div className="truncate font-medium">{p.name}</div>
-                    <div className="truncate text-sm text-muted-foreground">{sig.reason}</div>
+                    <div className="truncate text-sm font-semibold">{p.name}</div>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">{sig.reason}</span>
+                    </div>
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-                    {sig.action} <ArrowRight className="h-3 w-3" />
-                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent" />
                 </button>
               </li>
             );
@@ -212,74 +239,122 @@ function AttentionSection({ people, loading, onOpen }: { people: AttentionPerson
   );
 }
 
+function severityBadge(sev: "high" | "medium" | "low") {
+  if (sev === "high") return { label: "Crítico", cls: "bg-accent/15 text-accent" };
+  if (sev === "medium") return { label: "Atenção", cls: "bg-attention/15 text-attention" };
+  return { label: "Info", cls: "bg-muted text-muted-foreground" };
+}
+
 function AgendaCard({ occurrences, loading }: { occurrences: Occurrence[]; loading: boolean }) {
   return (
-    <SectionCard title="Agenda da semana" icon={CalendarClock} href="/app/organization/agenda" hint="Próximos 7 dias">
-      {loading ? (
-        <SkeletonRows n={3} compact />
-      ) : occurrences.length === 0 ? (
-        <EmptyRow icon={CalendarClock} title="Semana livre" hint="Agende rituais e 1:1s para trazer cadência." compact />
-      ) : (
-        <ul className="divide-y divide-border">
-          {occurrences.slice(0, 5).map((o) => (
-            <li key={o.id} className="flex items-center justify-between px-4 py-3">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{o.ritual.name}</div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{o.ritual.type}</div>
+    <section className="flex flex-col rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <CalendarClock className="h-3.5 w-3.5" /> Agenda de hoje
+      </div>
+      <div className="mt-3 flex-1 space-y-2.5">
+        {loading ? (
+          <Skeleton className="h-20" />
+        ) : occurrences.length === 0 ? (
+          <div className="py-3 text-xs text-muted-foreground">Sem compromissos hoje.</div>
+        ) : (
+          occurrences.slice(0, 3).map((o) => (
+            <div key={o.id} className="flex items-start gap-2.5 border-l-2 border-accent pl-2.5">
+              <div>
+                <div className="text-xs font-semibold tabular-nums">{formatTime(o.scheduledAt)}</div>
+                <div className="line-clamp-2 text-xs text-muted-foreground">{o.ritual.name}</div>
               </div>
-              <div className="shrink-0 text-xs text-muted-foreground">{formatDate(o.scheduledAt)}</div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </SectionCard>
+            </div>
+          ))
+        )}
+      </div>
+      <Link
+        to="/app/organization/agenda"
+        className="mt-3 inline-flex items-center justify-center rounded-lg border border-border bg-background py-2 text-xs font-medium hover:bg-secondary"
+      >
+        Ver agenda
+      </Link>
+    </section>
   );
 }
 
 function RitualsCard({ rituals, loading }: { rituals: LeadershipRoomData["rituals"] | undefined; loading: boolean }) {
-  const adherence = rituals?.adherence;
+  const adherence = rituals?.adherence ?? 0;
   return (
-    <SectionCard title="Rituais de liderança" icon={Workflow} href="/app/organization/rituals">
+    <section className="flex flex-col rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <Workflow className="h-3.5 w-3.5" /> Rituais da semana
+      </div>
       {loading || !rituals ? (
-        <div className="px-4 py-6"><Skeleton className="h-16" /></div>
+        <div className="mt-3 flex-1"><Skeleton className="h-20" /></div>
       ) : (
-        <div className="space-y-3 px-4 py-4">
-          <div className="flex items-baseline gap-2">
-            <div className="font-display text-3xl">{adherence == null ? "—" : `${adherence}%`}</div>
-            <div className="text-xs text-muted-foreground">taxa de adesão · últimos 30 dias</div>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-foreground/80" style={{ width: `${adherence ?? 0}%` }} />
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-            <MiniStat label="Feitos" value={rituals.done} tone="good" />
-            <MiniStat label="Perdidos" value={rituals.missed} tone={rituals.missed ? "warn" : "default"} />
-            <MiniStat label="Ativos" value={rituals.active} />
-          </div>
+        <div className="mt-3 flex flex-1 items-center gap-3">
+          <MiniGauge value={adherence} />
+          <ul className="space-y-1 text-xs">
+            <li className="flex items-center gap-1.5"><Dot cls="bg-success" /> {rituals.done} Feitos</li>
+            <li className="flex items-center gap-1.5"><Dot cls="bg-attention" /> {rituals.planned} Pendentes</li>
+            <li className="flex items-center gap-1.5"><Dot cls="bg-accent" /> {rituals.missed} Atrasados</li>
+          </ul>
         </div>
       )}
-    </SectionCard>
+      <Link
+        to="/app/organization/rituals"
+        className="mt-3 inline-flex items-center justify-center rounded-lg border border-border bg-background py-2 text-xs font-medium hover:bg-secondary"
+      >
+        Ver rituais
+      </Link>
+    </section>
+  );
+}
+
+function Dot({ cls }: { cls: string }) {
+  return <span className={`inline-block h-2 w-2 rounded-full ${cls}`} />;
+}
+
+function MiniGauge({ value }: { value: number }) {
+  const size = 64;
+  const stroke = 7;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (Math.max(0, Math.min(100, value)) / 100) * c;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-muted" />
+        <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-accent"
+          strokeDasharray={`${dash} ${c}`} strokeLinecap="round" />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-sm font-bold tabular-nums">{value}%</div>
+    </div>
   );
 }
 
 function DelegationsCard({ data, loading, onOpen }: { data: LeadershipRoomData["delegations"] | undefined; loading: boolean; onOpen: (d: DelegSummary) => void }) {
   return (
-    <SectionCard title="Delegações" icon={ClipboardList} href="/app/organization/delegations" hint={data?.overdueCount ? `${data.overdueCount} atrasadas` : undefined} tone={data?.overdueCount ? "warn" : "default"}>
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <header className="flex items-center justify-between px-4 py-3">
+        <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Delegações pendentes
+        </h2>
+        <Link to="/app/organization/delegations" className="text-xs font-medium text-accent hover:underline">Ver todas</Link>
+      </header>
       {loading ? (
         <SkeletonRows n={3} compact />
       ) : (!data?.overdue.length && !data?.upcoming.length) ? (
         <EmptyRow icon={ClipboardList} title="Nada em aberto" hint="Registre um combinado para acompanhar." compact />
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-border/70">
           {data.overdue.slice(0, 3).map((d) => <DelegRow key={d.id} d={d} overdue onOpen={onOpen} />)}
           {data.upcoming.slice(0, Math.max(0, 4 - data.overdue.slice(0, 3).length)).map((d) => <DelegRow key={d.id} d={d} onOpen={onOpen} />)}
         </ul>
       )}
-    </SectionCard>
+    </section>
   );
 }
 
 function DelegRow({ d, overdue, onOpen }: { d: DelegSummary; overdue?: boolean; onOpen: (d: DelegSummary) => void }) {
+  const dueLabel = overdue
+    ? d.dueAt ? `Atrasada · ${daysFrom(d.dueAt)}d` : "Atrasada"
+    : d.dueAt ? relDay(d.dueAt) : "Sem prazo";
   return (
     <li>
       <button
@@ -287,16 +362,14 @@ function DelegRow({ d, overdue, onOpen }: { d: DelegSummary; overdue?: boolean; 
         onClick={() => onOpen(d)}
         className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40"
       >
-        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${overdue ? "bg-attention/15 text-accent" : "bg-muted text-muted-foreground"}`}>
-          {overdue ? <AlertTriangle className="h-3 w-3" /> : <ClipboardList className="h-3 w-3" />}
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${overdue ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground"}`}>
+          {overdue ? <AlertTriangle className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />}
         </span>
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{d.title}</div>
-          <div className="text-xs text-muted-foreground">
-            {d.dueAt ? (overdue ? `Atrasado desde ${formatDate(d.dueAt)}` : `Prazo ${formatDate(d.dueAt)}`) : "Sem prazo"}
-          </div>
+          <div className="truncate text-sm font-semibold">{d.title}</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">{d.priority}</div>
         </div>
-        <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{d.priority}</span>
+        <span className={`shrink-0 text-xs font-medium ${overdue ? "text-accent" : "text-muted-foreground"}`}>{dueLabel}</span>
       </button>
     </li>
   );
@@ -304,13 +377,19 @@ function DelegRow({ d, overdue, onOpen }: { d: DelegSummary; overdue?: boolean; 
 
 function DecisionsCard({ data, loading, onOpen }: { data: LeadershipRoomData["decisions"] | undefined; loading: boolean; onOpen: (d: DecisionSummary) => void }) {
   return (
-    <SectionCard title="Central de decisões" icon={ScrollText} href="/app/organization/decisions" hint={data?.openCount ? `${data.openCount} abertas` : undefined}>
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <header className="flex items-center justify-between px-4 py-3">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <ScrollText className="h-3.5 w-3.5" /> Decisões recentes
+        </h2>
+        {!!data?.openCount && <span className="text-xs text-accent">{data.openCount} abertas</span>}
+      </header>
       {loading ? (
         <SkeletonRows n={3} compact />
       ) : !data?.recent.length ? (
         <EmptyRow icon={ScrollText} title="Sem decisões registradas" hint="Toda reunião gera uma decisão. Registre a primeira." compact />
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-border/70">
           {data.recent.slice(0, 4).map((d) => (
             <li key={d.id}>
               <button
@@ -319,7 +398,7 @@ function DecisionsCard({ data, loading, onOpen }: { data: LeadershipRoomData["de
                 className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{d.title}</div>
+                  <div className="truncate text-sm font-semibold">{d.title}</div>
                   <div className="text-xs text-muted-foreground">
                     {d.dueAt ? `Prazo ${formatDate(d.dueAt)}` : `Atualizada ${formatDate(d.updatedAt)}`}
                   </div>
@@ -330,113 +409,54 @@ function DecisionsCard({ data, loading, onOpen }: { data: LeadershipRoomData["de
           ))}
         </ul>
       )}
-    </SectionCard>
-  );
-}
-
-function AiCoachCard({ planEnabled }: { planEnabled: boolean }) {
-  const suggestions = [
-    "Preparar roteiro para o próximo 1:1",
-    "Gerar plano de ação para delegação atrasada",
-    "Resumir a semana da equipe",
-  ];
-  return (
-    <section className="rounded-2xl border border-border bg-gradient-to-br from-card to-secondary/40 p-5">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        <Sparkles className="h-3.5 w-3.5" /> IA Coach
-      </div>
-      <div className="mt-2 font-display text-lg">Quer ajuda para preparar a próxima conversa?</div>
-      <ul className="mt-4 space-y-1.5">
-        {suggestions.map((s) => (
-          <li key={s}>
-            <Link
-              to="/app/ai"
-              className="group flex items-center justify-between rounded-lg border border-transparent bg-background/60 px-3 py-2 text-sm transition-colors hover:border-border hover:bg-background"
-            >
-              <span className="truncate">{s}</span>
-              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-foreground" />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {!planEnabled && (
-        <div className="mt-3 text-[11px] text-muted-foreground">Disponível conforme o plano contratado.</div>
-      )}
     </section>
   );
 }
 
-function QuickIndicators({ data, health }: { data: LeadershipRoomData | undefined; health: HealthScore | undefined }) {
+function AiCoachCard() {
+  const quick = [
+    { label: "Preparar conversa", to: "/app/ai" },
+    { label: "Plano de ação", to: "/app/ai" },
+    { label: "Resumo da equipe", to: "/app/ai" },
+    { label: "Dar feedback", to: "/app/feedbacks" },
+  ];
   return (
-    <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      <IndicatorCard icon={Activity} label="Saúde da equipe" value={data ? `${data.structure.peopleCount}` : "—"} hint="pessoas ativas" />
-      <IndicatorCard icon={Target} label="Estrutura" value={data ? `${data.structure.areas}·${data.structure.teams}` : "—"} hint="áreas · equipes" />
-      <IndicatorCard icon={Flame} label="Alertas críticos" value={data?.delegations.overdueCount ?? "—"} tone={(data?.delegations.overdueCount ?? 0) > 0 ? "warn" : "default"} hint="delegações atrasadas" />
-      <IndicatorCard icon={MessageSquare} label="Score organizacional" value={health?.score ?? "—"} tone={healthTone(health?.score)} hint="0 a 100" />
+    <section className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <Sparkles className="h-4 w-4 text-accent" /> IA Coach
+        </div>
+        <Link to="/app/ai" className="text-xs font-medium text-accent hover:underline">Ver</Link>
+      </div>
+      <div className="mt-2 text-sm text-foreground/80">Como posso te ajudar hoje?</div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {quick.map((q) => (
+          <Link
+            key={q.label}
+            to={q.to}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-2 text-xs font-medium hover:border-accent hover:text-accent"
+          >
+            {q.label}
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
 
 // ---------- PRIMITIVES ----------
 
-function SectionCard({
-  title, icon: Icon, href, hint, tone = "default", children,
-}: { title: string; icon: typeof CalendarClock; href: string; hint?: string; tone?: "default" | "warn"; children: React.ReactNode }) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <Link to={href} className="flex items-center gap-2 text-sm font-medium hover:underline">
-          <Icon className="h-4 w-4 text-muted-foreground" /> {title}
-        </Link>
-        {hint && (
-          <span className={`text-xs ${tone === "warn" ? "text-accent" : "text-muted-foreground"}`}>{hint}</span>
-        )}
-      </header>
-      {children}
-    </section>
-  );
-}
-
-function ScoreChip({ label, value, tone = "default" }: { label: string; value: number | string; tone?: "default" | "warn" | "good" }) {
-  const cls = tone === "good" ? "text-success" : tone === "warn" ? "text-accent" : "text-foreground";
-  return (
-    <div className="rounded-2xl border border-border bg-card px-4 py-3">
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className={`mt-0.5 font-display text-2xl ${cls}`}>{value}</div>
-    </div>
-  );
-}
-
-function IndicatorCard({ icon: Icon, label, value, hint, tone = "default" }: { icon: typeof Activity; label: string; value: number | string; hint?: string; tone?: "default" | "warn" | "good" }) {
-  const cls = tone === "good" ? "text-success" : tone === "warn" ? "text-accent" : "text-foreground";
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
-        {label} <Icon className="h-3.5 w-3.5" />
-      </div>
-      <div className={`mt-2 font-display text-2xl ${cls}`}>{value}</div>
-      {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
-    </div>
-  );
-}
-
-function MiniStat({ label, value, tone = "default" }: { label: string; value: number; tone?: "default" | "warn" | "good" }) {
-  const cls = tone === "good" ? "text-success" : tone === "warn" ? "text-accent" : "text-foreground";
-  return (
-    <div className="rounded-lg bg-secondary/40 py-2">
-      <div className={`font-display text-lg ${cls}`}>{value}</div>
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
 function Avatar({ name, severity }: { name: string; severity: "high" | "medium" | "low" }) {
   const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-  const cls =
-    severity === "high" ? "bg-attention/15 text-accent" :
-    severity === "medium" ? "bg-secondary text-foreground" :
-    "bg-muted text-muted-foreground";
-  return <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${cls}`}>{initials || "•"}</span>;
+  const ring =
+    severity === "high" ? "ring-2 ring-accent" :
+    severity === "medium" ? "ring-2 ring-attention/50" :
+    "";
+  return (
+    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-secondary to-muted text-sm font-semibold text-foreground ${ring}`}>
+      {initials || "•"}
+    </span>
+  );
 }
 
 function DecisionBadge({ status }: { status: string }) {
@@ -506,8 +526,21 @@ function formatDate(iso: string | Date) {
     (d.getHours() || d.getMinutes() ? " · " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "");
 }
 
-function healthTone(score?: number): "default" | "warn" | "good" {
-  if (score == null) return "default";
-  if (score >= 70) return "good";
-  return "warn";
+function formatTime(iso: string | Date) {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function daysFrom(iso: string | Date) {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return Math.max(0, Math.round((Date.now() - d.getTime()) / 86_400_000));
+}
+
+function relDay(iso: string | Date) {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  const diff = Math.round((d.getTime() - Date.now()) / 86_400_000);
+  if (diff <= 0) return "Hoje";
+  if (diff === 1) return "Amanhã";
+  if (diff < 7) return `${diff}d`;
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
