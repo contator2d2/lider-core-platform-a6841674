@@ -17,12 +17,33 @@ export const Route = createFileRoute("/_authenticated/app/organization/rituals")
 });
 
 const TYPES = [
-  { v: "daily", l: "Daily" }, { v: "weekly", l: "Weekly" }, { v: "one_on_one", l: "1:1" },
+  { v: "daily", l: "Diária" }, { v: "weekly", l: "Semanal" }, { v: "one_on_one", l: "1:1" },
   { v: "feedback", l: "Feedback" }, { v: "action_plan", l: "Plano de ação" },
   { v: "indicators", l: "Indicadores" }, { v: "strategic", l: "Estratégico" },
-  { v: "day_one", l: "Day One" }, { v: "checkpoint", l: "Checkpoint" },
-  { v: "retro", l: "Retrospectiva" }, { v: "custom", l: "Customizado" },
+  { v: "day_one", l: "Primeiro dia" }, { v: "checkpoint", l: "Ponto de controle" },
+  { v: "retro", l: "Retrospectiva" }, { v: "custom", l: "Personalizado" },
 ] as const;
+
+const TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  [
+    ["daily", "Diária"], ["weekly", "Semanal"], ["one_on_one", "1:1"],
+    ["feedback", "Feedback"], ["action_plan", "Plano de ação"],
+    ["indicators", "Indicadores"], ["strategic", "Estratégico"],
+    ["day_one", "Primeiro dia"], ["checkpoint", "Ponto de controle"],
+    ["retro", "Retrospectiva"], ["custom", "Personalizado"],
+  ],
+);
+
+function labelType(t: string) { return TYPE_LABELS[t] ?? t; }
+
+function labelCadence(c: string | null) {
+  if (!c) return "sem cadência";
+  const map: Record<string, string> = {
+    daily: "diária", weekly: "semanal", biweekly: "quinzenal",
+    monthly: "mensal", quarterly: "trimestral", yearly: "anual",
+  };
+  return map[c.toLowerCase()] ?? c;
+}
 
 type Ritual = {
   id: string; name: string; type: string; objective: string | null;
@@ -65,13 +86,13 @@ function RitualsPage() {
         {list.data?.map((r) => (
           <button key={r.id} onClick={() => setDetailId(r.id)} className="rounded-2xl border border-border bg-card p-5 text-left transition-shadow hover:shadow-md">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-              <Workflow className="h-3.5 w-3.5" /> {r.type}
+              <Workflow className="h-3.5 w-3.5" /> {labelType(r.type)}
             </div>
             <div className="mt-2 font-display text-xl">{r.name}</div>
             <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.objective ?? "Sem objetivo definido."}</div>
             <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {r.durationMin} min</span>
-              <span>{r.cadence ?? "sem cadência"}</span>
+              <span>{labelCadence(r.cadence)}</span>
               <span>·</span>
               <span>{r._count.occurrences} ocorrências</span>
             </div>
@@ -143,7 +164,7 @@ function RitualDetail({ id, orgId }: { id: string; orgId: string }) {
       <SheetHeader><SheetTitle>{r.name}</SheetTitle></SheetHeader>
       <div className="mt-4 space-y-4 text-sm">
         <div><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Objetivo</div><div className="mt-1">{r.objective ?? "—"}</div></div>
-        <div><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Cadência</div><div className="mt-1">{r.cadence ?? "—"} · {r.durationMin} min</div></div>
+        <div><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Cadência</div><div className="mt-1">{labelCadence(r.cadence)} · {r.durationMin} min</div></div>
         {r.agendaTemplate && (
           <div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Pauta</div>
