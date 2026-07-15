@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LeadershipDrawer, type DrawerTarget } from "@/components/leadership/LeadershipDrawer";
 import {
-  ArrowRight,
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
