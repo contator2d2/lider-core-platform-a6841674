@@ -14,6 +14,7 @@ import {
   Users,
   BookOpen,
   Building,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -33,6 +34,7 @@ const nav = [
   { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução" },
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução" },
   { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução" },
+  { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
 ] as const;
 
 function AppShell() {
