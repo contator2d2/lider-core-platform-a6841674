@@ -2,7 +2,6 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import {
-  Bell,
   Brain,
   Compass,
   Gauge,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export const Route = createFileRoute("/_authenticated/app")({
   component: AppShell,
@@ -112,9 +112,7 @@ function AppShell() {
             {formatToday()}
           </div>
           <div className="flex items-center gap-3">
-            <button className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground">
-              <Bell className="h-4 w-4" />
-            </button>
+            <NotificationBell />
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-secondary text-sm font-medium">
               <Logo variant="mark" className="h-8 w-8 rounded-full" />
             </div>

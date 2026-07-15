@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { ArrowLeftRight, LogOut, type LucideIcon } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export type TenantNavItem = { to: string; label: string; icon: LucideIcon };
 
@@ -83,9 +84,12 @@ export function TenantShell({
         <main className="flex-1 overflow-x-hidden">
           <header className="flex items-center justify-between border-b border-border bg-background/80 px-6 py-3 backdrop-blur md:hidden">
             <Logo className="h-6 w-auto max-w-[120px]" />
-            <button onClick={signOutAll} className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
-              <LogOut className="h-3.5 w-3.5" /> Sair
-            </button>
+            <div className="flex items-center gap-2">
+              <NotificationBell variant="tenant" />
+              <button onClick={signOutAll} className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
+                <LogOut className="h-3.5 w-3.5" /> Sair
+              </button>
+            </div>
           </header>
           <div className="mx-auto max-w-6xl px-6 py-8 md:px-10 md:py-10">
             <Outlet />
