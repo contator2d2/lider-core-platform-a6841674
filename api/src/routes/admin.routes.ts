@@ -547,6 +547,14 @@ const compSchema = z.object({
   weight: z.number().int().min(1).default(1),
   orderIndex: z.number().int().min(0).default(0),
   active: z.boolean().default(true),
+  purpose: z.string().optional().nullable(),
+  behaviors: z.array(z.string()).optional().default([]),
+  practices: z.array(z.string()).optional().default([]),
+  guidingQuestions: z.array(z.string()).optional().default([]),
+  rituals: z.array(z.string()).optional().default([]),
+  indicators: z.array(z.string()).optional().default([]),
+  aiPrompt: z.string().optional().nullable(),
+  color: z.string().optional().nullable(),
 });
 
 adminRouter.post("/methodology", async (req, res) => {
@@ -569,6 +577,36 @@ adminRouter.patch("/methodology/:id", async (req, res) => {
 adminRouter.delete("/methodology/:id", async (req, res) => {
   await prisma.methodologyCompetency.delete({ where: { id: req.params.id } }).catch(() => null);
   res.status(204).end();
+});
+
+// -------- Methodology Doc (manifesto, mission, principles, AI prompt) --------
+const docSchema = z.object({
+  mission: z.string().optional().nullable(),
+  vision: z.string().optional().nullable(),
+  manifesto: z.string().optional().nullable(),
+  principles: z.array(z.string()).optional().default([]),
+  leaderProfile: z.string().optional().nullable(),
+  aiSystemPrompt: z.string().optional().nullable(),
+  pillars: z.any().optional().nullable(),
+});
+
+adminRouter.get("/methodology-doc", async (_req, res) => {
+  const doc = await prisma.methodologyDoc.findUnique({ where: { id: "singleton" } });
+  res.json(doc ?? {
+    id: "singleton", mission: null, vision: null, manifesto: null,
+    principles: [], leaderProfile: null, aiSystemPrompt: null, pillars: null,
+  });
+});
+
+adminRouter.put("/methodology-doc", async (req, res) => {
+  const parsed = docSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const doc = await prisma.methodologyDoc.upsert({
+    where: { id: "singleton" },
+    update: parsed.data as never,
+    create: { id: "singleton", ...(parsed.data as never) },
+  });
+  res.json(doc);
 });
 
 // ============================================================
