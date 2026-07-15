@@ -508,6 +508,7 @@ model AISettings {
   provider          AIProvider
   model             String
   apiKeySecretRef   String?    @map("api_key_secret_ref")
+  apiKey            String?    @map("api_key")
   monthlyTokenLimit Int?       @map("monthly_token_limit")
   temperature       Float      @default(0.7)
   createdAt         DateTime   @default(now()) @map("created_at")

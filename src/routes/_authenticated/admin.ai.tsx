@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CheckCircle2, Loader2, XCircle, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai")({
   component: AIPage,
@@ -19,6 +20,7 @@ type AISettings = {
   provider: "openai" | "gemini";
   model: string;
   apiKeySecretRef: string | null;
+  apiKey: string | null;
   monthlyTokenLimit: number | null;
   temperature: number;
 };
@@ -35,6 +37,8 @@ function AIPage() {
   const [provider, setProvider] = useState<AISettings["provider"]>("openai");
   const [model, setModel] = useState("gpt-4o-mini");
   const [apiKeySecretRef, setApiKeySecretRef] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
   const [monthlyTokenLimit, setMonthlyTokenLimit] = useState(1000000);
   const [temperature, setTemperature] = useState(0.7);
 
@@ -58,13 +62,28 @@ function AIPage() {
           provider,
           model,
           apiKeySecretRef: apiKeySecretRef || null,
+          apiKey: apiKey || null,
           monthlyTokenLimit,
           temperature,
         },
       }),
     onSuccess: () => {
       toast.success("Configuração de IA salva.");
+      setApiKey("");
       qc.invalidateQueries({ queryKey: ["admin", "ai-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const test = useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean; latencyMs?: number; sample?: string; error?: string }>(
+        "/admin/ai-settings/test",
+        { method: "POST" },
+      ),
+    onSuccess: (d) => {
+      if (d.ok) toast.success(`IA respondeu em ${d.latencyMs}ms: ${d.sample ?? ""}`);
+      else toast.error(d.error ?? "Falha no teste");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -73,6 +92,8 @@ function AIPage() {
     openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
     gemini: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"],
   };
+
+  const hasStoredKey = !!global?.apiKey; // vem como "••••••••" do backend quando existe
 
   return (
     <>
@@ -107,20 +128,62 @@ function AIPage() {
               ))}
             </datalist>
           </div>
+
           <div className="space-y-1.5">
-              <Label>
-                Nome da variável de ambiente com a API Key
-                <span className="text-muted-foreground"> (ex.: OPENAI_API_KEY)</span>
-              </Label>
+            <Label className="flex items-center gap-2">
+              API Key
+              {hasStoredKey && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-medium text-success">
+                  <CheckCircle2 className="h-3 w-3" /> chave salva
+                </span>
+              )}
+            </Label>
+            <div className="relative">
+              <Input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={
+                  hasStoredKey
+                    ? "Deixe em branco para manter a chave atual"
+                    : provider === "openai"
+                      ? "sk-proj-..."
+                      : "AIza..."
+                }
+                className="pr-10"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showKey ? "Ocultar" : "Mostrar"}
+              >
+                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A chave fica armazenada no seu backend e nunca é enviada de volta ao navegador em texto claro.
+            </p>
+          </div>
+
+          <details className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs">
+            <summary className="cursor-pointer font-medium text-muted-foreground">
+              Avançado · usar variável de ambiente
+            </summary>
+            <div className="mt-2 space-y-1.5">
+              <Label className="text-xs">Nome da variável no backend</Label>
               <Input
                 value={apiKeySecretRef}
                 onChange={(e) => setApiKeySecretRef(e.target.value)}
                 placeholder="OPENAI_API_KEY"
               />
-              <p className="text-xs text-muted-foreground">
-                A chave em si vive nas variáveis de ambiente do backend. Aqui você só referencia qual variável usar.
+              <p className="text-[11px] text-muted-foreground">
+                Se preenchido e nenhuma chave direta estiver salva, o backend lerá <code>process.env[nome]</code>.
               </p>
-          </div>
+            </div>
+          </details>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Limite mensal de tokens</Label>
@@ -142,10 +205,46 @@ function AIPage() {
               />
             </div>
           </div>
-          <div className="pt-2">
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
-              {save.isPending ? "Salvando..." : "Salvar configuração global"}
+              {save.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…
+                </>
+              ) : (
+                "Salvar configuração global"
+              )}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => test.mutate()}
+              disabled={test.isPending || (!hasStoredKey && !apiKey && !apiKeySecretRef)}
+            >
+              {test.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Testando…
+                </>
+              ) : (
+                <>Testar conexão</>
+              )}
+            </Button>
+            {test.data && (
+              <span
+                className={
+                  "inline-flex items-center gap-1 text-xs " +
+                  (test.data.ok ? "text-success" : "text-destructive")
+                }
+              >
+                {test.data.ok ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5" />
+                )}
+                {test.data.ok
+                  ? `OK · ${test.data.latencyMs}ms`
+                  : test.data.error ?? "Falha"}
+              </span>
+            )}
           </div>
         </div>
       </div>

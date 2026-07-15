@@ -36,13 +36,16 @@ export async function loadAIConfig(): Promise<ResolvedAIConfig> {
     throw new Error(`Provedor de IA inválido: ${provider}`);
   }
 
+  // Prioridade: 1) chave salva no banco (Admin → Provedor de IA)
+  //             2) variável de ambiente (apiKeySecretRef) — fallback avançado
+  const stored = s.apiKey?.trim();
   const envName =
     s.apiKeySecretRef?.trim() ||
     (provider === "openai" ? "OPENAI_API_KEY" : "GEMINI_API_KEY");
-  const apiKey = process.env[envName];
+  const apiKey = stored || process.env[envName];
   if (!apiKey) {
     throw new Error(
-      `Chave de API ausente: defina a variável de ambiente ${envName} no backend.`,
+      `Chave de API ausente. Configure em Admin → Provedor de IA (ou defina a variável ${envName} no backend).`,
     );
   }
 
