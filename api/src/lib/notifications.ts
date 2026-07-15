@@ -321,3 +321,31 @@ export async function sendNotification(input: SendNotificationInput): Promise<{ 
 
   return { id: log.id, ok: status === "sent" };
 }
+
+// ============================================================
+// Helper de conveniência para gravar uma notificação in_app na
+// caixa de entrada de um usuário. Não passa pelo roteador de
+// providers — grava direto no NotificationLog com channel=in_app.
+// ============================================================
+export async function notifyInApp(input: {
+  userId: string;
+  title: string;
+  body: string;
+  linkUrl?: string | null;
+  organizationId?: string | null;
+}): Promise<{ id: string }> {
+  const log = await prisma.notificationLog.create({
+    data: {
+      channel: "in_app",
+      direction: "outbound",
+      status: "delivered",
+      to: input.userId,
+      userId: input.userId,
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl ?? null,
+      organizationId: input.organizationId ?? null,
+    },
+  });
+  return { id: log.id };
+}
