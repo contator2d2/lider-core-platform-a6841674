@@ -119,8 +119,6 @@ function TeamPage() {
     queryFn: () => api<TeamMember[]>(`/organization/${orgId}/team`),
   });
 
-  if (!orgId) return null;
-
   const enriched = useMemo(
     () => members.map((m) => {
       const score = scoreFor(m);
@@ -134,6 +132,8 @@ function TeamPage() {
     enriched.forEach((e) => (c[e.status] += 1));
     return c;
   }, [enriched]);
+
+  if (!orgId) return null;
 
   const areas = new Set(members.map((m) => m.areaName).filter(Boolean));
   const avgHealth = enriched.length
