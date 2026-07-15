@@ -427,11 +427,6 @@ adminRouter.patch("/subscriptions/:id", async (req, res) => {
 // ============================================================
 // AI Settings
 // ============================================================
-adminRouter.get("/ai-settings", async (_req, res) => {
-  const settings = await prisma.aISettings.findMany({ orderBy: { createdAt: "desc" } });
-  res.json(settings);
-});
-
 const aiSchema = z.object({
   scope: z.enum(["global", "franchise", "organization"]),
   scopeId: z.string().uuid().optional().nullable(),
