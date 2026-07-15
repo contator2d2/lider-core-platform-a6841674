@@ -32,6 +32,7 @@ import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAppOrganizationRouteImport } from './routes/_authenticated/app.organization'
 import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
 import { Route as AuthenticatedAppIndicatorsRouteImport } from './routes/_authenticated/app.indicators'
+import { Route as AuthenticatedAppHelpRouteImport } from './routes/_authenticated/app.help'
 import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authenticated/app.feedbacks'
 import { Route as AuthenticatedAppEvolutionRouteImport } from './routes/_authenticated/app.evolution'
 import { Route as AuthenticatedAppConscienciaRouteImport } from './routes/_authenticated/app.consciencia'
@@ -50,6 +51,7 @@ import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminLicensesRouteImport } from './routes/_authenticated/admin.licenses'
 import { Route as AuthenticatedAdminInvoicesRouteImport } from './routes/_authenticated/admin.invoices'
 import { Route as AuthenticatedAdminHierarchyRouteImport } from './routes/_authenticated/admin.hierarchy'
+import { Route as AuthenticatedAdminHelpRouteImport } from './routes/_authenticated/admin.help'
 import { Route as AuthenticatedAdminFranchisesRouteImport } from './routes/_authenticated/admin.franchises'
 import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
 import { Route as AuthenticatedAdminBrandingRouteImport } from './routes/_authenticated/admin.branding'
@@ -192,6 +194,11 @@ const AuthenticatedAppIndicatorsRoute =
     path: '/indicators',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppHelpRoute = AuthenticatedAppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppFeedbacksRoute =
   AuthenticatedAppFeedbacksRouteImport.update({
     id: '/feedbacks',
@@ -296,6 +303,11 @@ const AuthenticatedAdminHierarchyRoute =
     path: '/hierarchy',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminHelpRoute = AuthenticatedAdminHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminFranchisesRoute =
   AuthenticatedAdminFranchisesRouteImport.update({
     id: '/franchises',
@@ -397,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
+  '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
@@ -415,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -450,6 +464,7 @@ export interface FileRoutesByTo {
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
+  '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
@@ -468,6 +483,7 @@ export interface FileRoutesByTo {
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
@@ -508,6 +524,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
   '/_authenticated/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
+  '/_authenticated/admin/help': typeof AuthenticatedAdminHelpRoute
   '/_authenticated/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/_authenticated/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
@@ -526,6 +543,7 @@ export interface FileRoutesById {
   '/_authenticated/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/_authenticated/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/_authenticated/app/help': typeof AuthenticatedAppHelpRoute
   '/_authenticated/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -567,6 +585,7 @@ export interface FileRouteTypes {
     | '/admin/branding'
     | '/admin/data'
     | '/admin/franchises'
+    | '/admin/help'
     | '/admin/hierarchy'
     | '/admin/invoices'
     | '/admin/licenses'
@@ -585,6 +604,7 @@ export interface FileRouteTypes {
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
+    | '/app/help'
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/organization'
@@ -620,6 +640,7 @@ export interface FileRouteTypes {
     | '/admin/branding'
     | '/admin/data'
     | '/admin/franchises'
+    | '/admin/help'
     | '/admin/hierarchy'
     | '/admin/invoices'
     | '/admin/licenses'
@@ -638,6 +659,7 @@ export interface FileRouteTypes {
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
+    | '/app/help'
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/pdis'
@@ -677,6 +699,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/branding'
     | '/_authenticated/admin/data'
     | '/_authenticated/admin/franchises'
+    | '/_authenticated/admin/help'
     | '/_authenticated/admin/hierarchy'
     | '/_authenticated/admin/invoices'
     | '/_authenticated/admin/licenses'
@@ -695,6 +718,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/consciencia'
     | '/_authenticated/app/evolution'
     | '/_authenticated/app/feedbacks'
+    | '/_authenticated/app/help'
     | '/_authenticated/app/indicators'
     | '/_authenticated/app/one-on-ones'
     | '/_authenticated/app/organization'
@@ -891,6 +915,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndicatorsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/help': {
+      id: '/_authenticated/app/help'
+      path: '/help'
+      fullPath: '/app/help'
+      preLoaderRoute: typeof AuthenticatedAppHelpRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/feedbacks': {
       id: '/_authenticated/app/feedbacks'
       path: '/feedbacks'
@@ -1017,6 +1048,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminHierarchyRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/help': {
+      id: '/_authenticated/admin/help'
+      path: '/help'
+      fullPath: '/admin/help'
+      preLoaderRoute: typeof AuthenticatedAdminHelpRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/franchises': {
       id: '/_authenticated/admin/franchises'
       path: '/franchises'
@@ -1132,6 +1170,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBrandingRoute: typeof AuthenticatedAdminBrandingRoute
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
   AuthenticatedAdminFranchisesRoute: typeof AuthenticatedAdminFranchisesRoute
+  AuthenticatedAdminHelpRoute: typeof AuthenticatedAdminHelpRoute
   AuthenticatedAdminHierarchyRoute: typeof AuthenticatedAdminHierarchyRoute
   AuthenticatedAdminInvoicesRoute: typeof AuthenticatedAdminInvoicesRoute
   AuthenticatedAdminLicensesRoute: typeof AuthenticatedAdminLicensesRoute
@@ -1156,6 +1195,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBrandingRoute: AuthenticatedAdminBrandingRoute,
   AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
   AuthenticatedAdminFranchisesRoute: AuthenticatedAdminFranchisesRoute,
+  AuthenticatedAdminHelpRoute: AuthenticatedAdminHelpRoute,
   AuthenticatedAdminHierarchyRoute: AuthenticatedAdminHierarchyRoute,
   AuthenticatedAdminInvoicesRoute: AuthenticatedAdminInvoicesRoute,
   AuthenticatedAdminLicensesRoute: AuthenticatedAdminLicensesRoute,
@@ -1219,6 +1259,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRoute
   AuthenticatedAppEvolutionRoute: typeof AuthenticatedAppEvolutionRoute
   AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
+  AuthenticatedAppHelpRoute: typeof AuthenticatedAppHelpRoute
   AuthenticatedAppIndicatorsRoute: typeof AuthenticatedAppIndicatorsRoute
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -1232,6 +1273,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppConscienciaRoute: AuthenticatedAppConscienciaRoute,
   AuthenticatedAppEvolutionRoute: AuthenticatedAppEvolutionRoute,
   AuthenticatedAppFeedbacksRoute: AuthenticatedAppFeedbacksRoute,
+  AuthenticatedAppHelpRoute: AuthenticatedAppHelpRoute,
   AuthenticatedAppIndicatorsRoute: AuthenticatedAppIndicatorsRoute,
   AuthenticatedAppOneOnOnesRoute: AuthenticatedAppOneOnOnesRoute,
   AuthenticatedAppOrganizationRoute:

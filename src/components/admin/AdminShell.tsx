@@ -28,6 +28,7 @@ import {
   Settings2,
   Bell,
   Database,
+  HelpCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -77,6 +78,7 @@ const navSections: NavSection[] = [
       { to: "/admin/data", label: "Dados (Import/Export)", icon: Database },
       { to: "/admin/settings", label: "Configurações", icon: Settings2 },
       { to: "/admin/logs", label: "Logs de auditoria", icon: FileText },
+      { to: "/admin/help", label: "Documentação", icon: HelpCircle },
     ],
   },
 ];
