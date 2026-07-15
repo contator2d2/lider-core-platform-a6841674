@@ -544,9 +544,3 @@ function relDay(iso: string | Date) {
   if (diff < 7) return `${diff}d`;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
-
-function healthTone(score?: number): "default" | "warn" | "good" {
-  if (score == null) return "default";
-  if (score >= 70) return "good";
-  return "warn";
-}
