@@ -56,8 +56,8 @@
   --color-attention-foreground: var(--attention-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
-  --font-display: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -162,9 +162,9 @@
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.035em;
-    line-height: 1.02;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
   }
 }
 
