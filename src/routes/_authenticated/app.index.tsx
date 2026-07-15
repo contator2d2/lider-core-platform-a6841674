@@ -60,6 +60,13 @@ function LeadershipRoom() {
   const navigate = useNavigate();
   const { orgId, current } = useCurrentOrg();
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    return (window.localStorage.getItem("app-home-theme") as "light" | "dark") || "light";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem("app-home-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (user?.roles?.includes("super_admin")) {
@@ -92,61 +99,190 @@ function LeadershipRoom() {
   const openDeleg = (d: DelegSummary) => setDrawer({ kind: "delegation", orgId, delegation: d });
   const openDecision = (d: DecisionSummary) => setDrawer({ kind: "decision", orgId, decision: d });
 
+  const priorities = buildPriorities(data);
+  const nextMeeting = (data?.upcomingOccurrences ?? [])[0];
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8 pb-24 md:max-w-6xl md:pb-0">
-      {/* Saudação — editorial serif */}
-      <header className="px-1 pt-2">
-        <h1 className="font-display text-[38px] leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-          <span className="italic font-normal text-foreground/85">{greet()},</span>
-          <br />
-          <span className="font-medium">{firstName}</span>
-        </h1>
-        <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {formatToday()}
-          {current && (
-            <>
-              <span className="mx-2 text-border">•</span>
-              <span className="text-foreground/60">{current.name}</span>
-            </>
-          )}
-        </p>
-      </header>
+    <div className={theme === "dark" ? "dark" : ""}>
+      <div className="-mx-4 -my-5 min-h-[calc(100vh-4rem)] bg-background text-foreground md:-mx-10 md:-my-12">
+        {/* Header escuro estilo mobile-first */}
+        <header className="relative bg-[#141311] px-5 pb-10 pt-6 text-white md:rounded-b-[32px] md:px-8 md:pt-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10 text-base font-semibold ring-2 ring-white/10">
+                {initialsOf(user?.fullName)}
+              </span>
+              <div className="min-w-0">
+                <h1 className="font-display text-xl leading-tight sm:text-2xl">
+                  {greet()}, {firstName} <span aria-hidden>👋</span>
+                </h1>
+                <p className="mt-0.5 text-xs text-white/55">{formatToday()}{current ? ` · ${current.name}` : ""}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+                aria-label="Alternar tema"
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/15"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                className="relative grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/15"
+                aria-label="Notificações"
+              >
+                <Bell className="h-4 w-4" />
+                {(data?.attention?.length ?? 0) > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">
+                    {Math.min(9, data!.attention.length)}
+                  </span>
+                )}
+              </button>
+              <Link
+                to="/app/ai"
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/15"
+                aria-label="Conversar com IA"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </header>
 
-      {/* Hero: CORE Score com gauge */}
-      <CoreScoreHero
-        score={health.data?.score}
-        loading={health.isLoading}
-        adherence={data?.rituals.adherence}
-      />
+        <div className="relative -mt-6 space-y-5 px-4 pb-28 md:px-8 md:pb-12">
+          {/* Suas prioridades de hoje */}
+          <section className="rounded-[24px] border border-border bg-card p-4 shadow-[0_12px_40px_-24px_rgba(0,0,0,0.25)]">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Suas prioridades de hoje</h2>
+              <Link to="/app/team" className="text-xs font-semibold text-accent hover:underline">Ver todas</Link>
+            </div>
+            {loading ? (
+              <div className="flex gap-3 overflow-hidden">
+                {[0, 1, 2].map((i) => <Skeleton key={i} className="h-40 w-[60%] shrink-0" />)}
+              </div>
+            ) : priorities.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
+                Nada urgente por aqui. Bom trabalho.
+              </div>
+            ) : (
+              <>
+                <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {priorities.map((p, i) => (
+                    <PriorityCard key={p.id} priority={p} index={i + 1} onOpen={() => p.onOpen?.(openPerson)} />
+                  ))}
+                </div>
+                <div className="mt-3 flex justify-center gap-1.5">
+                  {priorities.map((_, i) => (
+                    <span key={i} className={`h-1.5 rounded-full transition-all ${i === 0 ? "w-4 bg-foreground/70" : "w-1.5 bg-foreground/20"}`} />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
 
-      {/* Pessoas que precisam da sua atenção */}
-      <AttentionSection people={data?.attention ?? []} loading={loading} onOpen={openPerson} />
+          {/* CORE Score + Próxima reunião */}
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-[1.15fr_1fr]">
+            <CoreScoreCard score={health.data?.score} loading={health.isLoading} />
+            <NextMeetingCard occurrence={nextMeeting} loading={loading} />
+          </section>
 
-      {/* Agenda + Rituais (grid 2 cols no mobile) */}
-      <div className="grid grid-cols-2 gap-3">
-        <AgendaCard occurrences={data?.upcomingOccurrences ?? []} loading={loading} />
-        <RitualsCard rituals={data?.rituals} loading={loading} />
+          {/* Ações rápidas */}
+          <section className="rounded-[24px] border border-border bg-card p-4">
+            <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Ações rápidas</h2>
+            <div className="grid grid-cols-5 gap-2">
+              <QuickAction to="/app/feedbacks" label="Novo Feedback" icon={MessageSquare} tint="accent" />
+              <QuickAction to="/app/organization/delegations" label="Nova Delegação" icon={ClipboardCheck} tint="sky" />
+              <QuickAction to="/app/organization/agenda" label="Nova Reunião" icon={CalendarIcon} tint="violet" />
+              <QuickAction to="/app/organization/decisions" label="Nova Decisão" icon={FileText} tint="emerald" />
+              <QuickAction to="/app/one-on-ones" label="Nova 1:1" icon={UsersIcon} tint="rose" />
+            </div>
+          </section>
+
+          {/* Radar da equipe */}
+          <section className="rounded-[24px] border border-border bg-card">
+            <header className="flex items-center justify-between px-4 pt-4">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Radar da equipe</h2>
+              <Link to="/app/team" className="text-xs font-semibold text-accent hover:underline">Ver todos</Link>
+            </header>
+            {loading ? (
+              <SkeletonRows n={4} compact />
+            ) : (data?.attention.length ?? 0) === 0 ? (
+              <EmptyRow icon={CheckCircle2} title="Ninguém em risco" hint="Sua equipe está no verde." compact />
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {data!.attention.slice(0, 4).map((p) => (
+                  <li key={p.membershipId}>
+                    <button
+                      type="button"
+                      onClick={() => openPerson(p)}
+                      className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 px-4 py-3 text-left transition hover:bg-secondary/40"
+                    >
+                      <Avatar name={p.name} severity={p.signals[0]?.severity ?? "low"} />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{p.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{p.signals[0]?.reason ?? "—"}</div>
+                      </div>
+                      <RadarBadge severity={p.signals[0]?.severity ?? "low"} label={radarLabel(p.signals[0])} />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Agenda de hoje */}
+          <section className="rounded-[24px] border border-border bg-card">
+            <header className="flex items-center justify-between px-4 pt-4">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Agenda de hoje</h2>
+              <Link to="/app/organization/agenda" className="text-xs font-semibold text-accent hover:underline">Ver agenda</Link>
+            </header>
+            {loading ? (
+              <SkeletonRows n={3} compact />
+            ) : (data?.upcomingOccurrences.length ?? 0) === 0 ? (
+              <EmptyRow icon={CalendarClock} title="Sem compromissos hoje" compact />
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {data!.upcomingOccurrences.slice(0, 3).map((o, i) => (
+                  <li key={o.id} className="grid grid-cols-[56px_auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+                    <div className="text-sm font-semibold tabular-nums text-muted-foreground">
+                      {formatTime(o.scheduledAt)}
+                    </div>
+                    <span className={`grid h-9 w-9 place-items-center rounded-full ${agendaTint(i).bg} ${agendaTint(i).fg}`}>
+                      {agendaIcon(o.ritual.type)}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold">{o.ritual.name}</div>
+                      <div className="truncate text-xs text-muted-foreground uppercase tracking-widest">{o.ritual.type}</div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground/70">
+                      {relTime(o.scheduledAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Delegações e decisões (mantidas para consistência de dados) */}
+          <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
+          <AiCoachCard />
+          <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
+        </div>
+
+        {/* FAB central laranja (encaixa com bottom nav) */}
+        <Link
+          to="/app/organization/delegations"
+          aria-label="Nova ação"
+          className="fixed bottom-14 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-accent text-white shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition active:scale-95 md:hidden"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </Link>
+
+        <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
       </div>
-
-      {/* Delegações */}
-      <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
-
-      {/* IA Coach */}
-      <AiCoachCard />
-
-      {/* Decisões recentes (colapsado, extra info) */}
-      <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
-
-      {/* FAB de nova ação */}
-      <Link
-        to="/app/organization/delegations"
-        aria-label="Nova delegação"
-        className="fixed bottom-24 right-5 z-40 grid h-14 w-14 place-items-center rounded-2xl bg-accent text-accent-foreground shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_55%,transparent)] transition-transform active:scale-95 md:bottom-8"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </Link>
-
-      <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
     </div>
   );
 }
