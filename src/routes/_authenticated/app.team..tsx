@@ -35,7 +35,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/app/team/$membershipId")({
+export const Route = createFileRoute("/_authenticated/app/team/")({
   component: MemberDetail,
 });
 
