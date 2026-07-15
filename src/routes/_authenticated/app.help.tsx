@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { FadeIn } from "@/components/motion";
 import { SectionHeader } from "@/components/ui/metric-card";
+import { InstallButton } from "@/components/pwa/InstallButton";
 
 export const Route = createFileRoute("/_authenticated/app/help")({
   component: AppHelpPage,
