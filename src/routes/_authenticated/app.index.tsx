@@ -15,6 +15,18 @@ import {
   Plus,
   ArrowUpRight,
   Shield,
+  Bell,
+  MessageCircle,
+  ChevronRight,
+  Sun,
+  Moon,
+  User as UserIcon,
+  Calendar as CalendarIcon,
+  MessageSquare,
+  ClipboardCheck,
+  FileText,
+  Users as UsersIcon,
+  TrendingDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
