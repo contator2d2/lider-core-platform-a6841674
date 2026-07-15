@@ -59,6 +59,7 @@ import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAppsRouteImport } from './routes/_authenticated/admin.apps'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated/admin.ai'
 import { Route as AuthenticatedAppOrganizationIndexRouteImport } from './routes/_authenticated/app.organization.index'
+import { Route as AuthenticatedAppTeamMembershipIdRouteImport } from './routes/_authenticated/app.team.$membershipId'
 import { Route as AuthenticatedAppOrganizationRolesRouteImport } from './routes/_authenticated/app.organization.roles'
 import { Route as AuthenticatedAppOrganizationRitualsRouteImport } from './routes/_authenticated/app.organization.rituals'
 import { Route as AuthenticatedAppOrganizationMapRouteImport } from './routes/_authenticated/app.organization.map'
@@ -347,6 +348,12 @@ const AuthenticatedAppOrganizationIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAppOrganizationRoute,
   } as any)
+const AuthenticatedAppTeamMembershipIdRoute =
+  AuthenticatedAppTeamMembershipIdRouteImport.update({
+    id: '/$membershipId',
+    path: '/$membershipId',
+    getParentRoute: () => AuthenticatedAppTeamRoute,
+  } as any)
 const AuthenticatedAppOrganizationRolesRoute =
   AuthenticatedAppOrganizationRolesRouteImport.update({
     id: '/roles',
@@ -433,7 +440,7 @@ export interface FileRoutesByFullPath {
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/app/team': typeof AuthenticatedAppTeamRoute
+  '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -453,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
+  '/app/team/$membershipId': typeof AuthenticatedAppTeamMembershipIdRoute
   '/app/organization/': typeof AuthenticatedAppOrganizationIndexRoute
 }
 export interface FileRoutesByTo {
@@ -487,7 +495,7 @@ export interface FileRoutesByTo {
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/app/team': typeof AuthenticatedAppTeamRoute
+  '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -507,6 +515,7 @@ export interface FileRoutesByTo {
   '/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
+  '/app/team/$membershipId': typeof AuthenticatedAppTeamMembershipIdRoute
   '/app/organization': typeof AuthenticatedAppOrganizationIndexRoute
 }
 export interface FileRoutesById {
@@ -548,7 +557,7 @@ export interface FileRoutesById {
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
-  '/_authenticated/app/team': typeof AuthenticatedAppTeamRoute
+  '/_authenticated/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/_authenticated/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -568,6 +577,7 @@ export interface FileRoutesById {
   '/_authenticated/app/organization/map': typeof AuthenticatedAppOrganizationMapRoute
   '/_authenticated/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/_authenticated/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
+  '/_authenticated/app/team/$membershipId': typeof AuthenticatedAppTeamMembershipIdRoute
   '/_authenticated/app/organization/': typeof AuthenticatedAppOrganizationIndexRoute
 }
 export interface FileRouteTypes {
@@ -629,6 +639,7 @@ export interface FileRouteTypes {
     | '/app/organization/map'
     | '/app/organization/rituals'
     | '/app/organization/roles'
+    | '/app/team/$membershipId'
     | '/app/organization/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -683,6 +694,7 @@ export interface FileRouteTypes {
     | '/app/organization/map'
     | '/app/organization/rituals'
     | '/app/organization/roles'
+    | '/app/team/$membershipId'
     | '/app/organization'
   id:
     | '__root__'
@@ -743,6 +755,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/organization/map'
     | '/_authenticated/app/organization/rituals'
     | '/_authenticated/app/organization/roles'
+    | '/_authenticated/app/team/$membershipId'
     | '/_authenticated/app/organization/'
   fileRoutesById: FileRoutesById
 }
@@ -1104,6 +1117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationIndexRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationRoute
     }
+    '/_authenticated/app/team/$membershipId': {
+      id: '/_authenticated/app/team/$membershipId'
+      path: '/$membershipId'
+      fullPath: '/app/team/$membershipId'
+      preLoaderRoute: typeof AuthenticatedAppTeamMembershipIdRouteImport
+      parentRoute: typeof AuthenticatedAppTeamRoute
+    }
     '/_authenticated/app/organization/roles': {
       id: '/_authenticated/app/organization/roles'
       path: '/roles'
@@ -1254,6 +1274,17 @@ const AuthenticatedAppOrganizationRouteWithChildren =
     AuthenticatedAppOrganizationRouteChildren,
   )
 
+interface AuthenticatedAppTeamRouteChildren {
+  AuthenticatedAppTeamMembershipIdRoute: typeof AuthenticatedAppTeamMembershipIdRoute
+}
+
+const AuthenticatedAppTeamRouteChildren: AuthenticatedAppTeamRouteChildren = {
+  AuthenticatedAppTeamMembershipIdRoute: AuthenticatedAppTeamMembershipIdRoute,
+}
+
+const AuthenticatedAppTeamRouteWithChildren =
+  AuthenticatedAppTeamRoute._addFileChildren(AuthenticatedAppTeamRouteChildren)
+
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRoute
@@ -1264,7 +1295,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
   AuthenticatedAppPdisRoute: typeof AuthenticatedAppPdisRoute
-  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
+  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRouteWithChildren
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
@@ -1279,7 +1310,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppOrganizationRoute:
     AuthenticatedAppOrganizationRouteWithChildren,
   AuthenticatedAppPdisRoute: AuthenticatedAppPdisRoute,
-  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
+  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRouteWithChildren,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
 
