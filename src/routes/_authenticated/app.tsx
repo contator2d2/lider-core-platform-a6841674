@@ -3,14 +3,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import {
   Brain,
+  Calendar,
   Compass,
   Gauge,
   Home,
   LogOut,
   MessageSquare,
+  MoreHorizontal,
   Sparkles,
   Target,
   Users,
+  Zap,
   BookOpen,
   Building,
   HelpCircle,
@@ -36,6 +39,14 @@ const nav = [
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução" },
   { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução" },
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
+] as const;
+
+const mobileNav = [
+  { to: "/app", label: "Início", icon: Home, exact: true },
+  { to: "/app/organization/agenda", label: "Agenda", icon: Calendar },
+  { to: "/app/team", label: "Equipe", icon: Users },
+  { to: "/app/ai", label: "Ações", icon: Zap },
+  { to: "/app/help", label: "Mais", icon: MoreHorizontal },
 ] as const;
 
 function AppShell() {
@@ -108,21 +119,48 @@ function AppShell() {
       </aside>
 
       <div className="flex flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur md:px-10">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/85 px-5 py-3 backdrop-blur md:px-10 md:py-4">
+          <Logo className="h-6 w-auto max-w-[130px] md:hidden" />
+          <div className="hidden text-xs uppercase tracking-widest text-muted-foreground md:block">
             {formatToday()}
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-secondary text-sm font-medium">
+            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-secondary text-sm font-medium ring-2 ring-border">
               <Logo variant="mark" className="h-8 w-8 rounded-full" />
             </div>
           </div>
         </header>
-        <main className="flex-1 px-6 py-8 md:px-10 md:py-12">
+        <main className="flex-1 px-4 py-5 pb-28 md:px-10 md:py-12 md:pb-12">
           <Outlet />
         </main>
         <LeaderOnboarding />
+
+        {/* Bottom navigation (mobile) */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
+          <ul className="mx-auto grid max-w-3xl grid-cols-5">
+            {mobileNav.map(({ to, label, icon: Icon, exact }) => {
+              const active = exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+              return (
+                <li key={to}>
+                  <Link
+                    to={to}
+                    className={
+                      "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors " +
+                      (active ? "text-accent" : "text-muted-foreground")
+                    }
+                  >
+                    <span className={"grid h-9 w-9 place-items-center rounded-full transition-colors " + (active ? "bg-accent/10" : "")}>
+                      <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
+                    </span>
+                    {label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="h-[env(safe-area-inset-bottom)]" />
+        </nav>
       </div>
     </div>
   );
