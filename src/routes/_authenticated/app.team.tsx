@@ -1,8 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Pencil, Users } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  Filter,
+  Loader2,
+  Pencil,
+  Search,
+  Sparkles,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Users2,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -46,6 +60,7 @@ type TeamMember = {
   role: string;
   areaName: string | null;
   teamName: string | null;
+  avatarUrl?: string | null;
   profile: {
     roleTitle: string | null;
     expectedDeliverables: string[];
@@ -60,9 +75,43 @@ type TeamMember = {
   hasActivePdi: boolean;
 };
 
+type Status = "atencao" | "em_risco" | "no_ritmo" | "evoluindo" | "top";
+const STATUS_META: Record<Status, { label: string; className: string; icon: typeof CheckCircle2 }> = {
+  no_ritmo:  { label: "No ritmo",   className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", icon: CheckCircle2 },
+  evoluindo: { label: "Evoluindo",  className: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: TrendingUp },
+  atencao:   { label: "Atenção",    className: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", icon: AlertTriangle },
+  em_risco:  { label: "Em risco",   className: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300", icon: AlertTriangle },
+  top:       { label: "Top",        className: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Sparkles },
+};
+
+function scoreFor(m: TeamMember) {
+  // Derivamos um "CORE" heurístico a partir dos sinais disponíveis.
+  const auto = { n1_direciono: -8, n2_acompanho: 0, n3_valido: 4, n4_delego: 8, n5_autonomo: 12 }[m.profile?.autonomyLevel ?? "n2_acompanho"];
+  const raw = 70 + m.feedbackCount * 2 - m.openDelegations * 4 + (m.hasActivePdi ? 4 : 0) + auto;
+  return Math.max(35, Math.min(99, Math.round(raw)));
+}
+function statusFor(m: TeamMember, s = scoreFor(m)): Status {
+  if (s < 60) return "em_risco";
+  if (s < 72) return "atencao";
+  if (s >= 90) return "top";
+  if (m.hasActivePdi || m.feedbackCount >= 3) return "evoluindo";
+  return "no_ritmo";
+}
+function scoreColor(s: number) {
+  if (s < 60) return "text-rose-600 dark:text-rose-400";
+  if (s < 72) return "text-amber-600 dark:text-amber-400";
+  if (s >= 90) return "text-violet-600 dark:text-violet-400";
+  return "text-emerald-600 dark:text-emerald-400";
+}
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
 function TeamPage() {
   const { orgId } = useCurrentOrg();
   const [editing, setEditing] = useState<TeamMember | null>(null);
+  const [filter, setFilter] = useState<"todos" | Status>("todos");
+  const [q, setQ] = useState("");
 
   const { data: members = [], isLoading } = useQuery<TeamMember[]>({
     queryKey: ["team", orgId],
@@ -72,17 +121,134 @@ function TeamPage() {
 
   if (!orgId) return null;
 
+  const enriched = useMemo(
+    () => members.map((m) => {
+      const score = scoreFor(m);
+      return { m, score, status: statusFor(m, score) };
+    }),
+    [members],
+  );
+
+  const counts = useMemo(() => {
+    const c: Record<Status, number> = { atencao: 0, em_risco: 0, no_ritmo: 0, evoluindo: 0, top: 0 };
+    enriched.forEach((e) => (c[e.status] += 1));
+    return c;
+  }, [enriched]);
+
+  const areas = new Set(members.map((m) => m.areaName).filter(Boolean));
+  const avgHealth = enriched.length
+    ? Math.round(enriched.reduce((s, e) => s + e.score, 0) / enriched.length)
+    : 0;
+
+  const visible = enriched
+    .filter((e) => (filter === "todos" ? true : e.status === filter))
+    .filter((e) => (q ? (e.m.fullName + " " + (e.m.profile?.roleTitle ?? "")).toLowerCase().includes(q.toLowerCase()) : true));
+
+  const tabs: { key: "todos" | Status; label: string; count?: number; danger?: boolean }[] = [
+    { key: "todos",     label: "Todos" },
+    { key: "atencao",   label: "Atenção",       count: counts.atencao,   danger: true },
+    { key: "em_risco",  label: "Em risco",      count: counts.em_risco,  danger: true },
+    { key: "evoluindo", label: "Evoluindo" },
+    { key: "top",       label: "Top performers" },
+  ];
+
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <header>
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">
-          Tela 3 — Mapa da equipe
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Equipe</div>
+          <h1 className="mt-2 font-display text-4xl leading-tight">Minha equipe</h1>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            Acompanhe sua equipe, veja indicadores individuais e identifique quem precisa da sua atenção.
+          </p>
         </div>
-        <h1 className="mt-2 font-display text-4xl leading-tight">Minha equipe</h1>
-        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          Uma linha por pessoa: papel, entregas centrais, indicadores, autonomia, feedbacks e PDI ativo.
-        </p>
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Buscar"
+            className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:bg-secondary"
+            onClick={() => {
+              const el = document.getElementById("team-search") as HTMLInputElement | null;
+              el?.focus();
+            }}
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <button className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm text-foreground hover:bg-secondary">
+            <Filter className="h-4 w-4" /> Filtros
+          </button>
+        </div>
       </header>
+
+      <div className="sr-only">
+        <Input id="team-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar" />
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Kpi
+          icon={Users2}
+          tint="slate"
+          value={members.length}
+          label="Pessoas"
+          hint={areas.size ? `em ${areas.size} ${areas.size === 1 ? "área" : "áreas"}` : "—"}
+        />
+        <Kpi
+          icon={CheckCircle2}
+          tint="emerald"
+          value={counts.no_ritmo + counts.evoluindo + counts.top}
+          label="No ritmo"
+          hint={members.length ? `${Math.round(((counts.no_ritmo + counts.evoluindo + counts.top) / members.length) * 100)}% da equipe` : "—"}
+        />
+        <Kpi
+          icon={AlertTriangle}
+          tint="amber"
+          value={counts.atencao}
+          label="Precisam atenção"
+          hint={members.length ? `${Math.round((counts.atencao / members.length) * 100)}% da equipe` : "—"}
+        />
+        <Kpi
+          icon={Activity}
+          tint="sky"
+          value={avgHealth || "—"}
+          label="Health Score"
+          hint="da equipe"
+        />
+      </div>
+
+      {/* Tabs */}
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
+        {tabs.map((t) => {
+          const active = filter === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={
+                "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors " +
+                (active
+                  ? "bg-foreground text-background"
+                  : "border border-border bg-card text-foreground hover:bg-secondary")
+              }
+            >
+              {t.label}
+              {t.count ? (
+                <span
+                  className={
+                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold " +
+                    (t.danger
+                      ? "bg-rose-500 text-white"
+                      : active
+                      ? "bg-background/20 text-background"
+                      : "bg-secondary text-foreground")
+                  }
+                >
+                  {t.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
 
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -97,51 +263,159 @@ function TeamPage() {
         </div>
       )}
 
-      <div className="grid gap-3">
-        {members.map((m) => (
-          <article
-            key={m.membershipId}
-            className="rounded-xl border border-border bg-background p-5"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <h3 className="text-base font-medium">{m.fullName}</h3>
-                  <span className="text-xs text-muted-foreground">{m.email}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {m.profile?.roleTitle && <span className="text-foreground">{m.profile.roleTitle}</span>}
-                  {m.areaName && <span>· {m.areaName}</span>}
-                  {m.teamName && <span>· {m.teamName}</span>}
-                  <span>· {AUTONOMY_LABEL[m.profile?.autonomyLevel ?? "n2_acompanho"]}</span>
-                </div>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-3">
-                  <Block title="Entregas esperadas" items={m.profile?.expectedDeliverables ?? []} />
-                  <Block title="Indicadores centrais" items={m.profile?.keyIndicators ?? []} />
-                  <Block title="Forças" items={m.profile?.strengths ?? []} />
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <Stat label="Delegações abertas" value={m.openDelegations} />
-                  <Stat label="Feedbacks" value={m.feedbackCount} />
-                  <Stat label="PDI" value={m.hasActivePdi ? "Ativo" : "—"} tone={m.hasActivePdi ? "ok" : "muted"} />
-                </div>
-              </div>
-
-              <Button variant="outline" size="sm" onClick={() => setEditing(m)} className="gap-2">
-                <Pencil className="h-3.5 w-3.5" /> Editar
-              </Button>
-            </div>
-          </article>
+      <div className="space-y-3">
+        {visible.map(({ m, score, status }) => (
+          <MemberRow key={m.membershipId} m={m} score={score} status={status} onEdit={() => setEditing(m)} />
         ))}
+        {!isLoading && visible.length === 0 && members.length > 0 && (
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Ninguém neste filtro.
+          </div>
+        )}
       </div>
+
+      <button className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground">
+        <UserPlus className="h-4 w-4" /> Convidar pessoa para a equipe
+      </button>
+
+      <IACoachCard members={enriched} />
 
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         {editing && (
           <ProfileDialog orgId={orgId} member={editing} onDone={() => setEditing(null)} />
         )}
       </Dialog>
+    </div>
+  );
+}
+
+function Kpi({
+  icon: Icon,
+  tint,
+  value,
+  label,
+  hint,
+}: {
+  icon: typeof CheckCircle2;
+  tint: "slate" | "emerald" | "amber" | "sky";
+  value: number | string;
+  label: string;
+  hint: string;
+}) {
+  const TINT: Record<string, { bg: string; fg: string }> = {
+    slate:   { bg: "bg-secondary",                                    fg: "text-foreground" },
+    emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/15",            fg: "text-emerald-600 dark:text-emerald-300" },
+    amber:   { bg: "bg-amber-50 dark:bg-amber-500/15",                fg: "text-amber-600 dark:text-amber-300" },
+    sky:     { bg: "bg-sky-50 dark:bg-sky-500/15",                    fg: "text-sky-600 dark:text-sky-300" },
+  };
+  const t = TINT[tint];
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className={"grid h-9 w-9 place-items-center rounded-xl " + t.bg + " " + t.fg}>
+        <Icon className="h-4 w-4" strokeWidth={1.75} />
+      </div>
+      <div className="mt-3 font-display text-3xl leading-none">{value}</div>
+      <div className="mt-1 text-[13px] text-foreground">{label}</div>
+      <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div>
+    </div>
+  );
+}
+
+function MemberRow({
+  m,
+  score,
+  status,
+  onEdit,
+}: {
+  m: TeamMember;
+  score: number;
+  status: Status;
+  onEdit: () => void;
+}) {
+  const meta = STATUS_META[status];
+  const Secondary = secondaryFor(m);
+  return (
+    <article className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3 pr-4 transition-shadow hover:shadow-sm">
+      <Avatar name={m.fullName} url={m.avatarUrl ?? null} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[15px] font-semibold text-foreground">{m.fullName}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          {m.profile?.roleTitle || AUTONOMY_LABEL[m.profile?.autonomyLevel ?? "n2_acompanho"]}
+          {m.areaName ? ` · ${m.areaName}` : ""}
+        </div>
+      </div>
+
+      <span className={"inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold " + meta.className}>
+        <meta.icon className="h-3 w-3" /> {meta.label}
+      </span>
+
+      <div className="hidden w-16 text-center sm:block">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">CORE</div>
+        <div className={"font-display text-lg leading-none " + scoreColor(score)}>{score}</div>
+      </div>
+
+      <div className="hidden w-24 text-center md:block">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{Secondary.label}</div>
+        <div className={"text-sm font-medium " + Secondary.tone}>{Secondary.value}</div>
+      </div>
+
+      <button
+        onClick={onEdit}
+        aria-label="Abrir perfil"
+        className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </article>
+  );
+}
+
+function secondaryFor(m: TeamMember): { label: string; value: string; tone: string } {
+  if (m.openDelegations > 0) {
+    const danger = m.openDelegations >= 3;
+    return {
+      label: "Delegações",
+      value: `${m.openDelegations} aberta${m.openDelegations === 1 ? "" : "s"}`,
+      tone: danger ? "text-rose-600 dark:text-rose-400" : "text-foreground",
+    };
+  }
+  if (m.hasActivePdi) return { label: "PDI", value: "Ativo", tone: "text-emerald-600 dark:text-emerald-400" };
+  if (m.feedbackCount > 0) return { label: "Feedbacks", value: String(m.feedbackCount), tone: "text-foreground" };
+  return { label: "PDI", value: "Parado", tone: "text-amber-600 dark:text-amber-400" };
+}
+
+function Avatar({ name, url }: { name: string; url: string | null }) {
+  if (url) {
+    return <img src={url} alt={name} className="h-11 w-11 rounded-full object-cover" />;
+  }
+  return (
+    <div className="grid h-11 w-11 place-items-center rounded-full bg-secondary text-sm font-semibold text-foreground">
+      {initials(name) || "·"}
+    </div>
+  );
+}
+
+function IACoachCard({ members }: { members: { m: TeamMember; score: number; status: Status }[] }) {
+  const target = members
+    .filter((e) => e.status === "atencao" || e.status === "em_risco")
+    .sort((a, b) => a.score - b.score)[0]?.m;
+  const msg = target
+    ? `${target.fullName.split(" ")[0]} precisa da sua atenção. Deseja preparar uma conversa?`
+    : "Sua equipe está no ritmo. Quer preparar um 1:1 com alguém específico?";
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-500/25 dark:bg-violet-500/10">
+      <div className="flex items-start gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-300">
+          <Sparkles className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-foreground">IA Coach</div>
+          <div className="mt-0.5 max-w-md text-xs text-muted-foreground">{msg}</div>
+        </div>
+      </div>
+      <button className="inline-flex items-center gap-1 rounded-full border border-violet-300/70 bg-background px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-500/15">
+        Preparar conversa →
+      </button>
     </div>
   );
 }
