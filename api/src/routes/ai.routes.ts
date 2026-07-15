@@ -34,7 +34,7 @@ async function buildLeaderContext(userId: string, orgId: string) {
   const [membership, org, profile, signals, delegs, rituals, snapshot, commitments] = await Promise.all([
     prisma.membership.findFirst({
       where: { userId, organizationId: orgId },
-      include: { user: { select: { fullName: true } } },
+      include: { user: { include: { profile: { select: { fullName: true } } } } },
     }),
     prisma.organization.findUnique({ where: { id: orgId }, select: { name: true } }),
     prisma.leaderProfile.findUnique({
@@ -55,7 +55,7 @@ async function buildLeaderContext(userId: string, orgId: string) {
       take: 15,
     }).catch(() => []),
     prisma.ritualOccurrence.findMany({
-      where: { organizationId: orgId, ritual: { ownerId: userId }, scheduledAt: { gte: from } },
+      where: { ritual: { organizationId: orgId, ownerId: userId }, scheduledAt: { gte: from } },
       include: { ritual: { select: { name: true, type: true } } },
       orderBy: { scheduledAt: "desc" },
       take: 30,
@@ -76,7 +76,7 @@ async function buildLeaderContext(userId: string, orgId: string) {
   const overdue = delegs.filter((d) => d.dueAt && d.dueAt < now2 && d.status !== "done").length;
 
   return {
-    leader: membership?.user.fullName ?? "líder",
+    leader: membership?.user.profile?.fullName ?? "líder",
     organization: org?.name ?? "empresa",
     profile: profile
       ? {
