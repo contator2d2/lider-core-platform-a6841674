@@ -443,7 +443,7 @@ adminRouter.post("/ai-settings", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   // Se o cliente mandou apiKey vazia, não sobrescrever a chave já salva.
   const { apiKey, ...rest } = parsed.data;
-  const payload = apiKey && apiKey.trim() ? { ...rest, apiKey: apiKey.trim() } : rest;
+  const cleanKey = apiKey && apiKey.trim() ? apiKey.trim() : null;
   const s = await prisma.aISettings.upsert({
     where: {
       scope_scopeId: {
@@ -451,8 +451,8 @@ adminRouter.post("/ai-settings", async (req, res) => {
         scopeId: parsed.data.scopeId ?? "",
       },
     } as never,
-    update: payload,
-    create: { ...payload, apiKey: payload.apiKey ?? null },
+    update: cleanKey ? { ...rest, apiKey: cleanKey } : rest,
+    create: { ...rest, apiKey: cleanKey },
   });
   // Nunca devolver a chave em claro
   res.status(201).json({ ...s, apiKey: s.apiKey ? "••••••••" : null });
