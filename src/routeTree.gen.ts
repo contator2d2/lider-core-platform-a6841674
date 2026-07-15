@@ -341,16 +341,6 @@ const AuthenticatedAdminAiRoute = AuthenticatedAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminHelpRoute = AuthenticatedAdminHelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAppHelpRoute = AuthenticatedAppHelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
 const AuthenticatedAppOrganizationIndexRoute =
   AuthenticatedAppOrganizationIndexRouteImport.update({
     id: '/',
