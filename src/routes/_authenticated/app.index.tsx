@@ -14,6 +14,8 @@ import {
   TrendingUp,
   Workflow,
   Plus,
+  ArrowUpRight,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -80,15 +82,22 @@ function LeadershipRoom() {
   const openDecision = (d: DecisionSummary) => setDrawer({ kind: "decision", orgId, decision: d });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 pb-24 md:max-w-6xl md:pb-0">
-      {/* Saudação */}
-      <header className="px-1">
-        <h1 className="font-display text-3xl leading-tight sm:text-4xl">
-          {greet()}, {firstName} <span className="inline-block">👋</span>
+    <div className="mx-auto max-w-3xl space-y-8 pb-24 md:max-w-6xl md:pb-0">
+      {/* Saudação — editorial serif */}
+      <header className="px-1 pt-2">
+        <h1 className="font-display text-[38px] leading-[1.05] tracking-tight text-foreground sm:text-5xl">
+          <span className="italic font-normal text-foreground/85">{greet()},</span>
+          <br />
+          <span className="font-medium">{firstName}</span>
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {formatToday()}
-          {current && <span className="ml-1 text-foreground/60">· {current.name}</span>}
+          {current && (
+            <>
+              <span className="mx-2 text-border">•</span>
+              <span className="text-foreground/60">{current.name}</span>
+            </>
+          )}
         </p>
       </header>
 
@@ -121,7 +130,7 @@ function LeadershipRoom() {
       <Link
         to="/app/organization/delegations"
         aria-label="Nova delegação"
-        className="fixed bottom-24 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-accent text-accent-foreground shadow-[0_12px_32px_-8px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition-transform active:scale-95 md:bottom-8"
+        className="fixed bottom-24 right-5 z-40 grid h-14 w-14 place-items-center rounded-2xl bg-accent text-accent-foreground shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_55%,transparent)] transition-transform active:scale-95 md:bottom-8"
       >
         <Plus className="h-6 w-6" strokeWidth={2.5} />
       </Link>
