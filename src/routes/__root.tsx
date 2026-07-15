@@ -14,6 +14,41 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth-context";
 
+declare global {
+  interface Window {
+    __liderCoreDomMutationGuardInstalled?: boolean;
+  }
+}
+
+const reportedErrors = new WeakSet<object>();
+
+installDomMutationGuard();
+
+function installDomMutationGuard() {
+  if (typeof window === "undefined" || window.__liderCoreDomMutationGuardInstalled) return;
+
+  window.__liderCoreDomMutationGuardInstalled = true;
+
+  const originalRemoveChild = Node.prototype.removeChild;
+  const originalInsertBefore = Node.prototype.insertBefore;
+
+  Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
+    if (child.parentNode !== this) return child;
+    return originalRemoveChild.call(this, child) as T;
+  };
+
+  Node.prototype.insertBefore = function <T extends Node>(
+    this: Node,
+    newNode: T,
+    referenceNode: Node | null,
+  ): T {
+    if (referenceNode && referenceNode.parentNode !== this) {
+      return originalInsertBefore.call(this, newNode, null) as T;
+    }
+    return originalInsertBefore.call(this, newNode, referenceNode) as T;
+  };
+}
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -37,10 +72,13 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    console.error(error);
+    if (!reportedErrors.has(error)) {
+      reportedErrors.add(error);
+      reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    }
   }, [error]);
 
   return (
