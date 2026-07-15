@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import type * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LeadershipDrawer, type DrawerTarget } from "@/components/leadership/LeadershipDrawer";
 import {
@@ -15,6 +16,18 @@ import {
   Plus,
   ArrowUpRight,
   Shield,
+  Bell,
+  MessageCircle,
+  ChevronRight,
+  Sun,
+  Moon,
+  User as UserIcon,
+  Calendar as CalendarIcon,
+  MessageSquare,
+  ClipboardCheck,
+  FileText,
+  Users as UsersIcon,
+  TrendingDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -48,6 +61,13 @@ function LeadershipRoom() {
   const navigate = useNavigate();
   const { orgId, current } = useCurrentOrg();
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    return (window.localStorage.getItem("app-home-theme") as "light" | "dark") || "light";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem("app-home-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (user?.roles?.includes("super_admin")) {
@@ -80,61 +100,190 @@ function LeadershipRoom() {
   const openDeleg = (d: DelegSummary) => setDrawer({ kind: "delegation", orgId, delegation: d });
   const openDecision = (d: DecisionSummary) => setDrawer({ kind: "decision", orgId, decision: d });
 
+  const priorities = buildPriorities(data);
+  const nextMeeting = (data?.upcomingOccurrences ?? [])[0];
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8 pb-24 md:max-w-6xl md:pb-0">
-      {/* Saudação — editorial serif */}
-      <header className="px-1 pt-2">
-        <h1 className="font-display text-[38px] leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-          <span className="italic font-normal text-foreground/85">{greet()},</span>
-          <br />
-          <span className="font-medium">{firstName}</span>
-        </h1>
-        <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {formatToday()}
-          {current && (
-            <>
-              <span className="mx-2 text-border">•</span>
-              <span className="text-foreground/60">{current.name}</span>
-            </>
-          )}
-        </p>
-      </header>
+    <div className={theme === "dark" ? "dark" : ""}>
+      <div className="-mx-4 -my-5 min-h-[calc(100vh-4rem)] bg-background text-foreground md:-mx-10 md:-my-12">
+        {/* Header escuro estilo mobile-first */}
+        <header className="relative bg-[#141311] px-5 pb-10 pt-6 text-white md:rounded-b-[32px] md:px-8 md:pt-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10 text-base font-semibold ring-2 ring-white/10">
+                {initialsOf(user?.fullName)}
+              </span>
+              <div className="min-w-0">
+                <h1 className="font-display text-xl leading-tight sm:text-2xl">
+                  {greet()}, {firstName} <span aria-hidden>👋</span>
+                </h1>
+                <p className="mt-0.5 text-xs text-white/55">{formatToday()}{current ? ` · ${current.name}` : ""}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+                aria-label="Alternar tema"
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/15"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                className="relative grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/15"
+                aria-label="Notificações"
+              >
+                <Bell className="h-4 w-4" />
+                {(data?.attention?.length ?? 0) > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">
+                    {Math.min(9, data!.attention.length)}
+                  </span>
+                )}
+              </button>
+              <Link
+                to="/app/ai"
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/15"
+                aria-label="Conversar com IA"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </header>
 
-      {/* Hero: CORE Score com gauge */}
-      <CoreScoreHero
-        score={health.data?.score}
-        loading={health.isLoading}
-        adherence={data?.rituals.adherence}
-      />
+        <div className="relative -mt-6 space-y-5 px-4 pb-28 md:px-8 md:pb-12">
+          {/* Suas prioridades de hoje */}
+          <section className="rounded-[24px] border border-border bg-card p-4 shadow-[0_12px_40px_-24px_rgba(0,0,0,0.25)]">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Suas prioridades de hoje</h2>
+              <Link to="/app/team" className="text-xs font-semibold text-accent hover:underline">Ver todas</Link>
+            </div>
+            {loading ? (
+              <div className="flex gap-3 overflow-hidden">
+                {[0, 1, 2].map((i) => <Skeleton key={i} className="h-40 w-[60%] shrink-0" />)}
+              </div>
+            ) : priorities.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
+                Nada urgente por aqui. Bom trabalho.
+              </div>
+            ) : (
+              <>
+                <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {priorities.map((p, i) => (
+                    <PriorityCard key={p.id} priority={p} index={i + 1} onOpen={() => p.onOpen?.(openPerson)} />
+                  ))}
+                </div>
+                <div className="mt-3 flex justify-center gap-1.5">
+                  {priorities.map((_, i) => (
+                    <span key={i} className={`h-1.5 rounded-full transition-all ${i === 0 ? "w-4 bg-foreground/70" : "w-1.5 bg-foreground/20"}`} />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
 
-      {/* Pessoas que precisam da sua atenção */}
-      <AttentionSection people={data?.attention ?? []} loading={loading} onOpen={openPerson} />
+          {/* CORE Score + Próxima reunião */}
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-[1.15fr_1fr]">
+            <CoreScoreCard score={health.data?.score} loading={health.isLoading} />
+            <NextMeetingCard occurrence={nextMeeting} loading={loading} />
+          </section>
 
-      {/* Agenda + Rituais (grid 2 cols no mobile) */}
-      <div className="grid grid-cols-2 gap-3">
-        <AgendaCard occurrences={data?.upcomingOccurrences ?? []} loading={loading} />
-        <RitualsCard rituals={data?.rituals} loading={loading} />
+          {/* Ações rápidas */}
+          <section className="rounded-[24px] border border-border bg-card p-4">
+            <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Ações rápidas</h2>
+            <div className="grid grid-cols-5 gap-2">
+              <QuickAction to="/app/feedbacks" label="Novo Feedback" icon={MessageSquare} tint="orange" />
+              <QuickAction to="/app/organization/delegations" label="Nova Delegação" icon={ClipboardCheck} tint="sky" />
+              <QuickAction to="/app/organization/agenda" label="Nova Reunião" icon={CalendarIcon} tint="violet" />
+              <QuickAction to="/app/organization/decisions" label="Nova Decisão" icon={FileText} tint="emerald" />
+              <QuickAction to="/app/one-on-ones" label="Nova 1:1" icon={UsersIcon} tint="rose" />
+            </div>
+          </section>
+
+          {/* Radar da equipe */}
+          <section className="rounded-[24px] border border-border bg-card">
+            <header className="flex items-center justify-between px-4 pt-4">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Radar da equipe</h2>
+              <Link to="/app/team" className="text-xs font-semibold text-accent hover:underline">Ver todos</Link>
+            </header>
+            {loading ? (
+              <SkeletonRows n={4} compact />
+            ) : (data?.attention.length ?? 0) === 0 ? (
+              <EmptyRow icon={CheckCircle2} title="Ninguém em risco" hint="Sua equipe está no verde." compact />
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {data!.attention.slice(0, 4).map((p) => (
+                  <li key={p.membershipId}>
+                    <button
+                      type="button"
+                      onClick={() => openPerson(p)}
+                      className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 px-4 py-3 text-left transition hover:bg-secondary/40"
+                    >
+                      <Avatar name={p.name} severity={p.signals[0]?.severity ?? "low"} />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{p.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{p.signals[0]?.reason ?? "—"}</div>
+                      </div>
+                      <RadarBadge severity={p.signals[0]?.severity ?? "low"} label={radarLabel(p.signals[0])} />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Agenda de hoje */}
+          <section className="rounded-[24px] border border-border bg-card">
+            <header className="flex items-center justify-between px-4 pt-4">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Agenda de hoje</h2>
+              <Link to="/app/organization/agenda" className="text-xs font-semibold text-accent hover:underline">Ver agenda</Link>
+            </header>
+            {loading ? (
+              <SkeletonRows n={3} compact />
+            ) : (data?.upcomingOccurrences.length ?? 0) === 0 ? (
+              <EmptyRow icon={CalendarClock} title="Sem compromissos hoje" compact />
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {data!.upcomingOccurrences.slice(0, 3).map((o, i) => (
+                  <li key={o.id} className="grid grid-cols-[56px_auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+                    <div className="text-sm font-semibold tabular-nums text-muted-foreground">
+                      {formatTime(o.scheduledAt)}
+                    </div>
+                    <span className={`grid h-9 w-9 place-items-center rounded-full ${agendaTint(i).bg} ${agendaTint(i).fg}`}>
+                      {agendaIcon(o.ritual.type)}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold">{o.ritual.name}</div>
+                      <div className="truncate text-xs text-muted-foreground uppercase tracking-widest">{o.ritual.type}</div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground/70">
+                      {relTime(o.scheduledAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Delegações e decisões (mantidas para consistência de dados) */}
+          <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
+          <AiCoachCard />
+          <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
+        </div>
+
+        {/* FAB central laranja (encaixa com bottom nav) */}
+        <Link
+          to="/app/organization/delegations"
+          aria-label="Nova ação"
+          className="fixed bottom-14 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-accent text-white shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition active:scale-95 md:hidden"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </Link>
+
+        <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
       </div>
-
-      {/* Delegações */}
-      <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
-
-      {/* IA Coach */}
-      <AiCoachCard />
-
-      {/* Decisões recentes (colapsado, extra info) */}
-      <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
-
-      {/* FAB de nova ação */}
-      <Link
-        to="/app/organization/delegations"
-        aria-label="Nova delegação"
-        className="fixed bottom-24 right-5 z-40 grid h-14 w-14 place-items-center rounded-2xl bg-accent text-accent-foreground shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_55%,transparent)] transition-transform active:scale-95 md:bottom-8"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </Link>
-
-      <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
     </div>
   );
 }
@@ -596,4 +745,234 @@ function relDay(iso: string | Date) {
   if (diff === 1) return "Amanhã";
   if (diff < 7) return `${diff}d`;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
+// ---------- NEW HOME HELPERS ----------
+
+function initialsOf(name?: string | null) {
+  if (!name) return "?";
+  return name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
+
+type PriorityTint = "rose" | "orange" | "violet" | "sky" | "emerald";
+type Priority = {
+  id: string;
+  title: string;
+  category: string;
+  hint: string;
+  tint: PriorityTint;
+  onOpen?: (fn: (p: AttentionPerson) => void) => void;
+};
+
+function buildPriorities(data: LeadershipRoomData | undefined): Priority[] {
+  if (!data) return [];
+  const out: Priority[] = [];
+  const tints: PriorityTint[] = ["rose", "orange", "violet"];
+  data.attention.slice(0, 2).forEach((p, i) => {
+    const sig = p.signals[0];
+    out.push({
+      id: `att-${p.membershipId}`,
+      title: p.name.split(" ").slice(0, 2).join(" "),
+      category: sig?.kind === "pdi" ? "PDI parado" : sig?.kind === "feedback" ? "Feedback" : "Atenção",
+      hint: sig?.reason ?? "Precisa da sua atenção",
+      tint: tints[i],
+      onOpen: (fn) => fn(p),
+    });
+  });
+  const occ = data.upcomingOccurrences[0];
+  if (occ) {
+    out.push({
+      id: `occ-${occ.id}`,
+      title: occ.ritual.name,
+      category: `Hoje às ${formatTime(occ.scheduledAt)}`,
+      hint: occ.ritual.type,
+      tint: "violet",
+    });
+  }
+  return out.slice(0, 3);
+}
+
+const PRIORITY_STYLE: Record<PriorityTint, { bg: string; badge: string; icon: React.ReactElement; title: string }> = {
+  rose:    { bg: "bg-rose-50 dark:bg-rose-500/10",       badge: "bg-rose-500 text-white",       icon: <UserIcon className="h-4 w-4" />,        title: "text-rose-600 dark:text-rose-300" },
+  orange:  { bg: "bg-accent/10",                          badge: "bg-accent text-white",         icon: <ClipboardCheck className="h-4 w-4" />,  title: "text-accent" },
+  violet:  { bg: "bg-violet-50 dark:bg-violet-500/10",   badge: "bg-violet-500 text-white",     icon: <CalendarIcon className="h-4 w-4" />,    title: "text-violet-600 dark:text-violet-300" },
+  sky:     { bg: "bg-sky-50 dark:bg-sky-500/10",         badge: "bg-sky-500 text-white",        icon: <CalendarIcon className="h-4 w-4" />,    title: "text-sky-600 dark:text-sky-300" },
+  emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", badge: "bg-emerald-500 text-white",    icon: <FileText className="h-4 w-4" />,        title: "text-emerald-600 dark:text-emerald-300" },
+};
+
+function PriorityCard({ priority, index, onOpen }: { priority: Priority; index: number; onOpen: () => void }) {
+  const s = PRIORITY_STYLE[priority.tint];
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`group relative flex w-[62%] shrink-0 snap-start flex-col justify-between rounded-2xl p-4 text-left transition hover:-translate-y-0.5 sm:w-[44%] md:w-[30%] ${s.bg}`}
+      style={{ minHeight: 150 }}
+    >
+      <div className="flex items-start justify-between">
+        <span className={`grid h-9 w-9 place-items-center rounded-full ${s.badge}`}>{s.icon}</span>
+        <span className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold ${s.badge}`}>{index}</span>
+      </div>
+      <div className="mt-6">
+        <div className="text-sm font-semibold text-foreground">{priority.title}</div>
+        <div className={`mt-1 text-xs font-semibold ${s.title}`}>{priority.category}</div>
+        <div className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{priority.hint}</div>
+      </div>
+      <ChevronRight className="absolute bottom-3 right-3 h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
+    </button>
+  );
+}
+
+function CoreScoreCard({ score, loading }: { score?: number; loading: boolean }) {
+  const value = typeof score === "number" ? score : 0;
+  const shown = typeof score === "number" ? score : loading ? "…" : "—";
+  return (
+    <div className="rounded-[24px] border border-border bg-card p-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">CORE Score</h3>
+        <span className="grid h-5 w-5 place-items-center rounded-full border border-border text-[10px] text-muted-foreground">i</span>
+      </div>
+      <div className="mt-4 flex items-center gap-5">
+        <BigRing value={value} label={shown} />
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+            <TrendingUp className="h-4 w-4" strokeWidth={2.25} />
+            <span className="text-sm font-bold">+3</span>
+          </div>
+          <div className="text-xs text-muted-foreground">essa semana</div>
+          <svg viewBox="0 0 100 30" className="mt-2 h-8 w-24 text-accent">
+            <path d="M0 22 Q 15 18 25 20 T 55 12 T 85 8 L 100 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="100" cy="4" r="2.5" fill="currentColor" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BigRing({ value, label }: { value: number; label: string | number }) {
+  const size = 118;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, value));
+  const dash = (clamped / 100) * c;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} fill="none" className="stroke-muted" />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} fill="none"
+          stroke="var(--accent)" strokeLinecap="round"
+          strokeDasharray={`${dash} ${c}`}
+          style={{ transition: "stroke-dasharray 500ms ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          <div className="font-display text-3xl leading-none tabular-nums">{label}</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">de 100</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NextMeetingCard({ occurrence, loading }: { occurrence?: Occurrence; loading: boolean }) {
+  return (
+    <div className="rounded-[24px] border border-border bg-card p-5">
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Próxima reunião</h3>
+      {loading ? (
+        <Skeleton className="mt-4 h-24" />
+      ) : !occurrence ? (
+        <div className="mt-4 text-sm text-muted-foreground">Nada agendado.</div>
+      ) : (
+        <>
+          <div className="mt-4 flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent">
+              <CalendarIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="font-display text-2xl leading-none tabular-nums">{formatTime(occurrence.scheduledAt)}</div>
+              <div className="mt-1 truncate text-xs font-semibold">{occurrence.ritual.name}</div>
+              <div className="truncate text-[11px] uppercase tracking-widest text-muted-foreground">{occurrence.ritual.type}</div>
+            </div>
+          </div>
+          <Link
+            to="/app/organization/agenda"
+            className="mt-4 flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs font-semibold hover:bg-secondary"
+          >
+            Abrir agenda <ChevronRight className="h-4 w-4" />
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
+
+const QUICK_TINTS: Record<PriorityTint, { bg: string; fg: string }> = {
+  rose:    { bg: "bg-rose-50 dark:bg-rose-500/10",       fg: "text-rose-600 dark:text-rose-300" },
+  orange:  { bg: "bg-accent/10",                          fg: "text-accent" },
+  violet:  { bg: "bg-violet-50 dark:bg-violet-500/10",   fg: "text-violet-600 dark:text-violet-300" },
+  sky:     { bg: "bg-sky-50 dark:bg-sky-500/10",         fg: "text-sky-600 dark:text-sky-300" },
+  emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-300" },
+};
+
+function QuickAction({ to, label, icon: Icon, tint }: { to: string; label: string; icon: typeof CalendarIcon; tint: PriorityTint }) {
+  const s = QUICK_TINTS[tint];
+  return (
+    <Link to={to} className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-2 text-center transition hover:border-accent/40 hover:bg-secondary/40">
+      <span className={`grid h-10 w-10 place-items-center rounded-xl ${s.bg} ${s.fg}`}>
+        <Icon className="h-4 w-4" strokeWidth={2} />
+      </span>
+      <span className="text-[10.5px] font-semibold leading-tight text-foreground/80">{label}</span>
+    </Link>
+  );
+}
+
+function RadarBadge({ severity, label }: { severity: "high" | "medium" | "low"; label: string }) {
+  const cls =
+    severity === "high"   ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300" :
+    severity === "medium" ? "bg-attention/15 text-amber-700 dark:text-amber-300" :
+                            "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300";
+  const Icon = severity === "high" ? AlertTriangle : severity === "medium" ? TrendingDown : CheckCircle2;
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}>
+      <Icon className="h-3 w-3" /> {label}
+    </span>
+  );
+}
+
+function radarLabel(sig?: Signal): string {
+  if (!sig) return "Tudo em dia";
+  if (sig.severity === "high") return sig.kind === "feedback" ? "Feedback atrasado" : "Atenção";
+  if (sig.severity === "medium") return sig.kind === "pdi" ? "PDI parado" : "Evoluindo";
+  return "Tudo em dia";
+}
+
+function agendaTint(i: number): { bg: string; fg: string } {
+  const arr = [
+    { bg: "bg-accent/10", fg: "text-accent" },
+    { bg: "bg-violet-50 dark:bg-violet-500/10", fg: "text-violet-600 dark:text-violet-300" },
+    { bg: "bg-emerald-50 dark:bg-emerald-500/10", fg: "text-emerald-700 dark:text-emerald-300" },
+  ];
+  return arr[i % arr.length];
+}
+
+function agendaIcon(type: string) {
+  const t = (type || "").toLowerCase();
+  if (t.includes("1") || t.includes("one")) return <UsersIcon className="h-4 w-4" />;
+  if (t.includes("indic") || t.includes("resultado")) return <TrendingUp className="h-4 w-4" />;
+  return <CalendarIcon className="h-4 w-4" />;
+}
+
+function relTime(iso: string | Date) {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  const diffMin = Math.round((d.getTime() - Date.now()) / 60000);
+  if (diffMin <= 0) return "Agora";
+  if (diffMin < 60) return `Em ${diffMin}min`;
+  const h = Math.floor(diffMin / 60);
+  const m = diffMin % 60;
+  if (h < 24) return m ? `Em ${h}h ${m}min` : `Em ${h}h`;
+  return relDay(d);
 }
