@@ -96,6 +96,24 @@ feedbacksRouter.post("/:orgId/feedbacks", async (req, res) => {
         tags: data.tags,
       },
     });
+    if (created.subjectUserId && created.subjectUserId !== req.userId) {
+      const map: Record<string, string> = {
+        positivo: "Feedback positivo",
+        reconhecimento: "Reconhecimento",
+        corretivo: "Feedback corretivo",
+        alinhamento: "Alinhamento",
+        cobranca: "Cobrança",
+        conflito: "Conversa de conflito",
+        desligamento: "Comunicado importante",
+      };
+      void notifyInApp({
+        userId: created.subjectUserId,
+        organizationId: created.organizationId,
+        title: map[created.type] ?? "Novo feedback",
+        body: created.fact.slice(0, 140),
+        linkUrl: "/app/feedbacks",
+      }).catch(() => null);
+    }
     res.status(201).json(created);
   } catch (err) {
     badReq(res, err);
