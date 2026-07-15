@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { LeaderOnboarding } from "@/components/onboarding/LeaderOnboarding";
 
 export const Route = createFileRoute("/_authenticated/app")({
   component: AppShell,
@@ -121,6 +122,7 @@ function AppShell() {
         <main className="flex-1 px-6 py-8 md:px-10 md:py-12">
           <Outlet />
         </main>
+        <LeaderOnboarding />
       </div>
     </div>
   );

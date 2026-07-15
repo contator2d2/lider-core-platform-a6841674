@@ -106,6 +106,10 @@ export type Me = {
   fullName: string | null;
   avatarUrl: string | null;
   jobTitle: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  onboardingCompletedAt?: string | null;
+  onboardingSteps?: Record<string, string> | null;
   roles: string[];
   memberships: Array<{
     role: string;
