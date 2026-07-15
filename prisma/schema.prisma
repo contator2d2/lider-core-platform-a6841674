@@ -152,6 +152,8 @@ model Profile {
   mfaEnabled Boolean @default(false) @map("mfa_enabled")
   lastLoginAt DateTime? @map("last_login_at")
   status    String   @default("active")
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  onboardingSteps Json?           @map("onboarding_steps")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
