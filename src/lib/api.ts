@@ -47,11 +47,20 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
     );
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers: finalHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...rest,
+      headers: finalHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new ApiError(
+      "Não foi possível conectar ao backend. Verifique se a API foi redeployada e se o domínio está online.",
+      0,
+      error,
+    );
+  }
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await res.json() : await res.text();
