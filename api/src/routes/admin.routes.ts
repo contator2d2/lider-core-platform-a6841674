@@ -438,6 +438,7 @@ const aiSchema = z.object({
   provider: z.enum(["openai", "gemini"]),
   model: z.string().min(1),
   apiKeySecretRef: z.string().optional().nullable(),
+  apiKey: z.string().optional().nullable(),
   monthlyTokenLimit: z.number().int().min(0).optional().nullable(),
   temperature: z.number().min(0).max(2).default(0.7),
 });
@@ -445,6 +446,9 @@ const aiSchema = z.object({
 adminRouter.post("/ai-settings", async (req, res) => {
   const parsed = aiSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  // Se o cliente mandou apiKey vazia, não sobrescrever a chave já salva.
+  const { apiKey, ...rest } = parsed.data;
+  const payload = apiKey && apiKey.trim() ? { ...rest, apiKey: apiKey.trim() } : rest;
   const s = await prisma.aISettings.upsert({
     where: {
       scope_scopeId: {
@@ -452,10 +456,37 @@ adminRouter.post("/ai-settings", async (req, res) => {
         scopeId: parsed.data.scopeId ?? "",
       },
     } as never,
-    update: parsed.data,
-    create: parsed.data,
+    update: payload,
+    create: { ...payload, apiKey: payload.apiKey ?? null },
   });
-  res.status(201).json(s);
+  // Nunca devolver a chave em claro
+  res.status(201).json({ ...s, apiKey: s.apiKey ? "••••••••" : null });
+});
+
+// GET mascarado — usado pela tela de admin
+adminRouter.get("/ai-settings", async (_req, res) => {
+  const list = await prisma.aISettings.findMany({ orderBy: { createdAt: "desc" } });
+  res.json(list.map((s) => ({ ...s, apiKey: s.apiKey ? "••••••••" : null })));
+});
+
+// POST /admin/ai-settings/test — envia um prompt curto e devolve a resposta
+adminRouter.post("/ai-settings/test", async (_req, res) => {
+  try {
+    const { completeChat } = await import("../lib/ai-gateway.js");
+    const started = Date.now();
+    const text = await completeChat({
+      messages: [
+        { role: "system", content: "Responda em uma frase curta em pt-BR." },
+        { role: "user", content: "Diga 'IA conectada com sucesso.' e nada mais." },
+      ],
+    });
+    res.json({ ok: true, latencyMs: Date.now() - started, sample: text.slice(0, 300) });
+  } catch (err) {
+    res.status(400).json({
+      ok: false,
+      error: err instanceof Error ? err.message : "Falha ao testar provedor de IA",
+    });
+  }
 });
 
 // ============================================================
