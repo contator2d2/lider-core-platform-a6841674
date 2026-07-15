@@ -72,6 +72,15 @@ pdisRouter.post("/:orgId/pdis", async (req, res) => {
         status: data.status,
       },
     });
+    if (created.subjectUserId && created.subjectUserId !== req.userId) {
+      void notifyInApp({
+        userId: created.subjectUserId,
+        organizationId: created.organizationId,
+        title: "Novo PDI para você",
+        body: created.title,
+        linkUrl: "/app/pdis",
+      }).catch(() => null);
+    }
     res.status(201).json(created);
   } catch (err) {
     badReq(res, err);
