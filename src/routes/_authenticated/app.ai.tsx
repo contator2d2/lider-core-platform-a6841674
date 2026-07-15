@@ -327,7 +327,7 @@ function InsightChip({
   caption: string;
 }) {
   const toneMap = {
-    warning: "bg-warning/12 text-warning",
+    warning: "bg-attention/12 text-attention",
     success: "bg-success/12 text-success",
     accent: "bg-accent/12 text-accent",
   } as const;
@@ -358,7 +358,7 @@ function EmptyConversation({ firstName, onPick }: { firstName: string; onPick: (
     `Bom dia, ${firstName}! 👋\nAqui está o que mais importa agora:`,
   ];
   const highlights = [
-    { icon: <AlertTriangle className="h-3.5 w-3.5 text-warning" />, text: "João Pedro está há 42 dias sem feedback." },
+    { icon: <AlertTriangle className="h-3.5 w-3.5 text-attention" />, text: "João Pedro está há 42 dias sem feedback." },
     { icon: <CalendarCheck2 className="h-3.5 w-3.5 text-accent" />, text: "PDI de Lucas Martins está parado há 60 dias." },
     { icon: <ArrowUpRight className="h-3.5 w-3.5 text-success" />, text: "Maria Clara está evoluindo bem! 👏" },
   ];
