@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -335,8 +335,12 @@ function MemberRow({
   const meta = STATUS_META[status];
   const Secondary = secondaryFor(m);
   return (
-    <article className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3 pr-4 transition-shadow hover:shadow-sm">
-      <Avatar name={m.fullName} url={m.avatarUrl ?? null} />
+      <Link
+        to="/app/team/$membershipId"
+        params={{ membershipId: m.membershipId }}
+        className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3 pr-4 transition-shadow hover:shadow-sm"
+      >
+        <Avatar name={m.fullName} url={m.avatarUrl ?? null} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-semibold text-foreground">{m.fullName}</div>
         <div className="truncate text-xs text-muted-foreground">
@@ -359,14 +363,14 @@ function MemberRow({
         <div className={"text-sm font-medium " + Secondary.tone}>{Secondary.value}</div>
       </div>
 
-      <button
-        onClick={onEdit}
+      <span
         aria-label="Abrir perfil"
-        className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors group-hover:bg-secondary group-hover:text-foreground"
       >
         <ChevronRight className="h-4 w-4" />
-      </button>
-    </article>
+      </span>
+      </Link>
+    </>
   );
 }
 
