@@ -12,6 +12,91 @@ import {
 export const notificationsRouter = Router();
 notificationsRouter.use(requireAuth);
 
+// ============================================================
+// INBOX pessoal — qualquer usuário autenticado consulta suas
+// próprias notificações in_app. Não requer papel administrativo.
+// ============================================================
+
+notificationsRouter.get("/inbox", async (req, res) => {
+  const take = Math.min(Number(req.query.take) || 30, 100);
+  const onlyUnread = req.query.unread === "1" || req.query.unread === "true";
+  const list = await prisma.notificationLog.findMany({
+    where: {
+      userId: req.userId!,
+      channel: "in_app",
+      ...(onlyUnread ? { readAt: null } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      linkUrl: true,
+      readAt: true,
+      createdAt: true,
+      organizationId: true,
+    },
+  });
+  res.json(list);
+});
+
+notificationsRouter.get("/inbox/unread-count", async (req, res) => {
+  const count = await prisma.notificationLog.count({
+    where: { userId: req.userId!, channel: "in_app", readAt: null },
+  });
+  res.json({ count });
+});
+
+notificationsRouter.post("/inbox/:id/read", async (req, res) => {
+  const updated = await prisma.notificationLog
+    .updateMany({
+      where: { id: req.params.id, userId: req.userId!, channel: "in_app", readAt: null },
+      data: { readAt: new Date(), status: "read" },
+    })
+    .catch(() => ({ count: 0 }));
+  res.json({ ok: true, updated: updated.count });
+});
+
+notificationsRouter.post("/inbox/read-all", async (req, res) => {
+  const updated = await prisma.notificationLog.updateMany({
+    where: { userId: req.userId!, channel: "in_app", readAt: null },
+    data: { readAt: new Date(), status: "read" },
+  });
+  res.json({ ok: true, updated: updated.count });
+});
+
+notificationsRouter.delete("/inbox/:id", async (req, res) => {
+  await prisma.notificationLog
+    .deleteMany({ where: { id: req.params.id, userId: req.userId!, channel: "in_app" } })
+    .catch(() => null);
+  res.status(204).end();
+});
+
+// Seed manual (útil para testar o sino sem esperar evento real)
+const seedSchema = z.object({
+  title: z.string().min(1).max(120),
+  body: z.string().min(1).max(500),
+  linkUrl: z.string().optional().nullable(),
+});
+notificationsRouter.post("/inbox/seed", async (req, res) => {
+  const parsed = seedSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const created = await prisma.notificationLog.create({
+    data: {
+      channel: "in_app",
+      direction: "outbound",
+      status: "delivered",
+      to: req.userId!,
+      userId: req.userId!,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      linkUrl: parsed.data.linkUrl ?? null,
+    },
+  });
+  res.status(201).json(created);
+});
+
 // ----- Config status -----
 notificationsRouter.get(
   "/config",
