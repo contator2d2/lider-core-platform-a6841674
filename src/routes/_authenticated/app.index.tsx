@@ -192,7 +192,7 @@ function LeadershipRoom() {
           <section className="rounded-[24px] border border-border bg-card p-4">
             <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Ações rápidas</h2>
             <div className="grid grid-cols-5 gap-2">
-              <QuickAction to="/app/feedbacks" label="Novo Feedback" icon={MessageSquare} tint="accent" />
+              <QuickAction to="/app/feedbacks" label="Novo Feedback" icon={MessageSquare} tint="orange" />
               <QuickAction to="/app/organization/delegations" label="Nova Delegação" icon={ClipboardCheck} tint="sky" />
               <QuickAction to="/app/organization/agenda" label="Nova Reunião" icon={CalendarIcon} tint="violet" />
               <QuickAction to="/app/organization/decisions" label="Nova Decisão" icon={FileText} tint="emerald" />
@@ -791,7 +791,7 @@ function buildPriorities(data: LeadershipRoomData | undefined): Priority[] {
   return out.slice(0, 3);
 }
 
-const PRIORITY_STYLE: Record<PriorityTint, { bg: string; badge: string; icon: JSX.Element; title: string }> = {
+const PRIORITY_STYLE: Record<PriorityTint, { bg: string; badge: string; icon: React.ReactElement; title: string }> = {
   rose:    { bg: "bg-rose-50 dark:bg-rose-500/10",       badge: "bg-rose-500 text-white",       icon: <UserIcon className="h-4 w-4" />,        title: "text-rose-600 dark:text-rose-300" },
   orange:  { bg: "bg-accent/10",                          badge: "bg-accent text-white",         icon: <ClipboardCheck className="h-4 w-4" />,  title: "text-accent" },
   violet:  { bg: "bg-violet-50 dark:bg-violet-500/10",   badge: "bg-violet-500 text-white",     icon: <CalendarIcon className="h-4 w-4" />,    title: "text-violet-600 dark:text-violet-300" },
