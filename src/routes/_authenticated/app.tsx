@@ -41,13 +41,13 @@ const nav = [
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
 ] as const;
 
-const mobileNav = [
+const mobileNav: Array<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
   { to: "/app", label: "Início", icon: Home, exact: true },
   { to: "/app/organization/agenda", label: "Agenda", icon: Calendar },
   { to: "/app/team", label: "Equipe", icon: Users },
   { to: "/app/ai", label: "Ações", icon: Zap },
   { to: "/app/help", label: "Mais", icon: MoreHorizontal },
-] as const;
+];
 
 function AppShell() {
   const navigate = useNavigate();
