@@ -171,6 +171,26 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" translate="no">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                if (window.__liderCoreDomMutationGuardInstalled) return;
+                window.__liderCoreDomMutationGuardInstalled = true;
+                var removeChild = Node.prototype.removeChild;
+                var insertBefore = Node.prototype.insertBefore;
+                Node.prototype.removeChild = function (child) {
+                  if (child && child.parentNode !== this) return child;
+                  return removeChild.call(this, child);
+                };
+                Node.prototype.insertBefore = function (node, before) {
+                  if (before && before.parentNode !== this) return insertBefore.call(this, node, null);
+                  return insertBefore.call(this, node, before);
+                };
+              })();
+            `,
+          }}
+        />
         <meta name="google" content="notranslate" />
         <HeadContent />
       </head>
