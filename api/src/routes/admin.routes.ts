@@ -604,7 +604,7 @@ adminRouter.put("/methodology-doc", async (req, res) => {
   const doc = await prisma.methodologyDoc.upsert({
     where: { id: "singleton" },
     update: parsed.data as never,
-    create: { id: "singleton", ...(parsed.data as never) },
+    create: { id: "singleton", ...(parsed.data as Record<string, unknown>) } as never,
   });
   res.json(doc);
 });
