@@ -410,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/help': typeof AuthenticatedAdminHelpRoute
+  '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
@@ -428,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
@@ -465,6 +467,7 @@ export interface FileRoutesByTo {
   '/admin/data': typeof AuthenticatedAdminDataRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/help': typeof AuthenticatedAdminHelpRoute
+  '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
@@ -483,6 +486,7 @@ export interface FileRoutesByTo {
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
@@ -525,6 +529,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
   '/_authenticated/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/_authenticated/admin/help': typeof AuthenticatedAdminHelpRoute
+  '/_authenticated/admin/help': typeof AuthenticatedAdminHelpRoute
   '/_authenticated/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
   '/_authenticated/admin/invoices': typeof AuthenticatedAdminInvoicesRoute
   '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
@@ -543,6 +548,7 @@ export interface FileRoutesById {
   '/_authenticated/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/_authenticated/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/_authenticated/app/help': typeof AuthenticatedAppHelpRoute
   '/_authenticated/app/help': typeof AuthenticatedAppHelpRoute
   '/_authenticated/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
@@ -586,6 +592,7 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/franchises'
     | '/admin/help'
+    | '/admin/help'
     | '/admin/hierarchy'
     | '/admin/invoices'
     | '/admin/licenses'
@@ -604,6 +611,7 @@ export interface FileRouteTypes {
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
+    | '/app/help'
     | '/app/help'
     | '/app/indicators'
     | '/app/one-on-ones'
@@ -641,6 +649,7 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/franchises'
     | '/admin/help'
+    | '/admin/help'
     | '/admin/hierarchy'
     | '/admin/invoices'
     | '/admin/licenses'
@@ -659,6 +668,7 @@ export interface FileRouteTypes {
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
+    | '/app/help'
     | '/app/help'
     | '/app/indicators'
     | '/app/one-on-ones'
@@ -700,6 +710,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/data'
     | '/_authenticated/admin/franchises'
     | '/_authenticated/admin/help'
+    | '/_authenticated/admin/help'
     | '/_authenticated/admin/hierarchy'
     | '/_authenticated/admin/invoices'
     | '/_authenticated/admin/licenses'
@@ -718,6 +729,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/consciencia'
     | '/_authenticated/app/evolution'
     | '/_authenticated/app/feedbacks'
+    | '/_authenticated/app/help'
     | '/_authenticated/app/help'
     | '/_authenticated/app/indicators'
     | '/_authenticated/app/one-on-ones'
@@ -1153,6 +1165,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationAreasRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationRoute
     }
+    '/_authenticated/admin/help': {
+      id: '/_authenticated/admin/help'
+      path: '/help'
+      fullPath: '/admin/help'
+      preLoaderRoute: typeof AuthenticatedAdminHelpRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/app/help': {
+      id: '/_authenticated/app/help'
+      path: '/help'
+      fullPath: '/app/help'
+      preLoaderRoute: typeof AuthenticatedAppHelpRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/organization/agenda': {
       id: '/_authenticated/app/organization/agenda'
       path: '/agenda'
@@ -1170,6 +1196,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBrandingRoute: typeof AuthenticatedAdminBrandingRoute
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
   AuthenticatedAdminFranchisesRoute: typeof AuthenticatedAdminFranchisesRoute
+  AuthenticatedAdminHelpRoute: typeof AuthenticatedAdminHelpRoute
   AuthenticatedAdminHelpRoute: typeof AuthenticatedAdminHelpRoute
   AuthenticatedAdminHierarchyRoute: typeof AuthenticatedAdminHierarchyRoute
   AuthenticatedAdminInvoicesRoute: typeof AuthenticatedAdminInvoicesRoute
@@ -1195,6 +1222,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBrandingRoute: AuthenticatedAdminBrandingRoute,
   AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
   AuthenticatedAdminFranchisesRoute: AuthenticatedAdminFranchisesRoute,
+  AuthenticatedAdminHelpRoute: AuthenticatedAdminHelpRoute,
   AuthenticatedAdminHelpRoute: AuthenticatedAdminHelpRoute,
   AuthenticatedAdminHierarchyRoute: AuthenticatedAdminHierarchyRoute,
   AuthenticatedAdminInvoicesRoute: AuthenticatedAdminInvoicesRoute,
@@ -1260,6 +1288,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppEvolutionRoute: typeof AuthenticatedAppEvolutionRoute
   AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
   AuthenticatedAppHelpRoute: typeof AuthenticatedAppHelpRoute
+  AuthenticatedAppHelpRoute: typeof AuthenticatedAppHelpRoute
   AuthenticatedAppIndicatorsRoute: typeof AuthenticatedAppIndicatorsRoute
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -1273,6 +1302,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppConscienciaRoute: AuthenticatedAppConscienciaRoute,
   AuthenticatedAppEvolutionRoute: AuthenticatedAppEvolutionRoute,
   AuthenticatedAppFeedbacksRoute: AuthenticatedAppFeedbacksRoute,
+  AuthenticatedAppHelpRoute: AuthenticatedAppHelpRoute,
   AuthenticatedAppHelpRoute: AuthenticatedAppHelpRoute,
   AuthenticatedAppIndicatorsRoute: AuthenticatedAppIndicatorsRoute,
   AuthenticatedAppOneOnOnesRoute: AuthenticatedAppOneOnOnesRoute,
