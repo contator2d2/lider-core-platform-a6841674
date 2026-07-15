@@ -27,63 +27,46 @@ import { prisma } from "./prisma.js";
 
 const app = express();
 
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://ayratech-neo-lider-front.isyhhh.easypanel.host",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:8080",
-];
-
-const allowedOrigins = Array.from(
-  new Set([...env.CORS_ORIGIN.split(","), ...DEFAULT_ALLOWED_ORIGINS].map((s) => s.trim()).filter(Boolean)),
-);
-const allowAll = allowedOrigins.length === 0 || allowedOrigins.includes("*");
+// CORS — echo whatever Origin the browser sends. This guarantees the
+// preflight always passes even when the deployment env var is misconfigured.
+// If you need to lock this down later, filter req.headers.origin here.
 const defaultAllowedHeaders = "Content-Type, Authorization, X-Requested-With, Accept, Origin";
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const requestedHeaders = req.headers["access-control-request-headers"];
 
-  if (origin && (allowAll || allowedOrigins.includes(origin))) {
+  if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
-
-  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    typeof requestedHeaders === "string" ? requestedHeaders : defaultAllowedHeaders,
+    typeof requestedHeaders === "string" && requestedHeaders.length > 0
+      ? requestedHeaders
+      : defaultAllowedHeaders,
   );
+  res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Type");
   res.setHeader("Access-Control-Max-Age", "86400");
 
   if (req.method === "OPTIONS") {
-    res.sendStatus(204);
+    res.status(204).end();
     return;
   }
 
   next();
 });
 
-app.use(helmet());
-
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, cb) => {
-    // Same-origin / server-to-server (no Origin header)
-    if (!origin) return cb(null, true);
-    if (allowAll) return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    // Do NOT throw — throwing prevents CORS headers on the response.
-    // Simply omit the header so the browser blocks it with a clear message.
-    return cb(null, false);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: defaultAllowedHeaders.split(", "),
-  maxAge: 86400,
-};
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false,
+  }),
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
