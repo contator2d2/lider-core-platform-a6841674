@@ -25,7 +25,7 @@ const nav: NavItem[] = [
   { to: "/app/organization",             label: "Painel",         icon: Gauge,         tint: "orange", exact: true },
   { to: "/app/organization/map",         label: "Mapa da empresa",icon: Network,       tint: "slate" },
   { to: "/app/organization/areas",       label: "Áreas",          icon: LayoutGrid,    tint: "slate" },
-  { to: "/app/organization/roles",       label: "Equipes",        icon: Users,         tint: "slate" },
+  { to: "/app/team",                     label: "Equipes",        icon: Users,         tint: "slate" },
   { to: "/app/organization/roles",       label: "Cargos",         icon: IdCard,        tint: "slate" },
   { to: "/app/organization/rituals",     label: "Rituais",        icon: Workflow,      tint: "violet" },
   { to: "/app/organization/agenda",      label: "Agenda",         icon: Calendar,      tint: "sky" },
