@@ -32,6 +32,7 @@ import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAppOrganizationRouteImport } from './routes/_authenticated/app.organization'
 import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
 import { Route as AuthenticatedAppIndicatorsRouteImport } from './routes/_authenticated/app.indicators'
+import { Route as AuthenticatedAppHelpRouteImport } from './routes/_authenticated/app.help'
 import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authenticated/app.feedbacks'
 import { Route as AuthenticatedAppEvolutionRouteImport } from './routes/_authenticated/app.evolution'
 import { Route as AuthenticatedAppConscienciaRouteImport } from './routes/_authenticated/app.consciencia'
@@ -193,6 +194,11 @@ const AuthenticatedAppIndicatorsRoute =
     path: '/indicators',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppHelpRoute = AuthenticatedAppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppFeedbacksRoute =
   AuthenticatedAppFeedbacksRouteImport.update({
     id: '/feedbacks',
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -476,6 +483,7 @@ export interface FileRoutesByTo {
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/app/help': typeof AuthenticatedAppHelpRoute
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
@@ -535,6 +543,7 @@ export interface FileRoutesById {
   '/_authenticated/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/_authenticated/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
+  '/_authenticated/app/help': typeof AuthenticatedAppHelpRoute
   '/_authenticated/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
+    | '/app/help'
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/organization'
@@ -649,6 +659,7 @@ export interface FileRouteTypes {
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
+    | '/app/help'
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/pdis'
@@ -707,6 +718,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/consciencia'
     | '/_authenticated/app/evolution'
     | '/_authenticated/app/feedbacks'
+    | '/_authenticated/app/help'
     | '/_authenticated/app/indicators'
     | '/_authenticated/app/one-on-ones'
     | '/_authenticated/app/organization'
@@ -901,6 +913,13 @@ declare module '@tanstack/react-router' {
       path: '/indicators'
       fullPath: '/app/indicators'
       preLoaderRoute: typeof AuthenticatedAppIndicatorsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/help': {
+      id: '/_authenticated/app/help'
+      path: '/help'
+      fullPath: '/app/help'
+      preLoaderRoute: typeof AuthenticatedAppHelpRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/feedbacks': {
@@ -1240,6 +1259,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRoute
   AuthenticatedAppEvolutionRoute: typeof AuthenticatedAppEvolutionRoute
   AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
+  AuthenticatedAppHelpRoute: typeof AuthenticatedAppHelpRoute
   AuthenticatedAppIndicatorsRoute: typeof AuthenticatedAppIndicatorsRoute
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
@@ -1253,6 +1273,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppConscienciaRoute: AuthenticatedAppConscienciaRoute,
   AuthenticatedAppEvolutionRoute: AuthenticatedAppEvolutionRoute,
   AuthenticatedAppFeedbacksRoute: AuthenticatedAppFeedbacksRoute,
+  AuthenticatedAppHelpRoute: AuthenticatedAppHelpRoute,
   AuthenticatedAppIndicatorsRoute: AuthenticatedAppIndicatorsRoute,
   AuthenticatedAppOneOnOnesRoute: AuthenticatedAppOneOnOnesRoute,
   AuthenticatedAppOrganizationRoute:
