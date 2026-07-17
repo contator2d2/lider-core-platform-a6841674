@@ -265,6 +265,104 @@ evolutionRouter.post("/:orgId/evolution/snapshot", async (req, res) => {
 // Apenas roles: super_admin, neo_admin, hr_admin, franchise_owner
 // ============================================================
 evolutionRouter.get("/:orgId/evolution/dashboard", async (req, res) => {
+  // (implementação abaixo)
+  return dashboardHandler(req, res);
+});
+
+// Timeline pessoal do líder (Etapa 3): snapshots + delegações concluídas +
+// PDIs criados + feedbacks recebidos, ordenados por data desc.
+evolutionRouter.get("/:orgId/evolution/timeline", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    const since = new Date(Date.now() - 180 * 86400000);
+    const [snapshots, delegs, pdis, feedbacks] = await Promise.all([
+      prisma.leadershipScoreSnapshot.findMany({
+        where: { organizationId: orgId, userId },
+        orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+        take: 12,
+      }),
+      prisma.delegation.findMany({
+        where: {
+          organizationId: orgId,
+          delegatorId: userId,
+          status: "done",
+          doneAt: { gte: since },
+        },
+        select: { id: true, title: true, doneAt: true, dueAt: true },
+        orderBy: { doneAt: "desc" },
+        take: 20,
+      }),
+      prisma.pdi.findMany({
+        where: { organizationId: orgId, authorId: userId, createdAt: { gte: since } },
+        select: { id: true, title: true, subjectUserId: true, createdAt: true, status: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.feedbackRecord.findMany({
+        where: { organizationId: orgId, subjectUserId: userId, createdAt: { gte: since } },
+        select: { id: true, type: true, fact: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    ]);
+
+    type Ev = {
+      id: string;
+      kind: "snapshot" | "delegation" | "pdi" | "feedback";
+      at: string;
+      title: string;
+      detail?: string | null;
+      score?: number;
+    };
+    const events: Ev[] = [];
+    for (const s of snapshots) {
+      const at = new Date(Date.UTC(s.periodYear, s.periodMonth - 1, 28)).toISOString();
+      events.push({
+        id: `snap-${s.id}`,
+        kind: "snapshot",
+        at,
+        title: `Score ${s.score}/100 · ${String(s.periodMonth).padStart(2, "0")}/${s.periodYear}`,
+        detail: s.diagnostic,
+        score: s.score,
+      });
+    }
+    for (const d of delegs) {
+      const onTime = !d.dueAt || (d.doneAt && d.doneAt <= d.dueAt);
+      events.push({
+        id: `del-${d.id}`,
+        kind: "delegation",
+        at: (d.doneAt ?? new Date()).toISOString(),
+        title: `Delegação concluída: ${d.title}`,
+        detail: onTime ? "No prazo" : "Fora do prazo",
+      });
+    }
+    for (const p of pdis) {
+      events.push({
+        id: `pdi-${p.id}`,
+        kind: "pdi",
+        at: p.createdAt.toISOString(),
+        title: `PDI criado: ${p.title}`,
+        detail: `status ${p.status}`,
+      });
+    }
+    for (const f of feedbacks) {
+      events.push({
+        id: `fb-${f.id}`,
+        kind: "feedback",
+        at: f.createdAt.toISOString(),
+        title: `Feedback recebido (${f.type})`,
+        detail: f.fact,
+      });
+    }
+    events.sort((a, b) => (a.at < b.at ? 1 : -1));
+    res.json(events.slice(0, 60));
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+async function dashboardHandler(req: Parameters<Parameters<typeof evolutionRouter.get>[1]>[0], res: Response) {
   try {
     const orgId = req.params.orgId;
     if (!(await isExec(req.userId!, orgId))) {
@@ -372,4 +470,4 @@ evolutionRouter.get("/:orgId/evolution/dashboard", async (req, res) => {
   } catch (err) {
     badReq(res, err);
   }
-});
+}
