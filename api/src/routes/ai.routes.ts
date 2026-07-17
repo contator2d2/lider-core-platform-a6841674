@@ -277,7 +277,7 @@ aiRouter.post("/:orgId/ai/one-on-one/:id/brief", async (req, res) => {
 
     const [subjectProfile, feedbacks, delegs, pdi, signals, prevSessions, snapshot] = await Promise.all([
       prisma.profile.findUnique({ where: { id: subjectId } }).catch(() => null),
-      prisma.feedback.findMany({
+      prisma.feedbackRecord.findMany({
         where: {
           organizationId: orgId,
           OR: [{ subjectUserId: subjectId }, { authorId: subjectId }],
@@ -338,8 +338,8 @@ aiRouter.post("/:orgId/ai/one-on-one/:id/brief", async (req, res) => {
         atrasada: d.dueAt ? d.dueAt < now : false,
       })),
       feedbacksRecentes: feedbacks.map((f) => ({
-        tipo: f.kind,
-        conteudo: f.content?.slice(0, 300),
+        tipo: f.type,
+        conteudo: [f.fact, f.impact, f.expectation].filter(Boolean).join(" | ").slice(0, 300),
         data: f.createdAt,
       })),
       sinaisAbertos: signals.map((s) => ({ tipo: s.kind, severidade: s.severity, titulo: s.title })),
