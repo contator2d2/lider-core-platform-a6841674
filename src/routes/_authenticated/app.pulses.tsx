@@ -282,10 +282,11 @@ function ShareButtons({ send }: { send: PulseSend }) {
 
   function whatsapp() {
     const digits = (send.subjectPhone ?? "").replace(/\D/g, "");
-    const text = encodeURIComponent(
-      `Oi${send.subjectLabel ? `, ${send.subjectLabel.split(" ")[0]}` : ""}! ` +
-        `Consegue responder essa pesquisa rápida pra mim? Leva pouquinho.\n\n${url}`,
-    );
+    const greeting = `Oi${send.subjectLabel ? `, ${send.subjectLabel.split(" ")[0]}` : ""}!`;
+    const body = send.message?.trim()
+      ? send.message.trim()
+      : "Consegue responder essa pesquisa rápida pra mim? Leva pouquinho.";
+    const text = encodeURIComponent(`${greeting} ${body}\n\n${url}`);
     const link = digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
     window.open(link, "_blank", "noopener");
   }
@@ -361,9 +362,11 @@ function NewSendDialog({
       // auto-open whatsapp with the fresh link
       const digits = (s.subjectPhone ?? "").replace(/\D/g, "");
       const url = publicUrl(s.token);
-      const text = encodeURIComponent(
-        `Oi${s.subjectLabel ? `, ${s.subjectLabel.split(" ")[0]}` : ""}! Consegue responder essa pesquisa rápida?\n\n${url}`,
-      );
+      const greeting = `Oi${s.subjectLabel ? `, ${s.subjectLabel.split(" ")[0]}` : ""}!`;
+      const body = (s.message ?? message)?.trim()
+        ? (s.message ?? message).trim()
+        : "Consegue responder essa pesquisa rápida?";
+      const text = encodeURIComponent(`${greeting} ${body}\n\n${url}`);
       const link = digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
       window.open(link, "_blank", "noopener");
       onDone();
