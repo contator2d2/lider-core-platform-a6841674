@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
   Shield,
   Bell,
+  Mic,
   MessageCircle,
   ChevronRight,
   Sun,
@@ -276,14 +277,26 @@ function LeadershipRoom() {
           <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
         </div>
 
-        {/* FAB central laranja (encaixa com bottom nav) */}
-        <Link
-          to="/app/organization/delegations"
-          aria-label="Nova ação"
-          className="fixed bottom-14 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-accent text-white shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition active:scale-95 md:hidden"
+        {/* FABs flutuantes (posicionados acima da bottom nav com safe-area) */}
+        <div
+          className="fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 md:hidden"
+          style={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
         >
-          <Plus className="h-6 w-6" strokeWidth={2.5} />
-        </Link>
+          <Link
+            to="/app/one-on-ones"
+            aria-label="Ditar (captura de voz)"
+            className="grid h-12 w-12 place-items-center rounded-full border border-border bg-background text-foreground shadow-[0_10px_24px_-12px_rgba(0,0,0,0.35)] transition active:scale-95"
+          >
+            <Mic className="h-5 w-5" strokeWidth={2} />
+          </Link>
+          <Link
+            to="/app/organization/delegations"
+            aria-label="Nova ação"
+            className="grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition active:scale-95"
+          >
+            <Plus className="h-6 w-6" strokeWidth={2.5} />
+          </Link>
+        </div>
 
         <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
       </div>
