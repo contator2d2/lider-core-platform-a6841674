@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as AuthenticatedFranchiseRouteImport } from './routes/_authenticated/franchise'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
@@ -82,6 +83,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedFranchiseRoute = AuthenticatedFranchiseRouteImport.update({
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/company': typeof AuthenticatedCompanyRouteWithChildren
   '/franchise': typeof AuthenticatedFranchiseRouteWithChildren
+  '/p/$token': typeof PTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -473,6 +480,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/p/$token': typeof PTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -535,6 +543,7 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
   '/_authenticated/franchise': typeof AuthenticatedFranchiseRouteWithChildren
+  '/p/$token': typeof PTokenRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRoute
   '/_authenticated/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -598,6 +607,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/company'
     | '/franchise'
+    | '/p/$token'
     | '/admin/ai'
     | '/admin/apps'
     | '/admin/billing'
@@ -655,6 +665,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/p/$token'
     | '/admin/ai'
     | '/admin/apps'
     | '/admin/billing'
@@ -716,6 +727,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/company'
     | '/_authenticated/franchise'
+    | '/p/$token'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/apps'
     | '/_authenticated/admin/billing'
@@ -775,6 +787,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PTokenRoute: typeof PTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -798,6 +811,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/franchise': {
@@ -1398,6 +1418,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PTokenRoute: PTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
