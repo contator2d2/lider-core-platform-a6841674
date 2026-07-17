@@ -8,6 +8,7 @@ import {
   Gauge,
   IdCard,
   LayoutGrid,
+  MessageSquareHeart,
   Network,
   ScrollText,
   Users,
@@ -30,6 +31,7 @@ const nav: NavItem[] = [
   { to: "/app/organization/rituals",     label: "Rituais",        icon: Workflow,      tint: "violet" },
   { to: "/app/organization/agenda",      label: "Agenda",         icon: Calendar,      tint: "sky" },
   { to: "/app/organization/delegations", label: "Delegações",     icon: ClipboardList, tint: "emerald" },
+  { to: "/app/pulses",                   label: "Pulsos",         icon: MessageSquareHeart, tint: "violet" },
   { to: "/app/organization/decisions",   label: "Decisões",       icon: ScrollText,    tint: "orange" },
   { to: "/app/organization/documents",   label: "Base documental",icon: FileText,      tint: "slate" },
 ];
