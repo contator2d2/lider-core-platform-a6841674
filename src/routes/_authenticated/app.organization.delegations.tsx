@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ClipboardList, Plus, AlertTriangle } from "lucide-react";
+import { ClipboardList, Plus, AlertTriangle, BellRing } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/organization/delegations")({
   component: DelegationsPage,
@@ -21,7 +21,14 @@ type Delegation = {
   status: "open" | "in_progress" | "blocked" | "done" | "canceled";
   priority: "low" | "medium" | "high" | "critical";
   dueAt: string | null; doneCriteria: string | null;
+  assigneeId?: string | null;
   _count: { comments: number };
+};
+
+type FollowUp = {
+  id: string; title: string; status: Delegation["status"]; priority: Delegation["priority"];
+  dueAt: string | null; assigneeId: string | null; overdueDays: number | null; staleDays: number;
+  reason: string;
 };
 
 const COLUMNS: Array<{ key: Delegation["status"]; label: string }> = [
@@ -53,6 +60,22 @@ function DelegationsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["org", "delegations", orgId] }); },
   });
 
+  const followUp = useQuery({
+    queryKey: ["org", "delegations", "follow-up", orgId],
+    queryFn: () => api<FollowUp[]>(`/organization/${orgId}/delegations/follow-up`),
+    enabled: !!orgId,
+  });
+
+  const nudge = useMutation({
+    mutationFn: ({ id, message }: { id: string; message?: string }) =>
+      api(`/organization/${orgId}/delegations/${id}/nudge`, { method: "POST", body: { message } }),
+    onSuccess: () => {
+      toast.success("Responsável notificado.");
+      qc.invalidateQueries({ queryKey: ["org", "delegations", "follow-up", orgId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const now = Date.now();
   const cols = new Map<Delegation["status"], Delegation[]>();
   COLUMNS.forEach((c) => cols.set(c.key, []));
@@ -60,6 +83,38 @@ function DelegationsPage() {
 
   return (
     <div className="space-y-4">
+      {followUp.data && followUp.data.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-amber-700 dark:text-amber-400">Follow-up ativo</div>
+              <div className="text-sm font-medium">
+                {followUp.data.length} delegação(ões) precisam de cobrança
+              </div>
+            </div>
+          </div>
+          <ul className="mt-3 space-y-2">
+            {followUp.data.slice(0, 6).map((d) => (
+              <li key={d.id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{d.title}</div>
+                  <div className="truncate text-xs text-muted-foreground">{d.reason}</div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!d.assigneeId || nudge.isPending}
+                  onClick={() => nudge.mutate({ id: d.id })}
+                  className="gap-1"
+                >
+                  <BellRing className="h-3.5 w-3.5" /> Cobrar
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex justify-end">
         <Dialog open={creating} onOpenChange={setCreating}>
           <DialogTrigger asChild><Button size="sm"><Plus className="h-3.5 w-3.5" /> Nova delegação</Button></DialogTrigger>
@@ -114,6 +169,14 @@ function DelegationsPage() {
                   <option value="canceled">Cancelada</option>
                 </select>
               </div>
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={nudge.isPending || editing.status === "done" || editing.status === "canceled"}
+                onClick={() => nudge.mutate({ id: editing.id })}
+              >
+                <BellRing className="h-4 w-4" /> Cobrar responsável
+              </Button>
             </div>
           )}
         </SheetContent>
