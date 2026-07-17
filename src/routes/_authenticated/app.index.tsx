@@ -33,6 +33,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { api } from "@/lib/api";
 import { TodayList } from "@/components/dashboard/TodayList";
+import { ExplainButton } from "@/components/metrics/ExplainButton";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: LeadershipRoom,
@@ -832,7 +833,7 @@ function CoreScoreCard({ score, loading }: { score?: number; loading: boolean })
     <div className="rounded-[24px] border border-border bg-card p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">CORE Score</h3>
-        <span className="grid h-5 w-5 place-items-center rounded-full border border-border text-[10px] text-muted-foreground">i</span>
+        <ExplainButton metric="CORE Score" value={typeof score === "number" ? score : undefined} window="mês atual" />
       </div>
       <div className="mt-4 flex items-center gap-5">
         <BigRing value={value} label={shown} />
