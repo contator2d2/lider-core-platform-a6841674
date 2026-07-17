@@ -53,6 +53,7 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   "/app/organization/rituals":      { title: "Rituais",             description: "Cadência de rituais que sustentam a operação." },
   "/app/organization/agenda":       { title: "Agenda do líder",     description: "Visualize seus compromissos, rituais e prioridades dos próximos dias." },
   "/app/organization/delegations":  { title: "Delegações",          description: "Combinados claros com prazos e responsáveis." },
+  "/app/pulses":                    { title: "Pulsos",              description: "Envie um link único por WhatsApp e receba feedback, clima ou DISC direto do liderado — sem login." },
   "/app/organization/decisions":    { title: "Decisões",            description: "Registro vivo das decisões e seus desdobramentos." },
   "/app/organization/documents":    { title: "Base documental",     description: "Documentos, políticas e artefatos organizacionais." },
 };
