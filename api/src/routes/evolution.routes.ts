@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+import { Router, type Request, type Response } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 
@@ -362,7 +362,7 @@ evolutionRouter.get("/:orgId/evolution/timeline", async (req, res) => {
   }
 });
 
-async function dashboardHandler(req: Parameters<Parameters<typeof evolutionRouter.get>[1]>[0], res: Response) {
+async function dashboardHandler(req: Request, res: Response) {
   try {
     const orgId = req.params.orgId;
     if (!(await isExec(req.userId!, orgId))) {
