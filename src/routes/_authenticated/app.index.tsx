@@ -32,6 +32,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { api } from "@/lib/api";
+import { TodayList } from "@/components/dashboard/TodayList";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: LeadershipRoom,
@@ -153,6 +154,7 @@ function LeadershipRoom() {
         </header>
 
         <div className="relative -mt-6 space-y-5 px-4 pb-28 md:px-8 md:pb-12">
+          <TodayList orgId={orgId} />
           {/* Suas prioridades de hoje */}
           <section className="rounded-[24px] border border-border bg-card p-4 shadow-[0_12px_40px_-24px_rgba(0,0,0,0.25)]">
             <div className="mb-3 flex items-center justify-between">
