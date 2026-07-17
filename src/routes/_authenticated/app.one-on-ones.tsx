@@ -337,55 +337,93 @@ function SessionDetail({ orgId, session }: { orgId: string; session: OneOnOne })
 
   return (
     <div className="border-t border-border bg-secondary/20 p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background p-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Briefing automático de 1:1
-          </div>
-          <div className="text-sm">
-            {session.briefingGeneratedAt
-              ? `Gerado em ${new Date(session.briefingGeneratedAt).toLocaleString("pt-BR")}`
-              : "Ainda não gerado — a IA agrega delegações, feedbacks, PDI e sinais."}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <VoiceCapture
-            orgId={orgId}
-            label="Ditar item"
-            onConfirm={async (i) => {
-              const kind: ItemKind =
-                i.tipo === "delegacao" ? "action" : i.tipo === "feedback" ? "feedback" : "note";
-              await addItem.mutateAsync({
-                kind,
-                content: i.resumo,
-                dueAt: i.prazoISO ?? null,
-              });
-              toast.success("Item adicionado à 1:1");
-            }}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => generateBrief.mutate()}
-            disabled={generateBrief.isPending}
-            className="gap-2"
-          >
-            {generateBrief.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
+      <article className="mb-5 overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-border/70 bg-gradient-to-br from-primary/[0.06] via-background to-background p-5 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
               <Sparkles className="h-4 w-4" />
-            )}
-            {session.briefingMarkdown ? "Regenerar briefing" : "Gerar briefing"}
-          </Button>
-        </div>
-      </div>
-      {session.briefingMarkdown && (
-        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown>{session.briefingMarkdown}</ReactMarkdown>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Briefing de 1:1
+              </div>
+              <h3 className="mt-0.5 font-display text-lg leading-tight">
+                {session.briefingMarkdown ? "Preparado pela IA" : "Prepare a conversa em 1 clique"}
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {session.briefingGeneratedAt
+                  ? `Atualizado em ${new Date(session.briefingGeneratedAt).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}`
+                  : "A IA agrega delegações, feedbacks, PDI e sinais recentes."}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <VoiceCapture
+              orgId={orgId}
+              label="Ditar item"
+              onConfirm={async (i) => {
+                const kind: ItemKind =
+                  i.tipo === "delegacao" ? "action" : i.tipo === "feedback" ? "feedback" : "note";
+                await addItem.mutateAsync({
+                  kind,
+                  content: i.resumo,
+                  dueAt: i.prazoISO ?? null,
+                });
+                toast.success("Item adicionado à 1:1");
+              }}
+            />
+            <Button
+              size="sm"
+              onClick={() => generateBrief.mutate()}
+              disabled={generateBrief.isPending}
+              className="gap-2"
+            >
+              {generateBrief.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {session.briefingMarkdown ? "Regenerar" : "Gerar briefing"}
+            </Button>
+          </div>
+        </header>
+        {session.briefingMarkdown ? (
+          <div className="p-6">
+            <div
+              className={[
+                "prose prose-sm max-w-none dark:prose-invert",
+                "prose-headings:font-display prose-headings:tracking-tight",
+                "prose-h1:text-2xl prose-h1:mt-0 prose-h1:mb-3",
+                "prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-2 prose-h2:pb-1 prose-h2:border-b prose-h2:border-border/60",
+                "prose-h3:text-base prose-h3:mt-4 prose-h3:mb-1.5",
+                "prose-p:leading-relaxed prose-p:text-foreground/85",
+                "prose-strong:text-foreground prose-strong:font-semibold",
+                "prose-ul:my-2 prose-li:my-0.5 prose-li:marker:text-primary/70",
+                "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
+                "prose-code:rounded prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:before:content-none prose-code:after:content-none",
+                "prose-blockquote:border-l-2 prose-blockquote:border-primary/50 prose-blockquote:bg-primary/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:not-italic prose-blockquote:text-foreground/80",
+              ].join(" ")}
+            >
+              <ReactMarkdown>{session.briefingMarkdown}</ReactMarkdown>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-3 p-6 sm:grid-cols-3">
+            {[
+              { t: "Delegações", d: "Status, prazos e bloqueios recentes." },
+              { t: "Feedback & PDI", d: "O que foi combinado desde a última conversa." },
+              { t: "Sinais do time", d: "Humor, ritmo e alertas do CORE." },
+            ].map((c) => (
+              <div key={c.t} className="rounded-xl border border-dashed border-border/70 bg-secondary/30 p-3">
+                <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+                  {c.t}
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{c.d}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
         <div className="space-y-4">
           {KIND_ORDER.map((kind) => (
