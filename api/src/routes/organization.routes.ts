@@ -519,6 +519,115 @@ organizationRouter.post("/:orgId/delegations/:id/comments", async (req, res) => 
   } catch (err) { badReq(res, err); }
 });
 
+// -- Follow-up ativo (Etapa 3) --------------------------------
+// Lista delegações que precisam de cobrança: vencidas ou paradas há 7+ dias.
+organizationRouter.get("/:orgId/delegations/follow-up", async (req, res) => {
+  const now = new Date();
+  const staleSince = new Date(now.getTime() - 7 * 86400000);
+  const items = await prisma.delegation.findMany({
+    where: {
+      organizationId: req.params.orgId,
+      status: { in: ["open", "in_progress", "blocked"] },
+      OR: [
+        { dueAt: { lt: now } },
+        { updatedAt: { lt: staleSince } },
+      ],
+    },
+    orderBy: [{ dueAt: "asc" }, { updatedAt: "asc" }],
+    take: 50,
+  });
+  const enriched = items.map((d) => {
+    const overdueDays = d.dueAt ? Math.floor((now.getTime() - d.dueAt.getTime()) / 86400000) : null;
+    const staleDays = Math.floor((now.getTime() - d.updatedAt.getTime()) / 86400000);
+    return {
+      id: d.id,
+      title: d.title,
+      status: d.status,
+      priority: d.priority,
+      dueAt: d.dueAt,
+      assigneeId: d.assigneeId,
+      overdueDays: overdueDays != null && overdueDays > 0 ? overdueDays : null,
+      staleDays,
+      reason: overdueDays != null && overdueDays > 0
+        ? `Atrasada há ${overdueDays} dia(s)`
+        : `Sem movimento há ${staleDays} dia(s)`,
+    };
+  });
+  res.json(enriched);
+});
+
+// Cobrança educada: notifica o responsável e registra na history.
+organizationRouter.post("/:orgId/delegations/:id/nudge", async (req, res) => {
+  try {
+    const { message } = z.object({ message: z.string().optional() }).parse(req.body ?? {});
+    const d = await prisma.delegation.findUnique({ where: { id: req.params.id } });
+    if (!d) return res.status(404).json({ error: "Não encontrada" });
+    if (!d.assigneeId) return res.status(400).json({ error: "Delegação sem responsável" });
+    const hist = Array.isArray(d.history) ? (d.history as unknown[]) : [];
+    hist.push({ at: new Date().toISOString(), by: req.userId, action: "nudge", message: message ?? null });
+    await prisma.delegation.update({
+      where: { id: d.id },
+      data: { history: hist as never, updatedBy: req.userId },
+    });
+    await notifyInApp({
+      userId: d.assigneeId,
+      organizationId: d.organizationId,
+      title: "Cobrança sobre delegação",
+      body: message?.trim() || `Lembrete: "${d.title}"${d.dueAt ? ` — prazo ${new Date(d.dueAt).toLocaleDateString("pt-BR")}` : ""}`,
+      linkUrl: "/app/organization/delegations",
+    }).catch(() => null);
+    await audit(req.userId, "delegation.nudge", "delegation", d.id, { message });
+    res.json({ ok: true });
+  } catch (err) { badReq(res, err); }
+});
+
+// Check-in rápido de ocorrência (1 clique: feita ou perdida)
+organizationRouter.post("/:orgId/occurrences/:id/quick-checkin", async (req, res) => {
+  try {
+    const { status, note } = z.object({
+      status: z.enum(["done", "missed"]),
+      note: z.string().optional(),
+    }).parse(req.body);
+    const o = await prisma.ritualOccurrence.update({
+      where: { id: req.params.id },
+      data: {
+        status: status as never,
+        endedAt: new Date(),
+        notes: note ?? undefined,
+      },
+    });
+    await audit(req.userId, "occurrence.quick_checkin", "ritual_occurrence", o.id, { status });
+    res.json(o);
+  } catch (err) { badReq(res, err); }
+});
+
+// Ocorrências de hoje/próximas 24h para o usuário logado (owner ou participante)
+organizationRouter.get("/:orgId/occurrences/today", async (req, res) => {
+  const orgId = req.params.orgId;
+  const userId = req.userId!;
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  const [owned, parts] = await Promise.all([
+    prisma.ritual.findMany({ where: { organizationId: orgId, ownerId: userId }, select: { id: true } }),
+    prisma.ritualParticipant.findMany({
+      where: { membership: { organizationId: orgId, userId } },
+      select: { ritualId: true },
+    }),
+  ]);
+  const ritualIds = Array.from(new Set([...owned.map((r) => r.id), ...parts.map((p) => p.ritualId)]));
+  if (!ritualIds.length) return res.json([]);
+  const items = await prisma.ritualOccurrence.findMany({
+    where: {
+      ritualId: { in: ritualIds },
+      scheduledAt: { gte: start, lte: end },
+    },
+    include: { ritual: { select: { name: true, type: true } } },
+    orderBy: { scheduledAt: "asc" },
+  });
+  res.json(items);
+});
+
 // ============================================================
 // 7. DECISIONS
 // ============================================================

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Save, Sparkles } from "lucide-react";
+import { Loader2, Save, Sparkles, TrendingUp, CheckSquare, Target, MessageSquare } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,15 @@ type MeResponse = {
   commitments: Array<{ id: string; phrase: string; status: string }>;
 };
 
+type TimelineEvent = {
+  id: string;
+  kind: "snapshot" | "delegation" | "pdi" | "feedback";
+  at: string;
+  title: string;
+  detail?: string | null;
+  score?: number;
+};
+
 function EvolutionPage() {
   const { orgId } = useCurrentOrg();
   const qc = useQueryClient();
@@ -49,6 +58,12 @@ function EvolutionPage() {
     queryKey: ["evolution", "me", orgId],
     enabled: !!orgId,
     queryFn: () => api<MeResponse>(`/organization/${orgId}/evolution/me`),
+  });
+
+  const timeline = useQuery({
+    queryKey: ["evolution", "timeline", orgId],
+    enabled: !!orgId,
+    queryFn: () => api<TimelineEvent[]>(`/organization/${orgId}/evolution/timeline`),
   });
 
   const snapshot = useMutation({
@@ -218,6 +233,56 @@ function EvolutionPage() {
                     </StaggerItem>
                   ))}
                 </StaggerList>
+              )}
+            </section>
+          </FadeIn>
+
+          <FadeIn delay={0.25}>
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="eyebrow">Trilha do líder</div>
+                  <h3 className="mt-1 font-display text-xl">Últimos 6 meses</h3>
+                </div>
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                  {timeline.data?.length ?? 0} evento(s)
+                </span>
+              </div>
+              {timeline.isLoading ? (
+                <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
+                  Montando trilha…
+                </div>
+              ) : (timeline.data?.length ?? 0) === 0 ? (
+                <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
+                  Ainda sem eventos. Assim que houver snapshots, delegações concluídas, PDIs ou feedbacks, sua trilha começa a se formar.
+                </div>
+              ) : (
+                <ol className="relative space-y-3 border-l border-border pl-5">
+                  {timeline.data!.map((ev) => {
+                    const Icon =
+                      ev.kind === "snapshot" ? TrendingUp :
+                      ev.kind === "delegation" ? CheckSquare :
+                      ev.kind === "pdi" ? Target : MessageSquare;
+                    return (
+                      <li key={ev.id} className="relative">
+                        <span className="absolute -left-[27px] top-1.5 grid h-5 w-5 place-items-center rounded-full border border-border bg-background text-muted-foreground">
+                          <Icon className="h-3 w-3" />
+                        </span>
+                        <div className="rounded-xl border border-border bg-card p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="text-sm font-medium">{ev.title}</div>
+                            <div className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">
+                              {new Date(ev.at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+                            </div>
+                          </div>
+                          {ev.detail && (
+                            <div className="mt-1 text-xs text-muted-foreground">{ev.detail}</div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
               )}
             </section>
           </FadeIn>
