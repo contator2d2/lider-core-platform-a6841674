@@ -35,6 +35,9 @@ import { useCurrentOrg } from "@/lib/use-current-org";
 import { api } from "@/lib/api";
 import { TodayList } from "@/components/dashboard/TodayList";
 import { ExplainButton } from "@/components/metrics/ExplainButton";
+import { VoiceCapture, type VoiceIntent } from "@/components/voice/VoiceCapture";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: LeadershipRoom,
@@ -64,6 +67,7 @@ function LeadershipRoom() {
   const navigate = useNavigate();
   const { orgId, current } = useCurrentOrg();
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "light";
     return (window.localStorage.getItem("app-home-theme") as "light" | "dark") || "light";
@@ -105,6 +109,32 @@ function LeadershipRoom() {
 
   const priorities = buildPriorities(data);
   const nextMeeting = (data?.upcomingOccurrences ?? [])[0];
+
+  const handleVoiceIntent = async (intent: VoiceIntent) => {
+    try {
+      if (typeof window !== "undefined") {
+        const key =
+          intent.tipo === "feedback"
+            ? "voice-draft-feedback"
+            : intent.tipo === "delegacao"
+              ? "voice-draft-delegacao"
+              : "voice-draft-nota";
+        window.sessionStorage.setItem(key, JSON.stringify(intent));
+      }
+      setVoiceOpen(false);
+      if (intent.tipo === "feedback") {
+        toast.success("Feedback capturado", { description: "Abrindo Feedbacks…" });
+        navigate({ to: "/app/feedbacks" });
+      } else if (intent.tipo === "delegacao") {
+        toast.success("Delegação capturada", { description: "Abrindo Delegações…" });
+        navigate({ to: "/app/organization/delegations" });
+      } else {
+        toast.success("Nota salva", { description: intent.resumo.slice(0, 120) });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao processar");
+    }
+  };
 
   return (
     <div className={theme === "dark" ? "dark" : ""}>
@@ -282,13 +312,14 @@ function LeadershipRoom() {
           className="fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 md:hidden"
           style={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
         >
-          <Link
-            to="/app/one-on-ones"
+          <button
+            type="button"
+            onClick={() => setVoiceOpen(true)}
             aria-label="Ditar (captura de voz)"
             className="grid h-12 w-12 place-items-center rounded-full border border-border bg-background text-foreground shadow-[0_10px_24px_-12px_rgba(0,0,0,0.35)] transition active:scale-95"
           >
             <Mic className="h-5 w-5" strokeWidth={2} />
-          </Link>
+          </button>
           <Link
             to="/app/organization/delegations"
             aria-label="Nova ação"
@@ -299,6 +330,23 @@ function LeadershipRoom() {
         </div>
 
         <LeadershipDrawer target={drawer} onClose={() => setDrawer(null)} />
+
+        <Dialog open={voiceOpen} onOpenChange={setVoiceOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Captura por voz</DialogTitle>
+              <DialogDescription>
+                Fale um feedback, delegação ou nota. A IA transcreve, classifica e leva você direto para o lugar certo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="pt-2">
+              <VoiceCapture orgId={orgId} onConfirm={handleVoiceIntent} label="Iniciar gravação" />
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Exemplos: <em>"Dar feedback positivo à Ana pela apresentação"</em> · <em>"Delegar ao João o relatório mensal até sexta"</em> · <em>"Nota: revisar meta do time comercial"</em>.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
