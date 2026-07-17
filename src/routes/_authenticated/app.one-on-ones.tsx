@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Plus,
   Smile,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -19,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import ReactMarkdown from "react-markdown";
+import { VoiceCapture } from "@/components/voice/VoiceCapture";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +70,8 @@ type OneOnOne = {
   summary: string | null;
   privateNotes: string | null;
   mood: number | null;
+  briefingMarkdown?: string | null;
+  briefingGeneratedAt?: string | null;
   items: Item[];
 };
 
@@ -311,8 +316,76 @@ function SessionDetail({ orgId, session }: { orgId: string; session: OneOnOne })
     onSuccess: invalidate,
   });
 
+  const generateBrief = useMutation({
+    mutationFn: () =>
+      api<{ briefingMarkdown: string; briefingGeneratedAt: string }>(
+        `/organization/${orgId}/ai/one-on-one/${session.id}/brief`,
+        { method: "POST", body: {} },
+      ),
+    onSuccess: () => {
+      toast.success("Briefing gerado");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar briefing"),
+  });
+
+  const addItem = useMutation({
+    mutationFn: (body: { kind: ItemKind; content: string; dueAt?: string | null }) =>
+      api(`/organization/${orgId}/one-on-ones/${session.id}/items`, { method: "POST", body }),
+    onSuccess: invalidate,
+  });
+
   return (
     <div className="border-t border-border bg-secondary/20 p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background p-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Briefing automático de 1:1
+          </div>
+          <div className="text-sm">
+            {session.briefingGeneratedAt
+              ? `Gerado em ${new Date(session.briefingGeneratedAt).toLocaleString("pt-BR")}`
+              : "Ainda não gerado — a IA agrega delegações, feedbacks, PDI e sinais."}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <VoiceCapture
+            orgId={orgId}
+            label="Ditar item"
+            onConfirm={async (i) => {
+              const kind: ItemKind =
+                i.tipo === "delegacao" ? "action" : i.tipo === "feedback" ? "feedback" : "note";
+              await addItem.mutateAsync({
+                kind,
+                content: i.resumo,
+                dueAt: i.prazoISO ?? null,
+              });
+              toast.success("Item adicionado à 1:1");
+            }}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generateBrief.mutate()}
+            disabled={generateBrief.isPending}
+            className="gap-2"
+          >
+            {generateBrief.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {session.briefingMarkdown ? "Regenerar briefing" : "Gerar briefing"}
+          </Button>
+        </div>
+      </div>
+      {session.briefingMarkdown && (
+        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown>{session.briefingMarkdown}</ReactMarkdown>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
         <div className="space-y-4">
           {KIND_ORDER.map((kind) => (
