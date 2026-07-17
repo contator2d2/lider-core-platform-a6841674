@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LeaderOnboarding } from "@/components/onboarding/LeaderOnboarding";
+import { TeamHealthPill } from "@/components/team/TeamHealthPill";
+import { useCurrentOrg } from "@/lib/use-current-org";
 
 export const Route = createFileRoute("/_authenticated/app")({
   component: AppShell,
@@ -54,6 +56,7 @@ function AppShell() {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { signOut } = useAuth();
+  const { orgId } = useCurrentOrg();
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -125,6 +128,7 @@ function AppShell() {
             {formatToday()}
           </div>
           <div className="flex items-center gap-3">
+            <TeamHealthPill orgId={orgId} />
             <NotificationBell />
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-secondary text-sm font-medium ring-2 ring-border">
               <Logo variant="mark" className="h-8 w-8 rounded-full" />

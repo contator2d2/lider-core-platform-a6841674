@@ -213,3 +213,47 @@ aiRouter.post("/:orgId/ai/coach/chat", async (req, res: Response) => {
     res.end();
   }
 });
+
+// --- POST /:orgId/ai/explain-metric ---
+const explainSchema = z.object({
+  metric: z.string().min(1).max(80),
+  value: z.union([z.string(), z.number()]).optional(),
+  scope: z.string().max(80).optional(),
+  window: z.string().max(40).optional(),
+  hint: z.string().max(600).optional(),
+});
+
+aiRouter.post("/:orgId/ai/explain-metric", async (req, res) => {
+  const orgId = req.params.orgId;
+  if (!(await assertOrgAccess(req.userId!, orgId))) return res.status(403).json({ error: "Forbidden" });
+  const parsed = explainSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+
+  try {
+    const ctx = await buildLeaderContext(req.userId!, orgId);
+    const { metric, value, scope, window, hint } = parsed.data;
+    const text = await completeChat({
+      messages: [
+        { role: "system", content: systemPrompt() },
+        contextMessage(ctx),
+        {
+          role: "user",
+          content:
+            `Explique de forma curta (máximo 3 parágrafos) a métrica "${metric}"` +
+            (value !== undefined ? ` com valor atual ${value}` : "") +
+            (scope ? ` no escopo ${scope}` : "") +
+            (window ? ` na janela ${window}` : "") +
+            (hint ? `. Contexto extra: ${hint}` : "") +
+            ".\n\nEstrutura:\n" +
+            "1) O que está por trás desse número (cite eventos concretos do contexto).\n" +
+            "2) Por que isso importa agora.\n" +
+            "3) Uma ação sugerida para os próximos 7 dias.",
+        },
+      ],
+    });
+    res.json({ explanation: text, generatedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error("[ai/explain-metric]", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao explicar" });
+  }
+});

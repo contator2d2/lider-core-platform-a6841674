@@ -32,6 +32,8 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { api } from "@/lib/api";
+import { TodayList } from "@/components/dashboard/TodayList";
+import { ExplainButton } from "@/components/metrics/ExplainButton";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: LeadershipRoom,
@@ -153,6 +155,7 @@ function LeadershipRoom() {
         </header>
 
         <div className="relative -mt-6 space-y-5 px-4 pb-28 md:px-8 md:pb-12">
+          <TodayList orgId={orgId} />
           {/* Suas prioridades de hoje */}
           <section className="rounded-[24px] border border-border bg-card p-4 shadow-[0_12px_40px_-24px_rgba(0,0,0,0.25)]">
             <div className="mb-3 flex items-center justify-between">
@@ -830,7 +833,7 @@ function CoreScoreCard({ score, loading }: { score?: number; loading: boolean })
     <div className="rounded-[24px] border border-border bg-card p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">CORE Score</h3>
-        <span className="grid h-5 w-5 place-items-center rounded-full border border-border text-[10px] text-muted-foreground">i</span>
+        <ExplainButton metric="CORE Score" value={typeof score === "number" ? score : undefined} window="mês atual" />
       </div>
       <div className="mt-4 flex items-center gap-5">
         <BigRing value={value} label={shown} />
