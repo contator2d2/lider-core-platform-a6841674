@@ -22,6 +22,7 @@ import { teamRouter } from "./routes/team.routes.js";
 import { pdisRouter } from "./routes/pdis.routes.js";
 import { aiRouter } from "./routes/ai.routes.js";
 import { oneOnOnesRouter } from "./routes/one-on-ones.routes.js";
+import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -109,6 +110,7 @@ app.use("/organization", teamRouter);
 app.use("/organization", pdisRouter);
 app.use("/organization", aiRouter);
 app.use("/organization", oneOnOnesRouter);
+app.use("/organization", dashboardRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
