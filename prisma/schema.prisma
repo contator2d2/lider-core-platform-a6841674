@@ -1343,6 +1343,8 @@ model OneOnOne {
   mood           Int?           // 1..5 humor do liderado (opcional)
   summary        String?
   privateNotes   String?        @map("private_notes")
+  briefingMarkdown   String?    @map("briefing_markdown")
+  briefingGeneratedAt DateTime? @map("briefing_generated_at")
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
@@ -1368,4 +1370,53 @@ model OneOnOneItem {
 
   @@index([oneOnOneId])
   @@map("one_on_one_items")
+}
+
+// ============================================================
+// 360 leve — Rodada trimestral com 3 perguntas por avaliador
+// ============================================================
+
+enum ThreeSixtyStatus {
+  open
+  closed
+}
+
+model ThreeSixtyRound {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  subjectUserId  String           @map("subject_user_id") @db.Uuid
+  createdById    String           @map("created_by_id") @db.Uuid
+  title          String
+  quarter        String           // ex.: "2026-Q1"
+  status         ThreeSixtyStatus @default(open)
+  summaryMarkdown String?         @map("summary_markdown")
+  closedAt       DateTime?        @map("closed_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  responses ThreeSixtyResponse[]
+
+  @@index([organizationId, subjectUserId])
+  @@index([organizationId, status])
+  @@map("three_sixty_rounds")
+}
+
+model ThreeSixtyResponse {
+  id           String   @id @default(uuid()) @db.Uuid
+  roundId      String   @map("round_id") @db.Uuid
+  evaluatorId  String   @map("evaluator_id") @db.Uuid
+  score1       Int      @map("score_1") // Continuar fazendo (1..5)
+  score2       Int      @map("score_2") // Começar a fazer (1..5)
+  score3       Int      @map("score_3") // Parar de fazer (1..5)
+  comment1     String?  @map("comment_1")
+  comment2     String?  @map("comment_2")
+  comment3     String?  @map("comment_3")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  round ThreeSixtyRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, evaluatorId])
+  @@index([roundId])
+  @@map("three_sixty_responses")
 }
