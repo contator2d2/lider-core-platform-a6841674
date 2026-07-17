@@ -218,3 +218,58 @@ export async function* streamChat({
     for await (const d of geminiStream(cfg, messages)) yield d;
   }
 }
+
+// ---------- Transcrição de áudio (voz → texto) ----------
+
+/**
+ * Transcreve áudio usando o provedor configurado.
+ * - Gemini: envia como inlineData multimodal para o mesmo modelo de chat.
+ * - OpenAI: usa /v1/audio/transcriptions com whisper-1.
+ * Retorna somente o texto transcrito em pt-BR.
+ */
+export async function transcribeAudio({
+  audioBase64,
+  mimeType,
+}: {
+  audioBase64: string;
+  mimeType: string;
+}): Promise<string> {
+  const cfg = await loadAIConfig();
+  if (cfg.provider === "gemini") {
+    const res = await fetch(geminiUrl(cfg.model, "generateContent", cfg.apiKey), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: "Transcreva o áudio em português do Brasil. Responda somente com a transcrição, sem comentários." },
+              { inlineData: { mimeType, data: audioBase64 } },
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0 },
+      }),
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+    const json = (await res.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    return (json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "").trim();
+  }
+  // OpenAI: whisper-1 via /v1/audio/transcriptions
+  const buf = Buffer.from(audioBase64, "base64");
+  const form = new FormData();
+  form.append("file", new Blob([buf], { type: mimeType }), `audio.${mimeType.includes("mp4") ? "mp4" : "webm"}`);
+  form.append("model", "whisper-1");
+  form.append("language", "pt");
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${cfg.apiKey}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`OpenAI transcribe ${res.status}: ${await res.text()}`);
+  const j = (await res.json()) as { text?: string };
+  return (j.text ?? "").trim();
+}

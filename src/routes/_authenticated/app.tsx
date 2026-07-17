@@ -17,6 +17,7 @@ import {
   BookOpen,
   Building,
   HelpCircle,
+  UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -38,6 +39,7 @@ const nav = [
   { to: "/app/indicators", label: "Indicadores", icon: Target, section: "Resultado" },
   { to: "/app/evolution", label: "Evolução", icon: Gauge, section: "Evolução" },
   { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução" },
+  { to: "/app/360", label: "360 leve", icon: UsersRound, section: "Evolução" },
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução" },
   { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução" },
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
