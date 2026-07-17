@@ -1420,3 +1420,83 @@ model ThreeSixtyResponse {
   @@index([roundId])
   @@map("three_sixty_responses")
 }
+
+// ============================================================
+// Pulsos — links públicos com token para o liderado responder
+// (feedback solicitado, pulse de clima, DISC leve, pesquisa custom)
+// ============================================================
+
+enum PulseKind {
+  feedback
+  climate
+  disc
+  custom
+}
+
+enum PulseSendStatus {
+  pending
+  answered
+  expired
+  revoked
+}
+
+model PulseTemplate {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  kind           PulseKind
+  title          String
+  intro          String?
+  // schema of questions: [{ id, label, type: 'scale'|'text'|'choice'|'disc_pair', options?, required? }]
+  questions      Json
+  isSystem       Boolean   @default(false) @map("is_system")
+  createdById    String?   @map("created_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  sends PulseSend[]
+
+  @@index([organizationId, kind])
+  @@map("pulse_templates")
+}
+
+model PulseSend {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  templateId     String          @map("template_id") @db.Uuid
+  senderId       String          @map("sender_id") @db.Uuid
+  subjectUserId  String?         @map("subject_user_id") @db.Uuid
+  subjectLabel   String?         @map("subject_label")
+  subjectPhone   String?         @map("subject_phone")
+  token          String          @unique
+  message        String?         // custom message shown on the public page
+  status         PulseSendStatus @default(pending)
+  expiresAt      DateTime        @map("expires_at")
+  answeredAt     DateTime?       @map("answered_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  template PulseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  answer   PulseAnswer?
+
+  @@index([organizationId, status])
+  @@index([subjectUserId])
+  @@map("pulse_sends")
+}
+
+model PulseAnswer {
+  id           String   @id @default(uuid()) @db.Uuid
+  sendId       String   @unique @map("send_id") @db.Uuid
+  // answers: { [questionId]: value }  where value is number|string|string[]
+  answers      Json
+  // aiSummary: short text summarizing the answer set (auto-generated)
+  aiSummary    String?  @map("ai_summary")
+  // discProfile: { D, I, S, C } scores when kind=disc
+  discProfile  Json?    @map("disc_profile")
+  respondentIp String?  @map("respondent_ip")
+  userAgent    String?  @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  send PulseSend @relation(fields: [sendId], references: [id], onDelete: Cascade)
+
+  @@map("pulse_answers")
+}

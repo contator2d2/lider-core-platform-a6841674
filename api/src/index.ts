@@ -24,6 +24,7 @@ import { aiRouter } from "./routes/ai.routes.js";
 import { oneOnOnesRouter } from "./routes/one-on-ones.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { threeSixtyRouter } from "./routes/three-sixty.routes.js";
+import { pulsesRouter, publicPulsesRouter } from "./routes/pulses.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -92,6 +93,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 // PUBLIC endpoints (webhooks + cron) — mounted BEFORE auth. Each handler
 // authenticates itself via the token/secret stored in PlatformSetting.
 app.use("/api/public", webhooksRouter);
+app.use("/api/public", publicPulsesRouter);
 
 app.use("/auth", authRouter);
 app.use("/organizations", orgsRouter);
@@ -113,6 +115,7 @@ app.use("/organization", aiRouter);
 app.use("/organization", oneOnOnesRouter);
 app.use("/organization", dashboardRouter);
 app.use("/organization", threeSixtyRouter);
+app.use("/organization", pulsesRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 

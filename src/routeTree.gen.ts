@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as AuthenticatedFranchiseRouteImport } from './routes/_authenticated/franchise'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
@@ -28,6 +29,7 @@ import { Route as AuthenticatedCompanyLeadershipRouteImport } from './routes/_au
 import { Route as AuthenticatedCompanyLeadersRouteImport } from './routes/_authenticated/company.leaders'
 import { Route as AuthenticatedCompanyBillingRouteImport } from './routes/_authenticated/company.billing'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
+import { Route as AuthenticatedAppPulsesRouteImport } from './routes/_authenticated/app.pulses'
 import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticated/app.pdis'
 import { Route as AuthenticatedAppOrganizationRouteImport } from './routes/_authenticated/app.organization'
 import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
@@ -82,6 +84,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedFranchiseRoute = AuthenticatedFranchiseRouteImport.update({
@@ -171,6 +178,11 @@ const AuthenticatedCompanyBillingRoute =
 const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppPulsesRoute = AuthenticatedAppPulsesRouteImport.update({
+  id: '/pulses',
+  path: '/pulses',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppPdisRoute = AuthenticatedAppPdisRouteImport.update({
@@ -416,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/company': typeof AuthenticatedCompanyRouteWithChildren
   '/franchise': typeof AuthenticatedFranchiseRouteWithChildren
+  '/p/$token': typeof PTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -447,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -473,6 +487,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/p/$token': typeof PTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -503,6 +518,7 @@ export interface FileRoutesByTo {
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -535,6 +551,7 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
   '/_authenticated/franchise': typeof AuthenticatedFranchiseRouteWithChildren
+  '/p/$token': typeof PTokenRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRoute
   '/_authenticated/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -566,6 +583,7 @@ export interface FileRoutesById {
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/_authenticated/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -598,6 +616,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/company'
     | '/franchise'
+    | '/p/$token'
     | '/admin/ai'
     | '/admin/apps'
     | '/admin/billing'
@@ -629,6 +648,7 @@ export interface FileRouteTypes {
     | '/app/one-on-ones'
     | '/app/organization'
     | '/app/pdis'
+    | '/app/pulses'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -655,6 +675,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/p/$token'
     | '/admin/ai'
     | '/admin/apps'
     | '/admin/billing'
@@ -685,6 +706,7 @@ export interface FileRouteTypes {
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/pdis'
+    | '/app/pulses'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -716,6 +738,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/company'
     | '/_authenticated/franchise'
+    | '/p/$token'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/apps'
     | '/_authenticated/admin/billing'
@@ -747,6 +770,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/one-on-ones'
     | '/_authenticated/app/organization'
     | '/_authenticated/app/pdis'
+    | '/_authenticated/app/pulses'
     | '/_authenticated/app/team'
     | '/_authenticated/company/billing'
     | '/_authenticated/company/leaders'
@@ -775,6 +799,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PTokenRoute: typeof PTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -798,6 +823,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/franchise': {
@@ -910,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/app/team'
       preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/pulses': {
+      id: '/_authenticated/app/pulses'
+      path: '/pulses'
+      fullPath: '/app/pulses'
+      preLoaderRoute: typeof AuthenticatedAppPulsesRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/pdis': {
@@ -1315,6 +1354,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
   AuthenticatedAppPdisRoute: typeof AuthenticatedAppPdisRoute
+  AuthenticatedAppPulsesRoute: typeof AuthenticatedAppPulsesRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRouteWithChildren
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
@@ -1331,6 +1371,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppOrganizationRoute:
     AuthenticatedAppOrganizationRouteWithChildren,
   AuthenticatedAppPdisRoute: AuthenticatedAppPdisRoute,
+  AuthenticatedAppPulsesRoute: AuthenticatedAppPulsesRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRouteWithChildren,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
@@ -1398,6 +1439,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PTokenRoute: PTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
