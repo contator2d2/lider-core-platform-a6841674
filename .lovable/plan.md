@@ -1,87 +1,132 @@
-## Objetivo
-Deixar o Líder C.O.R.E. com cara premium e ativar a IA Coach usando dados reais — em paralelo, uma única rodada.
+# Roadmap Líder C.O.R.E. — 12 upgrades em 4 etapas
 
-## Parte 1 — Polimento visual (design system + motion)
+Entrega incremental, cada etapa fecha valor sozinha e pode ir pra produção. Ordem pensada por impacto no dia a dia do líder × esforço.
 
-### 1.1 Tokens e utilitários novos em `src/styles.css`
-- Novo gradiente `--gradient-accent` (laranja→laranja-suave) para números-chave, headers de destaque.
-- Sombras coloridas: `--shadow-accent` (laranja 15% de opacidade) e `--shadow-soft` (neutra).
-- Utility `.eyebrow` (uppercase 10px tracking-widest muted).
-- Utility `.card-elevated` (borda + sombra suave + hover lift).
-- Utility `.metric-number` (font-display, tabular-nums, tracking tight).
-- Toggle de dark mode funcional (hoje já tem tokens, falta o botão).
+---
 
-### 1.2 Biblioteca de motion (framer-motion, intensidade 3)
-- `bun add framer-motion`.
-- Novo `src/components/motion/` com:
-  - `<FadeIn />` — entrada com fade+rise 8px, 300ms.
-  - `<StaggerList />` — filhos entram em cascata 60ms.
-  - `<CountUp />` — números animam de 0 ao valor final em 800ms.
-  - `<PageTransition />` — wrapper para o `<Outlet />` das rotas.
-- Aplicar em: `/app`, `/app/evolution`, `/app/consciencia`, `/company/leadership`, `/app/indicators`.
+## Etapa 1 — "O líder abre o app e já sabe o que fazer" (alto impacto, baixo esforço)
 
-### 1.3 Gráficos elegantes com Recharts
-- `bun add recharts` (se não estiver).
-- Novo `src/components/charts/`:
-  - `<TrendArea />` — gráfico de área com gradiente laranja→transparente, linha 1.5px, sem grid, tooltip minimalista dark.
-  - `<ScoreGauge />` — semi-círculo animado com arco laranja e valor central grande.
-  - `<RankBars />` — barras horizontais finas para ranking de líderes.
-  - `<SignalPulse />` — sparkline compacta para os cross-signals.
-- Substituir os SVGs manuais de `app.evolution.tsx` e `company.leadership.tsx`.
+**Itens: 1, 6, 11**
 
-### 1.4 Header/sidebar refinados
-- Sidebar: seções com divisórias mais sutis, item ativo com barra lateral laranja de 2px em vez de background sólido.
-- Header: relógio ao vivo + toggle de tema + notificações com badge.
-- Logo com hover sutil (opacidade da versão "mark").
+### 1. Tela "Hoje você precisa…" (`/app` reformulado)
+- Nova seção topo do dashboard: lista priorizada gerada no backend agregando:
+  - delegações vencendo em ≤2 dias ou atrasadas
+  - rituais pendentes hoje
+  - 1:1s marcados para hoje/amanhã sem briefing
+  - cross-signals críticos abertos
+  - membros do time com queda de score ≥15% na semana
+- Cada item = card com CTA único ("Cobrar", "Marcar como feito", "Preparar 1:1", "Abrir perfil").
+- Endpoint novo: `GET /app/today` retorna array tipado com `{ type, priority, title, subtitle, cta, href, payload }`.
 
-### 1.5 Cards padrão em todas as telas
-- Componente `<MetricCard>` reutilizável (eyebrow + número + delta + sparkline opcional).
-- Componente `<SectionHeader>` (eyebrow + h2 display + descrição).
+### 6. Team Health no header
+- Score agregado do time (média ponderada dos CORE scores dos liderados diretos + delta 7d).
+- Componente `<TeamHealthPill>` no `AuthenticatedHeader`, click abre popover com breakdown por membro (mini lista com sparkline).
+- Endpoint: `GET /team/health` já parcialmente existe em `team.routes.ts`, adiciona agregação.
 
-## Parte 2 — IA Coach real
+### 11. "Explique esse número"
+- Botão `ⓘ Explicar` em cada KPI de `/app`, `/app/indicators`, `/app/evolution`, member detail.
+- Handler `POST /ai/explain-metric` com `{ metric, scope, window }` → gateway Gemini com contexto puxado do Prisma (últimos eventos que moveram a métrica).
+- UI: popover com resposta streamada, 2-3 parágrafos + 2 ações sugeridas.
 
-### 2.1 Backend
-- Novo `api/src/routes/ai.routes.ts`:
-  - `POST /ai/coach/chat` — streaming SSE. Monta contexto do líder (perfil de consciência, últimos rituais, delegações abertas/atrasadas, cross-signals ativos, score atual e trend) e chama `google/gemini-3.5-flash` via Lovable AI Gateway com system prompt de coach.
-  - `POST /ai/coach/insight` — one-shot que gera insight semanal a partir dos mesmos dados.
-- Helper `api/src/lib/ai-gateway.ts` — wrapper OpenAI-compatible pro gateway com `LOVABLE_API_KEY`.
-- Ferramentas expostas ao modelo (function calling):
-  - `registrar_delegacao` (needsApproval).
-  - `marcar_ritual_concluido` (needsApproval).
-  - `criar_compromisso_mentoria` (needsApproval).
+---
 
-### 2.2 Frontend `/app/ai`
-- Substituir stub por chat completo:
-  - Layout split: à esquerda, "insight da semana" gerado on-demand com botão de refresh; à direita, chat conversacional.
-  - Bolhas com markdown, streaming char-by-char.
-  - Chips de prompts sugeridos ("Analise minha semana", "Onde estou perdendo tempo?", "Prepare meu próximo 1:1").
-  - Tool-calls aparecem como cards de ação com botão "Aprovar" antes de executar.
+## Etapa 2 — "IA vira copiloto real de conversas" (alto impacto, esforço médio)
 
-### 2.3 Secret
-- Garantir `LOVABLE_API_KEY` via `ai_gateway--create`.
+**Itens: 2, 3, 10**
 
-## Fora do escopo desta rodada
-- Módulo 1:1s (fica para próxima).
-- Central de notificações completa (só o badge no header aqui).
-- Export PDF de relatórios.
-- Onboarding guiado.
+### 2. Briefing automático de 1:1
+- Em `/app/one-on-ones` e no member detail, botão "Gerar briefing".
+- Backend `POST /ai/one-on-one/brief` agrega: últimos 5 feedbacks trocados, delegações abertas do membro, PDI ativo, cross-signals, últimos rituais, evolução do CORE score.
+- Retorna markdown estruturado (Contexto / Vitórias / Riscos / Perguntas sugeridas / Ações propostas). Salva como `OneOnOne.briefingMarkdown`.
+- Export PDF simples via `@react-pdf/renderer` (client-side, evita dep node no worker).
 
-## Detalhes técnicos
+### 3. Captura por voz → feedback/delegação
+- Componente `<VoiceCapture>` reusável (usa `MediaRecorder` no browser).
+- Backend `POST /ai/transcribe` recebe blob, chama gateway `google/gemini-2.5-flash` (multimodal audio) → texto → classifica em `{ tipo: feedback|delegacao|nota, entidades: {membro?, prazo?}, resumo }`.
+- UI: botão flutuante 🎙 no `/app/team`, member detail e organization. Após transcrição mostra draft editável → confirmar cria o registro certo.
 
-**Motion**: `framer-motion` com `<LazyMotion features={domAnimation}>` no root pra bundle enxuto. `prefers-reduced-motion` respeitado nativamente pelo motion.
+### 10. 360 leve trimestral
+- Nova rota `/app/360` + entidade `ThreeSixtyRound` (open trimestre × 3 perguntas × 1 nota + comentário por avaliador).
+- Fluxo: líder abre round → sistema envia notificação in-app pros pares/liderados → cada um responde em ~2min → líder vê consolidado anônimo com IA resumindo temas.
+- Migração Prisma + rotas CRUD + tela de resposta + tela de consolidação.
 
-**Recharts theme**: `<defs><linearGradient id="accentFill">...</linearGradient></defs>` usando `var(--accent)`; tooltip customizado com `bg-popover border-border`.
+---
 
-**IA Coach streaming**: `res.setHeader('Content-Type', 'text/event-stream')` no Fastify + `ReadableStream` no cliente com `EventSource`-like handler manual (o api usa Fastify, não TanStack server routes).
+## Etapa 3 — "Rituais e delegações que se cobram sozinhos" (esforço médio)
 
-**Contexto do prompt**: query única no Prisma que agrega os últimos 30 dias de rituais/delegações/signals + score atual; token budget ~2k.
+**Itens: 4, 5, 9**
 
-**Dark mode**: adicionar `<ThemeToggle />` no header que faz `document.documentElement.classList.toggle('dark')` e persiste em localStorage lido no `useEffect` (evita hydration mismatch já que o app é SPA client-side).
+### 4. Delegações com follow-up ativo
+- Job diário no backend (cron via `pg_cron` chamando `/api/public/cron/delegation-followup`):
+  - D-2: notificação in-app + WhatsApp opcional pro dono.
+  - D0 vencida: notificação pro líder + sugestão IA "sugerir conversa" (rascunho de mensagem).
+  - Reincidente (3+ atrasos no trimestre): flag no perfil do membro, cross-signal automático.
+- UI: coluna "status vivo" na tabela de delegações com badges (no prazo / atenção / atrasada / crítica).
 
-## Ordem de execução
-1. Tokens + utilities em styles.css.
-2. Instalar framer-motion + recharts.
-3. Componentes de motion e charts.
-4. Refactor das 5 telas principais (dashboard, evolution, consciencia, leadership, indicators).
-5. Backend IA Coach + tela `/app/ai`.
-6. Header refinado + dark toggle.
+### 5. Ritual check-in 1-clique
+- Refactor `/app/organization/rituals` mobile-first:
+  - Card grande do ritual do dia com botão único "Fiz ✓" que registra completion + timestamp + opcional 1 emoji de sentimento.
+  - Swipe pra próximo ritual.
+- Endpoint `POST /rituals/:id/check-in` já existe? Se sim, só expõe UX; senão adiciona.
+
+### 9. Trilha de evolução do próprio líder
+- `/app/evolution` ganha aba "Minha jornada":
+  - Timeline dos próprios rituais completados, feedbacks recebidos, marcos de PDI, mudanças de perfil de consciência.
+  - Gráfico do próprio CORE score ao longo de 12 meses (não só do time).
+- Backend agrega em `GET /evolution/me/journey`.
+
+---
+
+## Etapa 4 — "O app sai da tela do desktop" (esforço maior, valor operacional)
+
+**Itens: 7, 8, 12**
+
+### 7. Mobile-first pass
+- Auditoria + refactor de `/app`, `/app/team`, `/app/one-on-ones`, `/app/organization/*`, `/app/ai`:
+  - Nav bottom bar em telas <768px (Início / Time / IA / Org / Mais).
+  - Botões alvo ≥44px, cards empilhados, tabelas viram lista.
+  - Header colapsa em scroll.
+- Sem quebrar desktop — usar `useMobile` + variantes Tailwind.
+
+### 8. Integrações
+- **Google Calendar**: connector OAuth já disponível — usar `standard_connectors` pra sync de 1:1s e rituais recorrentes.
+- **Slack**: notificação de delegação atrasada e briefing pronto no DM do líder.
+- **WhatsApp**: via provider externo (ex. Z-API/Twilio, secret user-provided) — enviar lembretes de ritual e delegação.
+- **Export CSV/PDF**: já tem `csv.ts`; adicionar botão "Exportar" em indicators, team, delegations.
+
+### 12. Modo offline / rascunhos
+- Service worker com `workbox` (PWA já tem manifest).
+- IndexedDB cache pra:
+  - lista de membros do time
+  - último dashboard
+  - drafts de feedback/delegação/nota criados offline
+- Fila de sincronização: reenvia POSTs quando volta online, com badge "N ações pendentes" no header.
+
+---
+
+## Ordem de execução dentro de cada etapa
+1. Migração Prisma (se houver) + rotas backend + testes rápidos com curl.
+2. Componentes UI compartilhados.
+3. Telas.
+4. Notificações/cron/integração externa.
+5. Deploy da etapa → validar em produção antes da próxima.
+
+## Fora do escopo geral
+- Refatoração de auth/RBAC (já ok).
+- Multi-idioma além de pt-BR.
+- App nativo iOS/Android (PWA cobre etapa 4).
+
+## Detalhes técnicos relevantes
+- **IA**: tudo via Lovable AI Gateway com `google/gemini-2.5-flash` (rápido/barato) e `gemini-2.5-pro` só em briefing 1:1 e consolidação 360.
+- **Cron**: `/api/public/cron/*` no TanStack + assinatura HMAC, disparado por `pg_cron` no Supabase.
+- **Voz**: `MediaRecorder` → upload multipart → gateway multimodal → não guardar áudio (só transcrição) pra evitar storage pesado.
+- **PDF**: `@react-pdf/renderer` no cliente (evita libs Node-only no worker Cloudflare).
+- **Offline**: `workbox-window` + `idb-keyval`; fila simples com retry exponencial.
+
+## Estimativa grosseira
+- Etapa 1: 1 sprint
+- Etapa 2: 1-2 sprints
+- Etapa 3: 1-2 sprints
+- Etapa 4: 2 sprints
+
+Confirma esse plano que já começo pela Etapa 1?
