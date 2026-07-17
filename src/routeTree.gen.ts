@@ -37,6 +37,7 @@ import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppEvolutionRouteImport } from './routes/_authenticated/app.evolution'
 import { Route as AuthenticatedAppConscienciaRouteImport } from './routes/_authenticated/app.consciencia'
 import { Route as AuthenticatedAppAiRouteImport } from './routes/_authenticated/app.ai'
+import { Route as AuthenticatedApp360RouteImport } from './routes/_authenticated/app.360'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
@@ -221,6 +222,11 @@ const AuthenticatedAppConscienciaRoute =
 const AuthenticatedAppAiRoute = AuthenticatedAppAiRouteImport.update({
   id: '/ai',
   path: '/ai',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedApp360Route = AuthenticatedApp360RouteImport.update({
+  id: '/360',
+  path: '/360',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
@@ -431,6 +437,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/app/360': typeof AuthenticatedApp360Route
   '/app/ai': typeof AuthenticatedAppAiRoute
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
@@ -487,6 +494,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/app/360': typeof AuthenticatedApp360Route
   '/app/ai': typeof AuthenticatedAppAiRoute
   '/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/app/360': typeof AuthenticatedApp360Route
   '/_authenticated/app/ai': typeof AuthenticatedAppAiRoute
   '/_authenticated/app/consciencia': typeof AuthenticatedAppConscienciaRoute
   '/_authenticated/app/evolution': typeof AuthenticatedAppEvolutionRoute
@@ -610,6 +619,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscriptions'
     | '/admin/users'
+    | '/app/360'
     | '/app/ai'
     | '/app/consciencia'
     | '/app/evolution'
@@ -666,6 +676,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscriptions'
     | '/admin/users'
+    | '/app/360'
     | '/app/ai'
     | '/app/consciencia'
     | '/app/evolution'
@@ -726,6 +737,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/users'
+    | '/_authenticated/app/360'
     | '/_authenticated/app/ai'
     | '/_authenticated/app/consciencia'
     | '/_authenticated/app/evolution'
@@ -961,6 +973,13 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/app/ai'
       preLoaderRoute: typeof AuthenticatedAppAiRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/360': {
+      id: '/_authenticated/app/360'
+      path: '/360'
+      fullPath: '/app/360'
+      preLoaderRoute: typeof AuthenticatedApp360RouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/admin/users': {
@@ -1286,6 +1305,7 @@ const AuthenticatedAppTeamRouteWithChildren =
   AuthenticatedAppTeamRoute._addFileChildren(AuthenticatedAppTeamRouteChildren)
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedApp360Route: typeof AuthenticatedApp360Route
   AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRoute
   AuthenticatedAppEvolutionRoute: typeof AuthenticatedAppEvolutionRoute
@@ -1300,6 +1320,7 @@ interface AuthenticatedAppRouteChildren {
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedApp360Route: AuthenticatedApp360Route,
   AuthenticatedAppAiRoute: AuthenticatedAppAiRoute,
   AuthenticatedAppConscienciaRoute: AuthenticatedAppConscienciaRoute,
   AuthenticatedAppEvolutionRoute: AuthenticatedAppEvolutionRoute,
