@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronRight,
+  Download,
   Filter,
   Loader2,
   Pencil,
@@ -18,6 +19,7 @@ import {
   Users2,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { exportCsv } from "@/lib/csv-export";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,6 +178,33 @@ function TeamPage() {
           <button className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm text-foreground hover:bg-secondary">
             <Filter className="h-4 w-4" /> Filtros
           </button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            disabled={!enriched.length}
+            onClick={() =>
+              exportCsv(
+                `equipe-${new Date().toISOString().slice(0, 10)}.csv`,
+                enriched,
+                [
+                  { key: "fullName", label: "Nome", get: (e) => e.m.fullName },
+                  { key: "email", label: "E-mail", get: (e) => e.m.email },
+                  { key: "role", label: "Papel", get: (e) => e.m.profile?.roleTitle ?? e.m.role },
+                  { key: "area", label: "Área", get: (e) => e.m.areaName ?? "" },
+                  { key: "team", label: "Time", get: (e) => e.m.teamName ?? "" },
+                  { key: "score", label: "Score CORE" },
+                  { key: "status", label: "Status", get: (e) => STATUS_META[e.status].label },
+                  { key: "autonomy", label: "Autonomia", get: (e) => (e.m.profile ? AUTONOMY_LABEL[e.m.profile.autonomyLevel] : "") },
+                  { key: "openDelegations", label: "Delegações abertas", get: (e) => e.m.openDelegations },
+                  { key: "feedbackCount", label: "Feedbacks", get: (e) => e.m.feedbackCount },
+                  { key: "hasActivePdi", label: "PDI ativo", get: (e) => (e.m.hasActivePdi ? "sim" : "não") },
+                ],
+              )
+            }
+          >
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
         </div>
       </header>
 

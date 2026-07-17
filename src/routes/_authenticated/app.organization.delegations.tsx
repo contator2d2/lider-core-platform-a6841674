@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ClipboardList, Plus, AlertTriangle, BellRing } from "lucide-react";
+import { ClipboardList, Plus, AlertTriangle, BellRing, Download } from "lucide-react";
+import { exportCsv } from "@/lib/csv-export";
 
 export const Route = createFileRoute("/_authenticated/app/organization/delegations")({
   component: DelegationsPage,
@@ -116,6 +117,28 @@ function DelegationsPage() {
         </div>
       )}
       <div className="flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          className="mr-2 gap-1"
+          disabled={!q.data?.length}
+          onClick={() =>
+            exportCsv(
+              `delegacoes-${new Date().toISOString().slice(0, 10)}.csv`,
+              q.data ?? [],
+              [
+                { key: "title", label: "Título" },
+                { key: "status", label: "Status" },
+                { key: "priority", label: "Prioridade" },
+                { key: "dueAt", label: "Prazo", get: (r) => (r.dueAt ? new Date(r.dueAt as string).toLocaleDateString("pt-BR") : "") },
+                { key: "description", label: "Descrição" },
+                { key: "doneCriteria", label: "Critério de concluído" },
+              ],
+            )
+          }
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar CSV
+        </Button>
         <Dialog open={creating} onOpenChange={setCreating}>
           <DialogTrigger asChild><Button size="sm"><Plus className="h-3.5 w-3.5" /> Nova delegação</Button></DialogTrigger>
           <DialogContent><CreateForm onSave={(v) => create.mutate(v)} saving={create.isPending} /></DialogContent>

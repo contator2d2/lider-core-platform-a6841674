@@ -7,6 +7,7 @@ import {
   ArrowUp,
   BarChart3,
   CheckCircle2,
+  Download,
   Gauge,
   Loader2,
   Minus,
@@ -14,6 +15,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { exportCsv } from "@/lib/csv-export";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -125,6 +127,30 @@ function IndicatorsPage() {
         </div>
         <div className="flex gap-2">
           <ImportCsvDialog orgId={orgId} />
+          <Button
+            variant="outline"
+            className="gap-1"
+            disabled={!list.data?.length}
+            onClick={() =>
+              exportCsv(
+                `indicadores-${level}-${new Date().toISOString().slice(0, 10)}.csv`,
+                list.data ?? [],
+                [
+                  { key: "name", label: "Nome" },
+                  { key: "level", label: "Nível" },
+                  { key: "unit", label: "Unidade" },
+                  { key: "direction", label: "Direção" },
+                  { key: "target", label: "Meta" },
+                  { key: "status", label: "Farol" },
+                  { key: "lastValue", label: "Última leitura", get: (i) => i.lastReading?.value ?? "" },
+                  { key: "lastPeriod", label: "Período", get: (i) => i.lastReading ? `${String(i.lastReading.periodMonth).padStart(2, "0")}/${i.lastReading.periodYear}` : "" },
+                  { key: "delta", label: "Delta vs anterior", get: (i) => i.delta ?? "" },
+                ],
+              )
+            }
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </Button>
           <NewIndicatorDialog orgId={orgId} defaultLevel={level} />
         </div>
       </header>
