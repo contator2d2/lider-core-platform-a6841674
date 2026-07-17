@@ -29,6 +29,7 @@ import { Route as AuthenticatedCompanyLeadershipRouteImport } from './routes/_au
 import { Route as AuthenticatedCompanyLeadersRouteImport } from './routes/_authenticated/company.leaders'
 import { Route as AuthenticatedCompanyBillingRouteImport } from './routes/_authenticated/company.billing'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
+import { Route as AuthenticatedAppPulsesRouteImport } from './routes/_authenticated/app.pulses'
 import { Route as AuthenticatedAppPdisRouteImport } from './routes/_authenticated/app.pdis'
 import { Route as AuthenticatedAppOrganizationRouteImport } from './routes/_authenticated/app.organization'
 import { Route as AuthenticatedAppOneOnOnesRouteImport } from './routes/_authenticated/app.one-on-ones'
@@ -177,6 +178,11 @@ const AuthenticatedCompanyBillingRoute =
 const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppPulsesRoute = AuthenticatedAppPulsesRouteImport.update({
+  id: '/pulses',
+  path: '/pulses',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppPdisRoute = AuthenticatedAppPdisRouteImport.update({
@@ -454,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -511,6 +518,7 @@ export interface FileRoutesByTo {
   '/app/indicators': typeof AuthenticatedAppIndicatorsRoute
   '/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -575,6 +583,7 @@ export interface FileRoutesById {
   '/_authenticated/app/one-on-ones': typeof AuthenticatedAppOneOnOnesRoute
   '/_authenticated/app/organization': typeof AuthenticatedAppOrganizationRouteWithChildren
   '/_authenticated/app/pdis': typeof AuthenticatedAppPdisRoute
+  '/_authenticated/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -639,6 +648,7 @@ export interface FileRouteTypes {
     | '/app/one-on-ones'
     | '/app/organization'
     | '/app/pdis'
+    | '/app/pulses'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -696,6 +706,7 @@ export interface FileRouteTypes {
     | '/app/indicators'
     | '/app/one-on-ones'
     | '/app/pdis'
+    | '/app/pulses'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -759,6 +770,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/one-on-ones'
     | '/_authenticated/app/organization'
     | '/_authenticated/app/pdis'
+    | '/_authenticated/app/pulses'
     | '/_authenticated/app/team'
     | '/_authenticated/company/billing'
     | '/_authenticated/company/leaders'
@@ -930,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/app/team'
       preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/pulses': {
+      id: '/_authenticated/app/pulses'
+      path: '/pulses'
+      fullPath: '/app/pulses'
+      preLoaderRoute: typeof AuthenticatedAppPulsesRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/pdis': {
@@ -1335,6 +1354,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppOneOnOnesRoute: typeof AuthenticatedAppOneOnOnesRoute
   AuthenticatedAppOrganizationRoute: typeof AuthenticatedAppOrganizationRouteWithChildren
   AuthenticatedAppPdisRoute: typeof AuthenticatedAppPdisRoute
+  AuthenticatedAppPulsesRoute: typeof AuthenticatedAppPulsesRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRouteWithChildren
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
@@ -1351,6 +1371,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppOrganizationRoute:
     AuthenticatedAppOrganizationRouteWithChildren,
   AuthenticatedAppPdisRoute: AuthenticatedAppPdisRoute,
+  AuthenticatedAppPulsesRoute: AuthenticatedAppPulsesRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRouteWithChildren,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
