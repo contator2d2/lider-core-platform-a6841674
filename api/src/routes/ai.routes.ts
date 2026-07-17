@@ -1,8 +1,9 @@
 import { Router, type Response } from "express";
+import multer from "multer";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
-import { completeChat, streamChat, type ChatMessage } from "../lib/ai-gateway.js";
+import { completeChat, streamChat, transcribeAudio, type ChatMessage } from "../lib/ai-gateway.js";
 
 /**
  * IA Coach — usa o provedor de IA (OpenAI ou Gemini) configurado pelo
@@ -255,5 +256,195 @@ aiRouter.post("/:orgId/ai/explain-metric", async (req, res) => {
   } catch (err) {
     console.error("[ai/explain-metric]", err);
     res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao explicar" });
+  }
+});
+
+// ============================================================
+// Briefing automático de 1:1 — agrega histórico do liderado
+// ============================================================
+aiRouter.post("/:orgId/ai/one-on-one/:id/brief", async (req, res) => {
+  const { orgId, id } = req.params;
+  if (!(await assertOrgAccess(req.userId!, orgId))) return res.status(403).json({ error: "Forbidden" });
+  try {
+    const session = await prisma.oneOnOne.findFirst({
+      where: { id, organizationId: orgId },
+    });
+    if (!session) return res.status(404).json({ error: "Sessão não encontrada" });
+
+    const subjectId = session.subjectUserId;
+    const now = new Date();
+    const from90 = new Date(now.getTime() - 90 * 24 * 3600 * 1000);
+
+    const [subjectProfile, feedbacks, delegs, pdi, signals, prevSessions, snapshot] = await Promise.all([
+      prisma.profile.findUnique({ where: { id: subjectId } }).catch(() => null),
+      prisma.feedback.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [{ subjectUserId: subjectId }, { authorId: subjectId }],
+          createdAt: { gte: from90 },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }).catch(() => []),
+      prisma.delegation.findMany({
+        where: {
+          organizationId: orgId,
+          assigneeId: subjectId,
+          status: { in: ["open", "in_progress", "blocked"] },
+        },
+        orderBy: [{ dueAt: "asc" }],
+        take: 15,
+      }).catch(() => []),
+      prisma.pdi.findFirst({
+        where: { organizationId: orgId, subjectUserId: subjectId, status: "ativo" },
+        include: { goals: true },
+      }).catch(() => null),
+      prisma.crossSignal.findMany({
+        where: { organizationId: orgId, userId: subjectId, dismissedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      }).catch(() => []),
+      prisma.oneOnOne.findMany({
+        where: {
+          organizationId: orgId,
+          subjectUserId: subjectId,
+          status: "done",
+          id: { not: id },
+        },
+        orderBy: { scheduledAt: "desc" },
+        take: 3,
+        include: { items: true },
+      }).catch(() => []),
+      prisma.leadershipScoreSnapshot.findFirst({
+        where: { organizationId: orgId, userId: subjectId },
+        orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+      }).catch(() => null),
+    ]);
+
+    const ctx = {
+      liderado: subjectProfile?.fullName ?? "liderado",
+      score: snapshot ? { total: snapshot.score, diagnostico: snapshot.diagnostic } : null,
+      pdi: pdi
+        ? {
+            titulo: pdi.title,
+            foco: pdi.focus,
+            metas: pdi.goals.map((g) => ({ titulo: g.title, status: g.status, prazo: g.dueAt })),
+          }
+        : null,
+      delegacoesAbertas: delegs.map((d) => ({
+        titulo: d.title,
+        status: d.status,
+        prazo: d.dueAt,
+        atrasada: d.dueAt ? d.dueAt < now : false,
+      })),
+      feedbacksRecentes: feedbacks.map((f) => ({
+        tipo: f.kind,
+        conteudo: f.content?.slice(0, 300),
+        data: f.createdAt,
+      })),
+      sinaisAbertos: signals.map((s) => ({ tipo: s.kind, severidade: s.severity, titulo: s.title })),
+      ultimasConversas: prevSessions.map((s) => ({
+        quando: s.scheduledAt,
+        resumo: s.summary,
+        acoesPendentes: s.items.filter((i) => i.kind === "action" && !i.done).map((i) => i.content),
+      })),
+    };
+
+    const text = await completeChat({
+      messages: [
+        { role: "system", content: systemPrompt() },
+        { role: "system", content: `Contexto do liderado (JSON):\n\`\`\`json\n${JSON.stringify(ctx, null, 2)}\n\`\`\`` },
+        {
+          role: "user",
+          content:
+            "Prepare um BRIEFING de 1:1 em markdown, curto e acionável, com estas seções (use exatamente estes títulos):\n" +
+            "## Contexto\n(2-3 linhas do momento do liderado)\n\n" +
+            "## Vitórias a reconhecer\n(bullets citando fatos do contexto)\n\n" +
+            "## Riscos e sinais\n(bullets — cite delegação atrasada, sinal aberto ou queda de score específicos)\n\n" +
+            "## Perguntas sugeridas\n(3 perguntas provocativas)\n\n" +
+            "## Ações propostas\n(2-3 ações concretas para acordar na conversa)",
+        },
+      ],
+    });
+
+    const updated = await prisma.oneOnOne.update({
+      where: { id },
+      data: { briefingMarkdown: text, briefingGeneratedAt: new Date() },
+    });
+
+    res.json({
+      briefingMarkdown: updated.briefingMarkdown,
+      briefingGeneratedAt: updated.briefingGeneratedAt,
+    });
+  } catch (err) {
+    console.error("[ai/one-on-one/brief]", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao gerar briefing" });
+  }
+});
+
+// ============================================================
+// Voz → texto + classificação (feedback | delegação | nota)
+// ============================================================
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+});
+
+type VoiceIntent = {
+  tipo: "feedback" | "delegacao" | "nota";
+  resumo: string;
+  titulo?: string;
+  prazoISO?: string | null;
+  membroSugerido?: string | null;
+  transcricao: string;
+};
+
+aiRouter.post("/:orgId/ai/transcribe", audioUpload.single("audio"), async (req, res) => {
+  const orgId = req.params.orgId;
+  if (!(await assertOrgAccess(req.userId!, orgId))) return res.status(403).json({ error: "Forbidden" });
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: "Áudio ausente" });
+  try {
+    const transcript = await transcribeAudio({
+      audioBase64: file.buffer.toString("base64"),
+      mimeType: file.mimetype || "audio/webm",
+    });
+    if (!transcript) return res.status(400).json({ error: "Não foi possível transcrever o áudio" });
+
+    // Classifica e extrai entidades
+    const raw = await completeChat({
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você recebe uma transcrição em pt-BR ditada por um líder. Classifique como um de:\n" +
+            "- feedback (elogio ou crítica sobre alguém)\n" +
+            "- delegacao (tarefa/pedido para alguém fazer)\n" +
+            "- nota (observação livre)\n\n" +
+            "Responda APENAS um JSON válido no formato:\n" +
+            `{"tipo":"feedback|delegacao|nota","titulo":"...","resumo":"...","prazoISO":null,"membroSugerido":null}\n` +
+            "prazoISO em ISO-8601 se citado, senão null. membroSugerido = nome mencionado, senão null.",
+        },
+        { role: "user", content: transcript },
+      ],
+    });
+
+    let parsed: Omit<VoiceIntent, "transcricao"> = { tipo: "nota", resumo: transcript };
+    try {
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const jsonStart = clean.indexOf("{");
+      const jsonEnd = clean.lastIndexOf("}");
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        parsed = JSON.parse(clean.slice(jsonStart, jsonEnd + 1));
+      }
+    } catch {
+      /* fallback já setado */
+    }
+
+    const out: VoiceIntent = { ...parsed, transcricao: transcript };
+    res.json(out);
+  } catch (err) {
+    console.error("[ai/transcribe]", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao transcrever" });
   }
 });
