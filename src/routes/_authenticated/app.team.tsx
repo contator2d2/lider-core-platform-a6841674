@@ -114,6 +114,7 @@ function initials(name: string) {
 function TeamPage() {
   const { orgId } = useCurrentOrg();
   const [editing, setEditing] = useState<TeamMember | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [filter, setFilter] = useState<"todos" | Status>("todos");
   const [q, setQ] = useState("");
 
@@ -305,8 +306,11 @@ function TeamPage() {
         )}
       </div>
 
-      <button className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground">
-        <UserPlus className="h-4 w-4" /> Convidar pessoa para a equipe
+      <button
+        onClick={() => setInviting(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+      >
+        <UserPlus className="h-4 w-4" /> Adicionar pessoa à equipe
       </button>
 
       <IACoachCard members={enriched} />
@@ -315,6 +319,9 @@ function TeamPage() {
         {editing && (
           <ProfileDialog orgId={orgId} member={editing} onDone={() => setEditing(null)} />
         )}
+      </Dialog>
+      <Dialog open={inviting} onOpenChange={setInviting}>
+        {inviting && <InviteDialog orgId={orgId} onDone={() => setInviting(false)} />}
       </Dialog>
     </div>
   );
