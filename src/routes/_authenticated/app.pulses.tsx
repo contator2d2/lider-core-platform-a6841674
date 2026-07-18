@@ -18,7 +18,6 @@ import {
   Sparkles,
   ChevronRight,
   MoreVertical,
-  Users,
 } from "lucide-react";
 import pulseHero from "@/assets/pulse-hero.png";
 import { api } from "@/lib/api";
