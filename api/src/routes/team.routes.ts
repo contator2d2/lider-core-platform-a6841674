@@ -1,5 +1,6 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 
@@ -93,6 +94,8 @@ teamRouter.get("/:orgId/team", async (req, res) => {
         avatarUrl: m.user.profile?.avatarUrl ?? null,
         areaName: m.area?.name ?? null,
         teamName: m.team?.name ?? null,
+        whatsapp: m.user.profile?.whatsapp ?? m.user.profile?.phone ?? null,
+        phone: m.user.profile?.phone ?? null,
         profile: profile
           ? {
               roleTitle: profile.roleTitle,
