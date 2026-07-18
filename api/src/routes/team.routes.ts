@@ -1,5 +1,6 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 
@@ -93,6 +94,8 @@ teamRouter.get("/:orgId/team", async (req, res) => {
         avatarUrl: m.user.profile?.avatarUrl ?? null,
         areaName: m.area?.name ?? null,
         teamName: m.team?.name ?? null,
+        whatsapp: m.user.profile?.whatsapp ?? m.user.profile?.phone ?? null,
+        phone: m.user.profile?.phone ?? null,
         profile: profile
           ? {
               roleTitle: profile.roleTitle,
@@ -200,6 +203,152 @@ teamRouter.put("/:orgId/team/:membershipId/profile", async (req, res) => {
       },
     });
     res.json(saved);
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+// ============================================================
+// Adicionar pessoa direto do Mapa da Equipe
+// Cria User + Profile (com whatsapp) + Membership + TeamMemberProfile
+// ============================================================
+const inviteSchema = z.object({
+  fullName: z.string().min(2),
+  email: z.string().email(),
+  whatsapp: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  role: z.enum(["hr_admin", "leader", "collaborator"]).default("collaborator"),
+  areaId: z.string().uuid().optional().nullable(),
+  teamId: z.string().uuid().optional().nullable(),
+  branchId: z.string().uuid().optional().nullable(),
+  roleTitle: z.string().optional().nullable(),
+  autonomyLevel: z
+    .enum(["n1_direciono", "n2_acompanho", "n3_valido", "n4_delego", "n5_autonomo"])
+    .default("n2_acompanho"),
+  expectedDeliverables: z.array(z.string()).default([]),
+  keyIndicators: z.array(z.string()).default([]),
+  notes: z.string().optional().nullable(),
+});
+
+teamRouter.post("/:orgId/team", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const data = inviteSchema.parse(req.body);
+
+    // 1) User + Profile
+    let user = await prisma.user.findUnique({
+      where: { email: data.email.toLowerCase() },
+      include: { profile: true },
+    });
+    if (!user) {
+      const tempPass = Math.random().toString(36).slice(2) + "A9!";
+      user = await prisma.user.create({
+        data: {
+          email: data.email.toLowerCase(),
+          passwordHash: await bcrypt.hash(tempPass, 10),
+          profile: {
+            create: {
+              fullName: data.fullName,
+              whatsapp: data.whatsapp || null,
+              phone: data.phone || data.whatsapp || null,
+            },
+          },
+        },
+        include: { profile: true },
+      });
+    } else {
+      await prisma.profile.upsert({
+        where: { id: user.id },
+        update: {
+          fullName: user.profile?.fullName ?? data.fullName,
+          whatsapp: data.whatsapp ?? user.profile?.whatsapp ?? null,
+          phone: data.phone ?? user.profile?.phone ?? data.whatsapp ?? null,
+        },
+        create: {
+          id: user.id,
+          fullName: data.fullName,
+          whatsapp: data.whatsapp || null,
+          phone: data.phone || data.whatsapp || null,
+        },
+      });
+    }
+
+    // 2) Membership
+    const membership = await prisma.membership.upsert({
+      where: { userId_organizationId: { userId: user.id, organizationId: orgId } },
+      update: {
+        role: data.role,
+        areaId: data.areaId || null,
+        teamId: data.teamId || null,
+        branchId: data.branchId || null,
+      },
+      create: {
+        userId: user.id,
+        organizationId: orgId,
+        role: data.role,
+        areaId: data.areaId || null,
+        teamId: data.teamId || null,
+        branchId: data.branchId || null,
+      },
+    });
+
+    // 3) TeamMemberProfile
+    await prisma.teamMemberProfile.upsert({
+      where: { membershipId: membership.id },
+      update: {
+        roleTitle: data.roleTitle ?? null,
+        autonomyLevel: data.autonomyLevel,
+        expectedDeliverables: data.expectedDeliverables,
+        keyIndicators: data.keyIndicators,
+        notes: data.notes ?? null,
+        updatedBy: req.userId!,
+      },
+      create: {
+        organizationId: orgId,
+        membershipId: membership.id,
+        roleTitle: data.roleTitle ?? null,
+        autonomyLevel: data.autonomyLevel,
+        expectedDeliverables: data.expectedDeliverables,
+        keyIndicators: data.keyIndicators,
+        notes: data.notes ?? null,
+        updatedBy: req.userId!,
+      },
+    });
+
+    res.status(201).json({ membershipId: membership.id, userId: user.id });
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// Atualiza dados de contato (Profile) do liderado
+const contactSchema = z.object({
+  fullName: z.string().min(2).optional(),
+  whatsapp: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+});
+teamRouter.put("/:orgId/team/:membershipId/contact", async (req, res) => {
+  try {
+    const { orgId, membershipId } = req.params;
+    const m = await prisma.membership.findFirst({
+      where: { id: membershipId, organizationId: orgId },
+    });
+    if (!m) return res.status(404).json({ error: "Not found" });
+    const data = contactSchema.parse(req.body);
+    await prisma.profile.upsert({
+      where: { id: m.userId },
+      update: {
+        ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
+        ...(data.whatsapp !== undefined ? { whatsapp: data.whatsapp || null } : {}),
+        ...(data.phone !== undefined ? { phone: data.phone || null } : {}),
+      },
+      create: {
+        id: m.userId,
+        fullName: data.fullName ?? "",
+        whatsapp: data.whatsapp || null,
+        phone: data.phone || null,
+      },
+    });
+    res.json({ ok: true });
   } catch (err) {
     badReq(res, err);
   }

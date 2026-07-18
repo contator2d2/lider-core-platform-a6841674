@@ -63,6 +63,8 @@ type TeamMember = {
   areaName: string | null;
   teamName: string | null;
   avatarUrl?: string | null;
+  whatsapp?: string | null;
+  phone?: string | null;
   profile: {
     roleTitle: string | null;
     expectedDeliverables: string[];
@@ -112,6 +114,7 @@ function initials(name: string) {
 function TeamPage() {
   const { orgId } = useCurrentOrg();
   const [editing, setEditing] = useState<TeamMember | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [filter, setFilter] = useState<"todos" | Status>("todos");
   const [q, setQ] = useState("");
 
@@ -303,8 +306,11 @@ function TeamPage() {
         )}
       </div>
 
-      <button className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground">
-        <UserPlus className="h-4 w-4" /> Convidar pessoa para a equipe
+      <button
+        onClick={() => setInviting(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+      >
+        <UserPlus className="h-4 w-4" /> Adicionar pessoa à equipe
       </button>
 
       <IACoachCard members={enriched} />
@@ -313,6 +319,9 @@ function TeamPage() {
         {editing && (
           <ProfileDialog orgId={orgId} member={editing} onDone={() => setEditing(null)} />
         )}
+      </Dialog>
+      <Dialog open={inviting} onOpenChange={setInviting}>
+        {inviting && <InviteDialog orgId={orgId} onDone={() => setInviting(false)} />}
       </Dialog>
     </div>
   );
@@ -497,6 +506,7 @@ function ProfileDialog({
 }) {
   const qc = useQueryClient();
   const [roleTitle, setRoleTitle] = useState(member.profile?.roleTitle ?? "");
+  const [whatsapp, setWhatsapp] = useState(member.whatsapp ?? "");
   const [deliverables, setDeliverables] = useState((member.profile?.expectedDeliverables ?? []).join("\n"));
   const [indicators, setIndicators] = useState((member.profile?.keyIndicators ?? []).join("\n"));
   const [autonomy, setAutonomy] = useState<Autonomy>(member.profile?.autonomyLevel ?? "n2_acompanho");
@@ -505,8 +515,8 @@ function ProfileDialog({
   const [notes, setNotes] = useState(member.profile?.notes ?? "");
 
   const save = useMutation({
-    mutationFn: () =>
-      api(`/organization/${orgId}/team/${member.membershipId}/profile`, {
+    mutationFn: async () => {
+      await api(`/organization/${orgId}/team/${member.membershipId}/profile`, {
         method: "PUT",
         body: {
           roleTitle: roleTitle || null,
@@ -517,7 +527,14 @@ function ProfileDialog({
           developPoints: developPoints.split(",").map((s) => s.trim()).filter(Boolean),
           notes: notes || null,
         },
-      }),
+      });
+      if ((whatsapp || "") !== (member.whatsapp ?? "")) {
+        await api(`/organization/${orgId}/team/${member.membershipId}/contact`, {
+          method: "PUT",
+          body: { whatsapp: whatsapp || null, phone: whatsapp || null },
+        });
+      }
+    },
     onSuccess: () => {
       toast.success("Perfil atualizado");
       qc.invalidateQueries({ queryKey: ["team", orgId] });
@@ -550,6 +567,17 @@ function ProfileDialog({
           </div>
         </div>
         <div>
+          <Label>WhatsApp</Label>
+          <Input
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            placeholder="+55 11 90000-0000"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Preenche automaticamente o envio de Pulsos por WhatsApp.
+          </p>
+        </div>
+        <div>
           <Label>Entregas esperadas (uma por linha)</Label>
           <Textarea value={deliverables} onChange={(e) => setDeliverables(e.target.value)} className="min-h-[80px]" />
         </div>
@@ -574,6 +602,121 @@ function ProfileDialog({
         <Button disabled={save.isPending} onClick={() => save.mutate()}>
           {save.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
           Salvar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function InviteDialog({ orgId, onDone }: { orgId: string; onDone: () => void }) {
+  const qc = useQueryClient();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [roleTitle, setRoleTitle] = useState("");
+  const [role, setRole] = useState<"collaborator" | "leader" | "hr_admin">("collaborator");
+  const [autonomy, setAutonomy] = useState<Autonomy>("n2_acompanho");
+  const [deliverables, setDeliverables] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const create = useMutation({
+    mutationFn: () =>
+      api(`/organization/${orgId}/team`, {
+        method: "POST",
+        body: {
+          fullName,
+          email,
+          whatsapp: whatsapp || null,
+          phone: whatsapp || null,
+          role,
+          roleTitle: roleTitle || null,
+          autonomyLevel: autonomy,
+          expectedDeliverables: deliverables.split("\n").map((s) => s.trim()).filter(Boolean),
+          notes: notes || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Pessoa adicionada à equipe");
+      qc.invalidateQueries({ queryKey: ["team", orgId] });
+      onDone();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao adicionar"),
+  });
+
+  return (
+    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogHeader>
+        <DialogTitle>Adicionar pessoa à equipe</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4 py-2">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label>Nome completo *</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ex.: Ana Souza" />
+          </div>
+          <div>
+            <Label>E-mail *</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ana@empresa.com" />
+          </div>
+          <div>
+            <Label>WhatsApp</Label>
+            <Input
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder="+55 11 90000-0000"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Usado para enviar Pulsos direto pelo WhatsApp.
+            </p>
+          </div>
+          <div>
+            <Label>Cargo</Label>
+            <Input value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} placeholder="Ex.: Analista de Marketing" />
+          </div>
+          <div>
+            <Label>Papel no sistema</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="collaborator">Colaborador</SelectItem>
+                <SelectItem value="leader">Líder</SelectItem>
+                <SelectItem value="hr_admin">RH / Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Nível de autonomia</Label>
+            <Select value={autonomy} onValueChange={(v) => setAutonomy(v as Autonomy)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(AUTONOMY_LABEL) as Autonomy[]).map((a) => (
+                  <SelectItem key={a} value={a}>{AUTONOMY_LABEL[a]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label>Obrigações / entregas esperadas (uma por linha)</Label>
+          <Textarea
+            value={deliverables}
+            onChange={(e) => setDeliverables(e.target.value)}
+            className="min-h-[90px]"
+            placeholder={"Ex.: Publicar 4 conteúdos por semana\nRelatório mensal de campanhas"}
+          />
+        </div>
+        <div>
+          <Label>Notas</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[70px]" />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          disabled={create.isPending || !fullName || !email}
+          onClick={() => create.mutate()}
+        >
+          {create.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+          Adicionar à equipe
         </Button>
       </DialogFooter>
     </DialogContent>
