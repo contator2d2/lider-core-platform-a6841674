@@ -63,6 +63,8 @@ type TeamMember = {
   areaName: string | null;
   teamName: string | null;
   avatarUrl?: string | null;
+  whatsapp?: string | null;
+  phone?: string | null;
   profile: {
     roleTitle: string | null;
     expectedDeliverables: string[];
