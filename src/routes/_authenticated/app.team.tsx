@@ -506,6 +506,7 @@ function ProfileDialog({
 }) {
   const qc = useQueryClient();
   const [roleTitle, setRoleTitle] = useState(member.profile?.roleTitle ?? "");
+  const [whatsapp, setWhatsapp] = useState(member.whatsapp ?? "");
   const [deliverables, setDeliverables] = useState((member.profile?.expectedDeliverables ?? []).join("\n"));
   const [indicators, setIndicators] = useState((member.profile?.keyIndicators ?? []).join("\n"));
   const [autonomy, setAutonomy] = useState<Autonomy>(member.profile?.autonomyLevel ?? "n2_acompanho");
@@ -514,8 +515,8 @@ function ProfileDialog({
   const [notes, setNotes] = useState(member.profile?.notes ?? "");
 
   const save = useMutation({
-    mutationFn: () =>
-      api(`/organization/${orgId}/team/${member.membershipId}/profile`, {
+    mutationFn: async () => {
+      await api(`/organization/${orgId}/team/${member.membershipId}/profile`, {
         method: "PUT",
         body: {
           roleTitle: roleTitle || null,
@@ -526,7 +527,14 @@ function ProfileDialog({
           developPoints: developPoints.split(",").map((s) => s.trim()).filter(Boolean),
           notes: notes || null,
         },
-      }),
+      });
+      if ((whatsapp || "") !== (member.whatsapp ?? "")) {
+        await api(`/organization/${orgId}/team/${member.membershipId}/contact`, {
+          method: "PUT",
+          body: { whatsapp: whatsapp || null, phone: whatsapp || null },
+        });
+      }
+    },
     onSuccess: () => {
       toast.success("Perfil atualizado");
       qc.invalidateQueries({ queryKey: ["team", orgId] });
@@ -557,6 +565,17 @@ function ProfileDialog({
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div>
+          <Label>WhatsApp</Label>
+          <Input
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            placeholder="+55 11 90000-0000"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Preenche automaticamente o envio de Pulsos por WhatsApp.
+          </p>
         </div>
         <div>
           <Label>Entregas esperadas (uma por linha)</Label>
