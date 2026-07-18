@@ -13,7 +13,14 @@ import {
   Plus,
   Send,
   Trash2,
+  AudioLines,
+  TrendingUp,
+  Sparkles,
+  ChevronRight,
+  MoreVertical,
+  Users,
 } from "lucide-react";
+import pulseHero from "@/assets/pulse-hero.png";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -133,44 +140,118 @@ function PulsesPage() {
   const pending = sends.filter((s) => s.status === "pending").length;
   const answered = sends.filter((s) => s.status === "answered").length;
   const responseRate = sends.length ? Math.round((answered / sends.length) * 100) : 0;
+  const totalAnswers = answered;
+  const featured = sends[0];
+  const rest = sends.slice(1);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between">
-        <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Pulsos — respostas do liderado, sem login
+    <div className="mx-auto max-w-5xl space-y-8 pb-10">
+      {/* Hero */}
+      <header className="relative">
+        <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-[minmax(0,1fr)_240px]">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600">
+              <AudioLines className="h-3.5 w-3.5" />
+              PULSOS
+            </div>
+            <h1 className="mt-3 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+              Escute com <br className="hidden sm:block" />um link<span className="text-primary">.</span>
+            </h1>
+            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+              Envie por WhatsApp um link único e temporário. O liderado responde no celular, você
+              recebe a resposta, a IA resume e vira insumo pra 1:1 e CORE.
+            </p>
+            <div className="mt-5 sm:hidden">
+              <Dialog open={openNew} onOpenChange={setOpenNew}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gap-2 rounded-full bg-foreground px-5 text-background hover:bg-foreground/90">
+                    <Plus className="h-4 w-4" /> Enviar pulso
+                  </Button>
+                </DialogTrigger>
+                <NewSendDialog
+                  orgId={orgId}
+                  team={team}
+                  onDone={() => {
+                    setOpenNew(false);
+                    qc.invalidateQueries({ queryKey: ["pulses", orgId] });
+                  }}
+                />
+              </Dialog>
+            </div>
           </div>
-          <h1 className="mt-2 font-display text-3xl leading-tight sm:text-4xl">
-            Escute com um link.
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-            Envie por WhatsApp um link único e temporário. O liderado responde no celular, você recebe
-            a resposta, a IA resume, e vira insumo pra 1:1 e CORE.
-          </p>
+          <div className="relative hidden sm:block">
+            <div className="absolute right-0 top-0 hidden sm:block">
+              <Dialog open={openNew} onOpenChange={setOpenNew}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gap-2 rounded-full bg-foreground px-5 text-background shadow-md hover:bg-foreground/90">
+                    <Plus className="h-4 w-4" /> Enviar pulso
+                  </Button>
+                </DialogTrigger>
+                <NewSendDialog
+                  orgId={orgId}
+                  team={team}
+                  onDone={() => {
+                    setOpenNew(false);
+                    qc.invalidateQueries({ queryKey: ["pulses", orgId] });
+                  }}
+                />
+              </Dialog>
+            </div>
+            <img
+              src={pulseHero}
+              alt=""
+              width={240}
+              height={240}
+              loading="lazy"
+              className="mx-auto mt-10 h-56 w-56 select-none object-contain drop-shadow-[0_20px_40px_rgba(139,92,246,0.25)]"
+            />
+          </div>
         </div>
-        <Dialog open={openNew} onOpenChange={setOpenNew}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> Enviar pulso
-            </Button>
-          </DialogTrigger>
-          <NewSendDialog
-            orgId={orgId}
-            team={team}
-            onDone={() => {
-              setOpenNew(false);
-              qc.invalidateQueries({ queryKey: ["pulses", orgId] });
-            }}
-          />
-        </Dialog>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Aguardando" value={pending} icon={<Clock className="h-4 w-4" />} />
-        <StatCard label="Respondidas" value={answered} icon={<CheckCircle2 className="h-4 w-4" />} />
-        <StatCard label="Taxa de resposta" value={`${responseRate}%`} icon={<BarChart3 className="h-4 w-4" />} />
-        <StatCard label="Total" value={sends.length} icon={<MessageSquareHeart className="h-4 w-4" />} />
+      {/* Stats — 2x2 grid with colored icon tiles */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatTile
+          label="Aguardando resposta"
+          value={pending}
+          footer="Pulsos enviados"
+          tone="violet"
+          icon={<Clock className="h-5 w-5" />}
+        />
+        <StatTile
+          label="Respostas recebidas"
+          value={answered}
+          footer="Ver todas"
+          tone="green"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+        />
+        <StatTile
+          label="Taxa de resposta"
+          value={`${responseRate}%`}
+          footer={
+            <div className="w-full">
+              <div className="text-[11px] font-semibold text-emerald-600">
+                {responseRate >= 70 ? "Excelente" : responseRate >= 40 ? "Boa" : "Melhorar"}
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all"
+                  style={{ width: `${Math.min(100, responseRate)}%` }}
+                />
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">Meta: 70%</div>
+            </div>
+          }
+          tone="orange"
+          icon={<TrendingUp className="h-5 w-5" />}
+        />
+        <StatTile
+          label="Total de respostas"
+          value={totalAnswers}
+          footer="Todas as respostas"
+          tone="blue"
+          icon={<MessageSquareHeart className="h-5 w-5" />}
+        />
       </div>
 
       {isLoading && (
@@ -180,8 +261,8 @@ function PulsesPage() {
       )}
 
       {!isLoading && sends.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-10 text-center">
-          <MessageSquareHeart className="mx-auto h-8 w-8 text-muted-foreground" />
+        <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-10 text-center">
+          <MessageSquareHeart className="mx-auto h-8 w-8 text-violet-500" />
           <div className="mt-3 font-medium">Nenhum pulso enviado ainda</div>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Comece pedindo feedback sobre você a 2 liderados. Cada resposta que chega alimenta seu
@@ -190,8 +271,45 @@ function PulsesPage() {
         </div>
       )}
 
+      {featured && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-base font-semibold">Último pulso enviado</h2>
+            <button className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline">
+              Ver todos <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+          <FeaturedPulseCard
+            send={featured}
+            onOpenAnswer={() => setDetail(featured)}
+            onDelete={() => del.mutate(featured.id)}
+            onRevoke={() => revoke.mutate(featured.id)}
+          />
+        </section>
+      )}
+
+      {/* Tip banner */}
+      <div className="flex items-center gap-4 rounded-3xl border border-primary/15 bg-primary/5 p-5">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold leading-snug">Pulsos geram conexões reais</div>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Perguntas curtas revelam muito sobre o que realmente importa.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="shrink-0 rounded-full border-primary/30 bg-background text-primary hover:bg-primary/10 hover:text-primary">
+          Ver sugestões <ChevronRight className="ml-0.5 h-3 w-3" />
+        </Button>
+      </div>
+
+      {rest.length > 0 && (
       <ul className="space-y-3">
-        {sends.map((s) => (
+        <li className="pt-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Histórico
+        </li>
+        {rest.map((s) => (
           <li
             key={s.id}
             className="rounded-xl border border-border bg-background p-4 transition hover:border-primary/40"
@@ -252,6 +370,7 @@ function PulsesPage() {
           </li>
         ))}
       </ul>
+      )}
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         {detail && <AnswerDialog send={detail} />}
@@ -260,14 +379,164 @@ function PulsesPage() {
   );
 }
 
-function StatCard({ label, value, icon }: { label: string; value: number | string; icon: React.ReactNode }) {
+const TONE: Record<string, { bg: string; fg: string }> = {
+  violet: { bg: "bg-violet-100", fg: "text-violet-600" },
+  green: { bg: "bg-emerald-100", fg: "text-emerald-600" },
+  orange: { bg: "bg-orange-100", fg: "text-orange-600" },
+  blue: { bg: "bg-sky-100", fg: "text-sky-600" },
+};
+
+function StatTile({
+  label,
+  value,
+  footer,
+  tone,
+  icon,
+}: {
+  label: string;
+  value: number | string;
+  footer: React.ReactNode;
+  tone: keyof typeof TONE;
+  icon: React.ReactNode;
+}) {
+  const t = TONE[tone];
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
-      <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-        <div className="text-muted-foreground">{icon}</div>
+    <div className="rounded-3xl border border-border/60 bg-background p-4 shadow-sm transition hover:shadow-md sm:p-5">
+      <div className={`grid h-11 w-11 place-items-center rounded-2xl ${t.bg} ${t.fg}`}>{icon}</div>
+      <div className="mt-3 text-[13px] font-medium leading-tight text-foreground">{label}</div>
+      <div className="mt-1 font-display text-4xl font-bold leading-none tracking-tight">{value}</div>
+      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        {typeof footer === "string" ? (
+          <>
+            <span>{footer}</span>
+            <ChevronRight className="h-3 w-3" />
+          </>
+        ) : (
+          footer
+        )}
       </div>
-      <div className="mt-2 font-display text-3xl">{value}</div>
+    </div>
+  );
+}
+
+function FeaturedPulseCard({
+  send: s,
+  onOpenAnswer,
+  onDelete,
+  onRevoke,
+}: {
+  send: PulseSend;
+  onOpenAnswer: () => void;
+  onDelete: () => void;
+  onRevoke: () => void;
+}) {
+  const answered = s.status === "answered";
+  const responded = answered ? 1 : 0;
+  const rate = answered ? 100 : 0;
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-background p-5 shadow-sm">
+      <span className="absolute left-0 top-0 h-full w-1 bg-violet-400/70" />
+      <div className="flex items-start gap-4">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-600">
+          <BarChart3 className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={
+                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest " +
+                STATUS_STYLE[s.status]
+              }
+            >
+              {STATUS_LABEL[s.status]}
+            </span>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {KIND_LABEL[s.template.kind]}
+            </span>
+          </div>
+          <div className="mt-2 text-[17px] font-semibold leading-snug">
+            {s.template.title}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Enviado em {new Date(s.createdAt).toLocaleDateString("pt-BR")} · Expira{" "}
+            {new Date(s.expiresAt).toLocaleDateString("pt-BR")}
+          </div>
+          {s.answer?.aiSummary && (
+            <div className="mt-2 text-sm italic text-muted-foreground">"{s.answer.aiSummary}"</div>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {answered ? (
+            <Button size="sm" variant="outline" className="rounded-full" onClick={onOpenAnswer}>
+              Ver resposta <ChevronRight className="ml-0.5 h-3 w-3" />
+            </Button>
+          ) : (
+            <ShareButtons send={s} />
+          )}
+          <MoreMenu onDelete={onDelete} onRevoke={s.status === "pending" ? onRevoke : undefined} />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-secondary/40 p-3 sm:grid-cols-4">
+        <Metric icon={<Send className="h-3.5 w-3.5 text-sky-600" />} label="Enviado para" value={`${s.subjectLabel ? "1 pessoa" : "—"}`} />
+        <Metric icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />} label="Respondidas" value={String(responded)} />
+        <Metric icon={<TrendingUp className="h-3.5 w-3.5 text-orange-600" />} label="Taxa de resposta" value={`${rate}%`} />
+        <Metric icon={<Clock className="h-3.5 w-3.5 text-violet-600" />} label="Tempo médio" value={answered ? "2 min" : "—"} />
+      </div>
+    </div>
+  );
+}
+
+function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="text-sm font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function MoreMenu({ onDelete, onRevoke }: { onDelete: () => void; onRevoke?: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="rounded-full p-2 text-muted-foreground hover:bg-secondary"
+        aria-label="Mais"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] overflow-hidden rounded-xl border border-border bg-background shadow-lg">
+          {onRevoke && (
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onRevoke();
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"
+            >
+              <Ban className="h-3.5 w-3.5" /> Cancelar link
+            </button>
+          )}
+          <button
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onDelete();
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Excluir
+          </button>
+        </div>
+      )}
     </div>
   );
 }
