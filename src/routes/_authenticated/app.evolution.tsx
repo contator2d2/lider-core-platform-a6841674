@@ -60,6 +60,40 @@ type TimelineEvent = {
 };
 
 function EvolutionPage() {
+  return <EvolutionPageInner />;
+}
+
+function DimensionCard({ icon, label, tone, dim }: { icon: React.ReactNode; label: string; tone: string; dim: Dimension }) {
+  return (
+    <div className="card-elevated p-5">
+      <div className={"flex items-center gap-2 text-xs uppercase tracking-widest " + tone}>
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <div className="metric-number text-4xl">{dim.score}</div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">/100</div>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{dim.diagnostic}</p>
+      <div className="mt-4 space-y-2">
+        {dim.parts.map((p) => (
+          <div key={p.label}>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-foreground/80">{p.label}</span>
+              <span className="text-muted-foreground">{Math.round(p.value * 100)}%</span>
+            </div>
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(p.value * 100)}%` }} />
+            </div>
+            {p.hint && <div className="mt-0.5 text-[10px] text-muted-foreground">{p.hint}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EvolutionPageInner() {
   const { orgId } = useCurrentOrg();
   const qc = useQueryClient();
 
