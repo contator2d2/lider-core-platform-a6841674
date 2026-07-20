@@ -36,6 +36,7 @@ import { api } from "@/lib/api";
 import { TodayList } from "@/components/dashboard/TodayList";
 import { ExplainButton } from "@/components/metrics/ExplainButton";
 import { VoiceCapture, type VoiceIntent } from "@/components/voice/VoiceCapture";
+import { KudosWall } from "@/components/kudos/KudosWall";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
@@ -112,6 +113,23 @@ function LeadershipRoom() {
 
   const handleVoiceIntent = async (intent: VoiceIntent) => {
     try {
+      if (intent.tipo === "kudos") {
+        try {
+          await api(`/organization/${orgId}/kudos`, {
+            method: "POST",
+            body: {
+              category: "atitude",
+              message: intent.resumo,
+              subjectLabel: intent.membroSugerido ?? null,
+            },
+          });
+          toast.success("Kudos publicado 🎉");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao publicar kudos");
+        }
+        setVoiceOpen(false);
+        return;
+      }
       if (typeof window !== "undefined") {
         const key =
           intent.tipo === "feedback"
@@ -305,6 +323,7 @@ function LeadershipRoom() {
           <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
           <AiCoachCard />
           <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
+          <KudosWall orgId={orgId} />
         </div>
 
         {/* FABs flutuantes (posicionados acima da bottom nav com safe-area) */}

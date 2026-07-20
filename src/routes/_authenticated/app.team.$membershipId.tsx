@@ -25,6 +25,7 @@ import {
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
+import { KudosWall } from "@/components/kudos/KudosWall";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -336,6 +337,12 @@ function MemberDetail() {
             Rituais organizacionais em <Link to="/app/organization/rituals" className="underline">Organização · Rituais</Link>.
           </div>
         </Section>
+      )}
+
+      {orgId && (
+        <div className="mt-4">
+          <KudosWall orgId={orgId} subjectUserId={m.userId} compact />
+        </div>
       )}
 
       <Dialog open={editing} onOpenChange={setEditing}>

@@ -391,7 +391,7 @@ const audioUpload = multer({
 });
 
 type VoiceIntent = {
-  tipo: "feedback" | "delegacao" | "nota";
+  tipo: "feedback" | "delegacao" | "nota" | "kudos";
   resumo: string;
   titulo?: string;
   prazoISO?: string | null;
@@ -420,9 +420,10 @@ aiRouter.post("/:orgId/ai/transcribe", audioUpload.single("audio"), async (req, 
             "Você recebe uma transcrição em pt-BR ditada por um líder. Classifique como um de:\n" +
             "- feedback (elogio ou crítica sobre alguém)\n" +
             "- delegacao (tarefa/pedido para alguém fazer)\n" +
+            "- kudos (reconhecimento público, agradecimento, celebração de conquista)\n" +
             "- nota (observação livre)\n\n" +
             "Responda APENAS um JSON válido no formato:\n" +
-            `{"tipo":"feedback|delegacao|nota","titulo":"...","resumo":"...","prazoISO":null,"membroSugerido":null}\n` +
+            `{"tipo":"feedback|delegacao|kudos|nota","titulo":"...","resumo":"...","prazoISO":null,"membroSugerido":null}\n` +
             "prazoISO em ISO-8601 se citado, senão null. membroSugerido = nome mencionado, senão null.",
         },
         { role: "user", content: transcript },

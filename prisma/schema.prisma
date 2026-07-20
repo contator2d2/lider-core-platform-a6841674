@@ -1578,3 +1578,31 @@ model CycleGoal {
   @@index([indicatorId])
   @@map("cycle_goals")
 }
+
+// ============================================================
+// KUDOS — Reconhecimento entre pares
+// ============================================================
+enum KudosCategory {
+  resultado
+  atitude
+  colaboracao
+  aprendizado
+  inovacao
+  outro
+}
+
+model Kudos {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  authorId       String        @map("author_id") @db.Uuid
+  subjectUserId  String?       @map("subject_user_id") @db.Uuid
+  subjectLabel   String?       @map("subject_label")
+  category       KudosCategory @default(atitude)
+  message        String
+  tags           String[]      @default([])
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@index([subjectUserId])
+  @@map("kudos")
+}
