@@ -56,10 +56,10 @@ coachRouter.get("/:orgId/coach/predictions", async (req, res) => {
       where: { organizationId: orgId, createdAt: { gte: fourWeeks } },
       select: { createdAt: true },
     }),
-    prisma.pulseCampaign.findMany({
+    prisma.pulseSend.findMany({
       where: { organizationId: orgId, createdAt: { gte: fourWeeks } },
-      select: { status: true, createdAt: true },
-    }).catch(() => [] as Array<{ status: string; createdAt: Date }>),
+      select: { status: true, createdAt: true, answeredAt: true },
+    }),
   ]);
 
   // Hard: rituais realizados / agendados (2 semanas)
@@ -81,8 +81,8 @@ coachRouter.get("/:orgId/coach/predictions", async (req, res) => {
   const wkPrev = feedbacks.filter((f) => f.createdAt < twoWeeks).length;
   const heartTrend = wkLast - wkPrev; // volume delta
 
-  const closedPulses = pulses.filter((p) => p.status === "closed").length;
-  const openPulses = pulses.filter((p) => p.status !== "closed").length;
+  const closedPulses = pulses.filter((p) => p.answeredAt != null).length;
+  const openPulses = pulses.filter((p) => p.answeredAt == null).length;
 
   const risks: Array<{
     dimension: "hard" | "soft" | "heart";
@@ -150,7 +150,7 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
   const now = new Date();
   const in3Days = new Date(now.getTime() + 3 * 86400_000);
 
-  const [delegations, pulses, oneOnOnes] = await Promise.all([
+  const [delegations, pulseSends, oneOnOnes] = await Promise.all([
     prisma.delegation.findMany({
       where: {
         organizationId: orgId,
@@ -160,31 +160,28 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
       orderBy: { dueAt: "asc" },
       take: 30,
     }),
-    prisma.pulseSubmission.findMany({
-      where: { campaign: { organizationId: orgId }, respondedAt: null },
-      include: { campaign: { select: { title: true } } },
+    prisma.pulseSend.findMany({
+      where: { organizationId: orgId, answeredAt: null, status: { in: ["pending", "sent"] } },
+      include: { template: { select: { title: true } } },
       orderBy: { createdAt: "asc" },
       take: 30,
-    }).catch(() => [] as Array<{ id: string; token: string; recipientName: string | null; recipientPhone: string | null; campaign: { title: string } | null }>),
+    }),
     prisma.oneOnOne.findMany({
       where: { organizationId: orgId, status: "scheduled", scheduledAt: { lte: in3Days } },
-      include: {
-        subjectUser: { include: { profile: true } },
-      },
       orderBy: { scheduledAt: "asc" },
       take: 20,
     }),
   ]);
 
   // Buscar dados dos assignees em lote
-  const assigneeIds = Array.from(new Set(delegations.map((d) => d.assigneeId).filter((v): v is string => !!v)));
-  const assignees = assigneeIds.length
-    ? await prisma.user.findMany({
-        where: { id: { in: assigneeIds } },
-        include: { profile: true },
-      })
+  const userIds = Array.from(new Set([
+    ...delegations.map((d) => d.assigneeId).filter((v): v is string => !!v),
+    ...oneOnOnes.map((o) => o.subjectUserId),
+  ]));
+  const users = userIds.length
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, include: { profile: true } })
     : [];
-  const assigneeMap = new Map(assignees.map((u) => [u.id, u]));
+  const userMap = new Map(users.map((u) => [u.id, u]));
 
   const clean = (phone: string | null | undefined) => (phone ? phone.replace(/\D/g, "") : "");
   const wa = (phone: string, text: string) =>
@@ -202,7 +199,7 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
   }> = [];
 
   for (const d of delegations) {
-    const u = d.assigneeId ? assigneeMap.get(d.assigneeId) : null;
+    const u = d.assigneeId ? userMap.get(d.assigneeId) : null;
     const name = u?.profile?.fullName ?? u?.email ?? "responsável";
     const phone = clean(u?.profile?.phone ?? "");
     const dueTxt = d.dueAt ? d.dueAt.toLocaleDateString("pt-BR") : "sem prazo";
@@ -220,15 +217,15 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
     });
   }
 
-  for (const p of pulses as Array<{ id: string; token: string; recipientName: string | null; recipientPhone: string | null; campaign: { title: string } | null }>) {
-    const name = p.recipientName ?? "colega";
-    const phone = clean(p.recipientPhone);
+  for (const p of pulseSends) {
+    const name = p.subjectLabel ?? "colega";
+    const phone = clean(p.subjectPhone);
     const link = `${req.headers.origin ?? ""}/p/${p.token}`;
-    const text = `Oi ${name.split(" ")[0]}, ainda dá pra responder o pulso "${p.campaign?.title ?? ""}"? Leva 2 min: ${link}`;
+    const text = `Oi ${name.split(" ")[0]}, ainda dá pra responder o pulso "${p.template?.title ?? ""}"? Leva 2 min: ${link}`;
     items.push({
       id: p.id,
       kind: "pulse",
-      title: p.campaign?.title ?? "Pulso",
+      title: p.template?.title ?? "Pulso",
       subtitle: "Aguardando resposta",
       dueAt: null,
       recipient: name,
@@ -238,8 +235,9 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
   }
 
   for (const oo of oneOnOnes) {
-    const name = oo.subjectUser?.profile?.fullName ?? oo.subjectUser?.email ?? "liderado";
-    const phone = clean(oo.subjectUser?.profile?.phone ?? "");
+    const u = userMap.get(oo.subjectUserId);
+    const name = u?.profile?.fullName ?? u?.email ?? "liderado";
+    const phone = clean(u?.profile?.phone ?? "");
     const dueTxt = oo.scheduledAt ? oo.scheduledAt.toLocaleDateString("pt-BR") : "";
     const text = `Oi ${name.split(" ")[0]}, nosso 1:1 é ${dueTxt}. Manda 2–3 tópicos que quer levar?`;
     items.push({
