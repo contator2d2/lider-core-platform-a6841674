@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -168,6 +169,22 @@ function ConscienciaPage() {
           />
         </Dialog>
       </header>
+
+      <Link
+        to="/app/consciencia/assessment"
+        className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 p-5 transition-shadow hover:shadow-md"
+      >
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Assessment guiado</div>
+          <div className="mt-1 font-display text-xl">Fluxo passo a passo do módulo C</div>
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+            Papel, DISC, MBTI, sabotadores, riscos e autoavaliação Hard · Soft · Heart em 5 minutos.
+          </p>
+        </div>
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background transition-transform group-hover:translate-x-0.5">
+          <Sparkles className="h-4 w-4" />
+        </div>
+      </Link>
 
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
