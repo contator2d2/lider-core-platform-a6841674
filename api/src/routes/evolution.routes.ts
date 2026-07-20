@@ -199,27 +199,22 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
   };
 
   // SOFT — execução: 1:1 no ritmo + delegações no prazo + feedbacks entregues
-  const [oneOnOnes, feedbacksGiven] = await Promise.all([
+  const [oneOnOnes, feedbacksGiven, directs] = await Promise.all([
     prisma.oneOnOne.count({
       where: {
         organizationId: orgId,
         leaderId: userId,
-        occurredAt: { gte: since30 },
+        scheduledAt: { gte: since30 },
+        status: "done",
       },
     }),
     prisma.feedbackRecord.count({
       where: { organizationId: orgId, authorId: userId, createdAt: { gte: since30 } },
     }),
+    prisma.membership.count({
+      where: { organizationId: orgId, directLeaderId: userId },
+    }),
   ]);
-  const teamSize = await prisma.membership.count({
-    where: { organizationId: orgId, leaderMembershipId: { not: null } },
-  });
-  const directs = await prisma.membership.count({
-    where: {
-      organizationId: orgId,
-      leaderMembership: { userId },
-    },
-  });
   const expected1on1 = Math.max(directs, 1);
   const oneOnOneScore = Math.min(1, oneOnOnes / expected1on1);
   const feedbackScore = Math.min(1, feedbacksGiven / Math.max(expected1on1 * 2, 4));
@@ -244,7 +239,7 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
 
   // HEART — cultura: regularidade de feedback + clima positivo + reconhecimento
   const since90 = new Date(now.getTime() - 90 * 86400000);
-  const [feedbackWeekly, kudosCount, pulseResponses] = await Promise.all([
+  const [feedbackWeekly, kudosCount, pulseSends] = await Promise.all([
     prisma.feedbackRecord.findMany({
       where: { organizationId: orgId, authorId: userId, createdAt: { gte: since90 } },
       select: { createdAt: true },
@@ -252,13 +247,14 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
     prisma.kudos.count({
       where: { organizationId: orgId, authorId: userId, createdAt: { gte: since30 } },
     }),
-    prisma.pulseResponse.findMany({
+    prisma.pulseSend.findMany({
       where: {
-        assignment: { pulse: { organizationId: orgId, createdById: userId } },
-        submittedAt: { gte: since90 },
+        organizationId: orgId,
+        senderId: userId,
+        createdAt: { gte: since90 },
       },
-      select: { score: true, submittedAt: true },
-    }).catch(() => [] as Array<{ score: number | null; submittedAt: Date | null }>),
+      select: { status: true, answeredAt: true },
+    }),
   ]);
   // regularidade: quantas das últimas 12 semanas tiveram ao menos 1 feedback
   const weekBuckets = new Set<string>();
@@ -268,8 +264,8 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
     weekBuckets.add(wk);
   }
   const regularity = Math.min(1, weekBuckets.size / 12);
-  const positivePulses = pulseResponses.filter((p) => (p.score ?? 0) >= 7).length;
-  const climate = pulseResponses.length ? positivePulses / pulseResponses.length : 0;
+  const answeredPulses = pulseSends.filter((p) => !!p.answeredAt).length;
+  const climate = pulseSends.length ? answeredPulses / pulseSends.length : 0;
   const recognition = Math.min(1, kudosCount / 4);
   const heartScoreRaw = 0.4 * regularity + 0.35 * climate + 0.25 * recognition;
   const heartScore = Math.round(heartScoreRaw * 100);
@@ -277,7 +273,7 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
     score: heartScore,
     parts: [
       { label: "Regularidade de feedback", value: regularity, hint: `${weekBuckets.size}/12 semanas ativas` },
-      { label: "Clima (pulsos positivos)", value: climate, hint: `${positivePulses}/${pulseResponses.length} respostas ≥7` },
+      { label: "Engajamento em pulsos", value: climate, hint: `${answeredPulses}/${pulseSends.length} respondidos em 90d` },
       { label: "Reconhecimento (kudos)", value: recognition, hint: `${kudosCount} kudos em 30d` },
     ],
     diagnostic:
