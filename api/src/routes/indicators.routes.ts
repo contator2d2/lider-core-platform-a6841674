@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 import { parseCsv } from "../lib/csv.js";
+import { notifyInApp } from "../lib/notifications.js";
 
 /**
  * MÓDULO R — Indicadores em 3 níveis (área / equipe / liderança) +
@@ -127,6 +128,16 @@ const readingSchema = z.object({
 indicatorsRouter.post("/:orgId/indicators/:id/readings", async (req, res) => {
   try {
     const data = readingSchema.parse(req.body);
+    // Estado ANTES do upsert — para detectar transição para "fora da meta"
+    const before = await prisma.indicator.findUnique({
+      where: { id: req.params.id },
+      include: {
+        readings: {
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          take: 2,
+        },
+      },
+    });
     const r = await prisma.indicatorReading.upsert({
       where: {
         indicatorId_periodYear_periodMonth: {
@@ -159,6 +170,10 @@ indicatorsRouter.post("/:orgId/indicators/:id/readings", async (req, res) => {
         recordedBy: req.userId,
       },
     });
+    // Fase 2 · item 5 — Alerta de resultado
+    if (before) {
+      await maybeNotifyOffTarget(before, data.value, req.params.orgId).catch(() => undefined);
+    }
     res.status(201).json(r);
   } catch (err) {
     badReq(res, err);
