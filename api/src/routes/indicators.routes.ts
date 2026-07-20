@@ -245,6 +245,100 @@ indicatorsRouter.get("/:orgId/indicators/concentration", async (req, res) => {
 });
 
 // ------------------------------------------------------------
+// Meta × Realizado — classificação de desvio
+// (Fase 3 · item 12) — para cada indicador com meta e leituras,
+// classifica o desvio como problema de EXECUÇÃO ou de CALIBRAÇÃO.
+// ------------------------------------------------------------
+indicatorsRouter.get("/:orgId/results/meta-vs-real", async (req, res) => {
+  const orgId = req.params.orgId;
+  const indicators = await prisma.indicator.findMany({
+    where: { organizationId: orgId, active: true, target: { not: null } },
+    include: {
+      readings: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 6 },
+      area: { select: { id: true, name: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const rows = indicators
+    .map((i) => {
+      const last = i.readings[0];
+      if (!last || i.target == null) return null;
+      const dir = (i.direction === "lower_better" ? "lower_better" : "higher_better") as
+        | "higher_better"
+        | "lower_better";
+      const target = i.target;
+      const gap = (last.value - target) / Math.max(Math.abs(target), 1);
+      const signedGap = dir === "higher_better" ? gap : -gap; // <0 = fora
+      const absGap = Math.abs(gap);
+      const isOn = dir === "higher_better" ? last.value >= target : last.value <= target;
+      const status: "on_target" | "warning" | "off_target" =
+        isOn ? "on_target" : absGap <= 0.1 ? "warning" : "off_target";
+
+      // classificação
+      const history = i.readings.slice().reverse(); // asc
+      const offCount = history.filter((r) =>
+        dir === "higher_better" ? r.value < target : r.value > target,
+      ).length;
+      const values = history.map((r) => r.value);
+      const trend =
+        values.length >= 2
+          ? dir === "higher_better"
+            ? values[values.length - 1] - values[0]
+            : values[0] - values[values.length - 1]
+          : 0;
+
+      let classification: "on_target" | "execucao" | "recuperando" | "calibracao" = "on_target";
+      let diagnostic = "Dentro da meta — sustente o padrão.";
+
+      if (!isOn) {
+        if (offCount >= 3 && Math.abs(trend) / Math.max(Math.abs(target), 1) < 0.05) {
+          classification = "calibracao";
+          diagnostic =
+            "Meta ficou fora por 3+ períodos com pouca variação — provável calibração incorreta. Reavalie o número com o time.";
+        } else if (trend > 0 && dir === "higher_better") {
+          classification = "recuperando";
+          diagnostic = "Tendência positiva, mas ainda abaixo da meta — mantenha o plano PDCA.";
+        } else if (trend > 0 && dir === "lower_better") {
+          classification = "recuperando";
+          diagnostic = "Movimento na direção certa, mas meta ainda não atingida.";
+        } else {
+          classification = "execucao";
+          diagnostic =
+            "Desvio recente sem recuperação — problema de execução. Abra ciclo PDCA e revise responsáveis.";
+        }
+      }
+
+      return {
+        id: i.id,
+        name: i.name,
+        unit: i.unit,
+        area: i.area ? { id: i.area.id, name: i.area.name } : null,
+        target,
+        direction: dir,
+        lastValue: last.value,
+        lastPeriod: { year: last.periodYear, month: last.periodMonth },
+        gapPct: Math.round(signedGap * 100),
+        status,
+        classification,
+        diagnostic,
+        history: values,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => !!r);
+
+  const summary = rows.reduce(
+    (acc, r) => {
+      acc[r.classification] = (acc[r.classification] ?? 0) + 1;
+      return acc;
+    },
+    { on_target: 0, execucao: 0, recuperando: 0, calibracao: 0 } as Record<string, number>,
+  );
+
+  res.json({ summary, rows });
+});
+
+// ------------------------------------------------------------
 // Gestão à vista — semáforos por área + metas do ciclo ativo
 // ------------------------------------------------------------
 indicatorsRouter.get("/:orgId/results-overview", async (req, res) => {
