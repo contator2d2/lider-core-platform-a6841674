@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Save, Sparkles, TrendingUp, CheckSquare, Target, MessageSquare } from "lucide-react";
+import { Loader2, Save, Sparkles, TrendingUp, CheckSquare, Target, MessageSquare, Building2, Users2, Heart } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,18 @@ type MeResponse = {
       delegations: { onTime: number; total: number; overdue: number };
       indicators: { onTarget: number; withReadings: number };
     };
+    hard: Dimension;
+    soft: Dimension;
+    heart: Dimension;
   };
   trend: Snapshot[];
   commitments: Array<{ id: string; phrase: string; status: string }>;
+};
+
+type Dimension = {
+  score: number;
+  parts: Array<{ label: string; value: number; hint?: string }>;
+  diagnostic: string;
 };
 
 type TimelineEvent = {
@@ -179,6 +188,25 @@ function EvolutionPage() {
               </div>
             </FadeIn>
           </section>
+
+          <FadeIn delay={0.12}>
+            <section>
+              <div className="mb-3 flex items-end justify-between">
+                <div>
+                  <div className="eyebrow">Sustentação por dimensão</div>
+                  <h3 className="mt-1 font-display text-xl">Hard · Soft · Heart</h3>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Cada dimensão é calculada dos fatos — nunca autoavaliação.
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <DimensionCard icon={<Building2 className="h-4 w-4" />} label="Hard · Estrutura" tone="text-sky-500" dim={current.hard} />
+                <DimensionCard icon={<Users2 className="h-4 w-4" />} label="Soft · Execução" tone="text-emerald-500" dim={current.soft} />
+                <DimensionCard icon={<Heart className="h-4 w-4" />} label="Heart · Cultura" tone="text-rose-500" dim={current.heart} />
+              </div>
+            </section>
+          </FadeIn>
 
           <FadeIn delay={0.15}>
             <section className="card-elevated p-6">
