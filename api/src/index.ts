@@ -25,6 +25,7 @@ import { oneOnOnesRouter } from "./routes/one-on-ones.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { threeSixtyRouter } from "./routes/three-sixty.routes.js";
 import { pulsesRouter, publicPulsesRouter } from "./routes/pulses.routes.js";
+import { cyclesRouter } from "./routes/cycles.routes.js";
 import { prisma } from "./prisma.js";
 
 const app = express();
@@ -116,6 +117,7 @@ app.use("/organization", oneOnOnesRouter);
 app.use("/organization", dashboardRouter);
 app.use("/organization", threeSixtyRouter);
 app.use("/organization", pulsesRouter);
+app.use("/organization", cyclesRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 

@@ -277,6 +277,8 @@ model Area {
   mission        String?
   objective      String?
   kpis           String[] @default([])
+  purpose        String?
+  deliverables   String[] @default([])
   contextMd      String?  @map("context_md")
   tags           String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at")
@@ -971,6 +973,8 @@ model OrgRole {
   competencies     String[] @default([])
   relationships    String[] @default([])
   isLeader         Boolean  @default(false) @map("is_leader")
+  slaText          String?  @map("sla_text")
+  doneCriteria     String?  @map("done_criteria")
   contextMd        String?  @map("context_md")
   tags             String[] @default([])
   createdBy        String?  @map("created_by") @db.Uuid
@@ -1268,6 +1272,9 @@ model TeamMemberProfile {
   strengths            String[]      @default([])
   developPoints        String[]      @default([]) @map("develop_points")
   notes                String?
+  performanceLevel     Int?          @map("performance_level")
+  potentialLevel       Int?          @map("potential_level")
+  discPrimary          String?       @map("disc_primary")
   updatedBy            String?       @map("updated_by") @db.Uuid
   createdAt            DateTime      @default(now()) @map("created_at")
   updatedAt            DateTime      @updatedAt @map("updated_at")
@@ -1506,4 +1513,64 @@ model PulseAnswer {
   send PulseSend @relation(fields: [sendId], references: [id], onDelete: Cascade)
 
   @@map("pulse_answers")
+}
+
+// ============================================================
+// Ciclos com metas SMART (Fase 1 · item 5)
+// Um ciclo é um horizonte (trimestre, semestre) com metas ligadas a indicadores.
+// ============================================================
+enum CycleStatus {
+  planning
+  active
+  closed
+}
+
+enum CycleGoalStatus {
+  on_track
+  at_risk
+  off_track
+  done
+  dropped
+}
+
+model Cycle {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  name           String
+  startAt        DateTime    @map("start_at")
+  endAt          DateTime    @map("end_at")
+  status         CycleStatus @default(planning)
+  summary        String?
+  createdBy      String?     @map("created_by") @db.Uuid
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  goals CycleGoal[]
+
+  @@index([organizationId, status])
+  @@map("cycles")
+}
+
+model CycleGoal {
+  id           String          @id @default(uuid()) @db.Uuid
+  cycleId      String          @map("cycle_id") @db.Uuid
+  title        String
+  specific     String?
+  measurable   String?
+  achievable   String?
+  relevant     String?
+  timeBound    String?         @map("time_bound")
+  ownerUserId  String?         @map("owner_user_id") @db.Uuid
+  areaId       String?         @map("area_id") @db.Uuid
+  indicatorId  String?         @map("indicator_id") @db.Uuid
+  targetValue  Float?          @map("target_value")
+  status       CycleGoalStatus @default(on_track)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@index([cycleId])
+  @@index([indicatorId])
+  @@map("cycle_goals")
 }

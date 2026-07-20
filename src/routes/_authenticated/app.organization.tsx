@@ -11,6 +11,7 @@ import {
   MessageSquareHeart,
   Network,
   ScrollText,
+  Target,
   Users,
   Workflow,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const nav: NavItem[] = [
   { to: "/app/organization/agenda",      label: "Agenda",         icon: Calendar,      tint: "sky" },
   { to: "/app/organization/delegations", label: "Delegações",     icon: ClipboardList, tint: "emerald" },
   { to: "/app/pulses",                   label: "Pulsos",         icon: MessageSquareHeart, tint: "violet" },
+  { to: "/app/organization/cycles",      label: "Ciclos & metas", icon: Target,        tint: "emerald" },
   { to: "/app/organization/decisions",   label: "Decisões",       icon: ScrollText,    tint: "orange" },
   { to: "/app/organization/documents",   label: "Base documental",icon: FileText,      tint: "slate" },
 ];
@@ -54,6 +56,7 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   "/app/organization/agenda":       { title: "Agenda do líder",     description: "Visualize seus compromissos, rituais e prioridades dos próximos dias." },
   "/app/organization/delegations":  { title: "Delegações",          description: "Combinados claros com prazos e responsáveis." },
   "/app/pulses":                    { title: "Pulsos",              description: "Envie um link único por WhatsApp e receba feedback, clima ou DISC direto do liderado — sem login." },
+  "/app/organization/cycles":       { title: "Ciclos & metas",      description: "Trimestres, campanhas e metas SMART ligadas aos indicadores." },
   "/app/organization/decisions":    { title: "Decisões",            description: "Registro vivo das decisões e seus desdobramentos." },
   "/app/organization/documents":    { title: "Base documental",     description: "Documentos, políticas e artefatos organizacionais." },
 };

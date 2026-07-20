@@ -155,6 +155,8 @@ const areaExtSchema = z.object({
   mission: z.string().optional().nullable(),
   objective: z.string().optional().nullable(),
   kpis: z.array(z.string()).optional(),
+  purpose: z.string().optional().nullable(),
+  deliverables: z.array(z.string()).optional(),
   contextMd: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
   managerUserId: z.string().uuid().optional().nullable(),
@@ -217,6 +219,8 @@ const roleSchema = z.object({
   competencies: z.array(z.string()).default([]),
   relationships: z.array(z.string()).default([]),
   isLeader: z.boolean().default(false),
+  slaText: z.string().optional().nullable(),
+  doneCriteria: z.string().optional().nullable(),
   contextMd: z.string().optional().nullable(),
   tags: z.array(z.string()).default([]),
 });
