@@ -277,6 +277,8 @@ model Area {
   mission        String?
   objective      String?
   kpis           String[] @default([])
+  purpose        String?
+  deliverables   String[] @default([])
   contextMd      String?  @map("context_md")
   tags           String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at")
@@ -971,6 +973,8 @@ model OrgRole {
   competencies     String[] @default([])
   relationships    String[] @default([])
   isLeader         Boolean  @default(false) @map("is_leader")
+  slaText          String?  @map("sla_text")
+  doneCriteria     String?  @map("done_criteria")
   contextMd        String?  @map("context_md")
   tags             String[] @default([])
   createdBy        String?  @map("created_by") @db.Uuid
@@ -1268,6 +1272,9 @@ model TeamMemberProfile {
   strengths            String[]      @default([])
   developPoints        String[]      @default([]) @map("develop_points")
   notes                String?
+  performanceLevel     Int?          @map("performance_level")
+  potentialLevel       Int?          @map("potential_level")
+  discPrimary          String?       @map("disc_primary")
   updatedBy            String?       @map("updated_by") @db.Uuid
   createdAt            DateTime      @default(now()) @map("created_at")
   updatedAt            DateTime      @updatedAt @map("updated_at")
