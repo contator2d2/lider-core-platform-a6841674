@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarRange, Loader2, Plus, Target, Trash2 } from "lucide-react";
+import { CalendarRange, Loader2, Plus, Sparkles, Target, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,7 @@ function CyclesPage() {
   const qc = useQueryClient();
   const [openCycle, setOpenCycle] = useState(false);
   const [goalCycleId, setGoalCycleId] = useState<string | null>(null);
+  const [retroCycle, setRetroCycle] = useState<Cycle | null>(null);
 
   const { data: cycles = [], isLoading } = useQuery({
     queryKey: ["cycles", orgId],
@@ -96,6 +97,7 @@ function CyclesPage() {
               key={c.id}
               cycle={c}
               onAddGoal={() => setGoalCycleId(c.id)}
+              onRetro={() => setRetroCycle(c)}
               onDelete={() => {
                 if (confirm(`Excluir ciclo "${c.name}"?`)) del.mutate(c.id);
               }}
@@ -107,11 +109,15 @@ function CyclesPage() {
       <Dialog open={!!goalCycleId} onOpenChange={(o) => !o && setGoalCycleId(null)}>
         {goalCycleId && <GoalDialog cycleId={goalCycleId} onClose={() => setGoalCycleId(null)} />}
       </Dialog>
+
+      <Dialog open={!!retroCycle} onOpenChange={(o) => !o && setRetroCycle(null)}>
+        {retroCycle && <RetroDialog cycle={retroCycle} onClose={() => setRetroCycle(null)} />}
+      </Dialog>
     </div>
   );
 }
 
-function CycleCard({ cycle, onAddGoal, onDelete }: { cycle: Cycle; onAddGoal: () => void; onDelete: () => void }) {
+function CycleCard({ cycle, onAddGoal, onRetro, onDelete }: { cycle: Cycle; onAddGoal: () => void; onRetro: () => void; onDelete: () => void }) {
   const meta = STATUS_META[cycle.status];
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -132,6 +138,9 @@ function CycleCard({ cycle, onAddGoal, onDelete }: { cycle: Cycle; onAddGoal: ()
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddGoal}>
             <Plus className="h-3.5 w-3.5" />Meta
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onRetro}>
+            <Sparkles className="h-3.5 w-3.5" />Retrô
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
         </div>
@@ -271,6 +280,119 @@ function GoalDialog({ cycleId, onClose }: { cycleId: string; onClose: () => void
         <Button variant="ghost" onClick={onClose}>Cancelar</Button>
         <Button disabled={!title || save.isPending} onClick={() => save.mutate()}>
           {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Adicionar"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+type Retro = {
+  id: string; wentWell: string | null; toImprove: string | null;
+  learnings: string | null; nextSteps: string | null; confidence: number | null;
+  createdAt: string;
+};
+
+const STEPS = [
+  { key: "wentWell",  title: "O que funcionou?",     hint: "Conquistas, decisões acertadas, quem brilhou." },
+  { key: "toImprove", title: "O que travou?",        hint: "Gargalos, atrasos, falhas de comunicação." },
+  { key: "learnings", title: "O que aprendemos?",    hint: "Insights, padrões, hipóteses validadas." },
+  { key: "nextSteps", title: "Próximos passos",      hint: "Ações concretas para o próximo ciclo." },
+  { key: "confidence",title: "Confiança no próximo", hint: "0 a 10 — quão confiantes estamos no próximo ciclo?" },
+] as const;
+
+function RetroDialog({ cycle, onClose }: { cycle: Cycle; onClose: () => void }) {
+  const { orgId } = useCurrentOrg();
+  const qc = useQueryClient();
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({
+    wentWell: "", toImprove: "", learnings: "", nextSteps: "", confidence: 7,
+  });
+
+  const { data: retros = [] } = useQuery({
+    queryKey: ["retros", cycle.id],
+    queryFn: () => api<Retro[]>(`/organization/${orgId}/cycles/${cycle.id}/retrospectives`),
+  });
+
+  const save = useMutation({
+    mutationFn: () => api(`/organization/${orgId}/cycles/${cycle.id}/retrospectives`, {
+      method: "POST",
+      body: {
+        wentWell: form.wentWell || null,
+        toImprove: form.toImprove || null,
+        learnings: form.learnings || null,
+        nextSteps: form.nextSteps || null,
+        confidence: form.confidence,
+      },
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["retros", cycle.id] });
+      toast.success("Retrospectiva registrada.");
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const current = STEPS[step];
+  const isLast = step === STEPS.length - 1;
+
+  return (
+    <DialogContent className="sm:max-w-xl">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent" />
+          Retrospectiva · {cycle.name}
+        </DialogTitle>
+      </DialogHeader>
+
+      <div className="flex items-center gap-1.5">
+        {STEPS.map((_, i) => (
+          <div key={i} className={"h-1 flex-1 rounded-full " + (i <= step ? "bg-accent" : "bg-muted")} />
+        ))}
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <div>
+          <p className="font-display text-lg">{current.title}</p>
+          <p className="text-xs text-muted-foreground">{current.hint}</p>
+        </div>
+
+        {current.key === "confidence" ? (
+          <div className="space-y-2">
+            <Input
+              type="range" min={0} max={10} step={1}
+              value={form.confidence}
+              onChange={(e) => setForm((f) => ({ ...f, confidence: Number(e.target.value) }))}
+            />
+            <div className="text-center font-display text-3xl">{form.confidence}<span className="text-sm text-muted-foreground">/10</span></div>
+          </div>
+        ) : (
+          <Textarea
+            rows={5}
+            value={form[current.key as "wentWell" | "toImprove" | "learnings" | "nextSteps"]}
+            onChange={(e) => setForm((f) => ({ ...f, [current.key]: e.target.value }))}
+            placeholder="Escreva livremente..."
+          />
+        )}
+
+        {retros.length > 0 && step === 0 && (
+          <div className="rounded-lg border border-border/60 bg-muted/40 p-3 text-xs text-muted-foreground">
+            {retros.length} retrospectiva(s) já registrada(s) neste ciclo.
+          </div>
+        )}
+      </div>
+
+      <DialogFooter className="flex-row justify-between sm:justify-between">
+        <Button
+          variant="ghost"
+          onClick={() => (step === 0 ? onClose() : setStep((s) => s - 1))}
+        >
+          {step === 0 ? "Cancelar" : "Voltar"}
+        </Button>
+        <Button
+          disabled={save.isPending}
+          onClick={() => (isLast ? save.mutate() : setStep((s) => s + 1))}
+        >
+          {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : isLast ? "Concluir" : "Próximo"}
         </Button>
       </DialogFooter>
     </DialogContent>

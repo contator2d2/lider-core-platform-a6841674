@@ -151,3 +151,66 @@ cyclesRouter.delete("/:orgId/cycles/:cycleId/goals/:goalId", async (req, res) =>
   await prisma.cycleGoal.delete({ where: { id: req.params.goalId } }).catch(() => null);
   res.status(204).end();
 });
+
+// ============================================================
+// Retrospectivas (Fase 2 · item 4)
+// ============================================================
+const retroSchema = z.object({
+  areaId: z.string().uuid().optional().nullable(),
+  wentWell: z.string().optional().nullable(),
+  toImprove: z.string().optional().nullable(),
+  learnings: z.string().optional().nullable(),
+  nextSteps: z.string().optional().nullable(),
+  confidence: z.number().int().min(0).max(10).optional().nullable(),
+});
+
+cyclesRouter.get("/:orgId/cycles/:cycleId/retrospectives", async (req, res) => {
+  const rows = await prisma.cycleRetrospective.findMany({
+    where: { cycleId: req.params.cycleId, organizationId: req.params.orgId },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(rows);
+});
+
+cyclesRouter.post("/:orgId/cycles/:cycleId/retrospectives", async (req, res) => {
+  try {
+    const data = retroSchema.parse(req.body);
+    const created = await prisma.cycleRetrospective.create({
+      data: {
+        cycleId: req.params.cycleId,
+        organizationId: req.params.orgId,
+        areaId: data.areaId ?? null,
+        wentWell: data.wentWell ?? null,
+        toImprove: data.toImprove ?? null,
+        learnings: data.learnings ?? null,
+        nextSteps: data.nextSteps ?? null,
+        confidence: data.confidence ?? null,
+        createdBy: req.userId!,
+      },
+    });
+    res.status(201).json(created);
+  } catch (err) { badReq(res, err); }
+});
+
+cyclesRouter.patch("/:orgId/cycles/:cycleId/retrospectives/:id", async (req, res) => {
+  try {
+    const data = retroSchema.partial().parse(req.body);
+    const updated = await prisma.cycleRetrospective.update({
+      where: { id: req.params.id },
+      data: {
+        ...(data.areaId !== undefined ? { areaId: data.areaId ?? null } : {}),
+        ...(data.wentWell !== undefined ? { wentWell: data.wentWell ?? null } : {}),
+        ...(data.toImprove !== undefined ? { toImprove: data.toImprove ?? null } : {}),
+        ...(data.learnings !== undefined ? { learnings: data.learnings ?? null } : {}),
+        ...(data.nextSteps !== undefined ? { nextSteps: data.nextSteps ?? null } : {}),
+        ...(data.confidence !== undefined ? { confidence: data.confidence ?? null } : {}),
+      },
+    });
+    res.json(updated);
+  } catch (err) { badReq(res, err); }
+});
+
+cyclesRouter.delete("/:orgId/cycles/:cycleId/retrospectives/:id", async (req, res) => {
+  await prisma.cycleRetrospective.delete({ where: { id: req.params.id } }).catch(() => null);
+  res.status(204).end();
+});
