@@ -18,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/app/organization/areas")({
 type Area = {
   id: string; name: string;
   mission: string | null; objective: string | null; kpis: string[];
+  purpose: string | null; deliverables: string[];
   contextMd: string | null;
   _count?: { memberships: number; teams?: number };
 };
@@ -60,7 +61,14 @@ function AreasPage() {
               <LayoutGrid className="h-3.5 w-3.5" /> Área
             </div>
             <div className="mt-2 font-display text-xl">{a.name}</div>
-            <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">{a.mission ?? "Sem missão definida."}</div>
+            <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+              {a.purpose ?? a.mission ?? "Sem propósito definido."}
+            </div>
+            {a.deliverables?.length > 0 && (
+              <div className="mt-2 text-[11px] text-muted-foreground">
+                {a.deliverables.length} entrega{a.deliverables.length === 1 ? "" : "s"} esperada{a.deliverables.length === 1 ? "" : "s"}
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-1.5">
               {a.kpis.slice(0, 3).map((k) => (
                 <span key={k} className="rounded-full bg-secondary px-2 py-0.5 text-[11px]">{k}</span>
@@ -87,6 +95,8 @@ function AreasPage() {
 }
 
 function AreaForm({ area, onSave, saving }: { area: Area; onSave: (v: Partial<Area>) => void; saving: boolean }) {
+  const [purpose, setPurpose] = useState(area.purpose ?? "");
+  const [deliverablesText, setDeliverablesText] = useState((area.deliverables ?? []).join("\n"));
   const [mission, setMission] = useState(area.mission ?? "");
   const [objective, setObjective] = useState(area.objective ?? "");
   const [kpisText, setKpisText] = useState(area.kpis.join(", "));
@@ -94,6 +104,15 @@ function AreaForm({ area, onSave, saving }: { area: Area; onSave: (v: Partial<Ar
 
   return (
     <div className="mt-4 space-y-4">
+      <div className="space-y-1.5">
+        <Label>Propósito da área</Label>
+        <Textarea rows={2} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Pra que essa área existe — em uma frase." />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Entregas esperadas (uma por linha)</Label>
+        <Textarea rows={4} value={deliverablesText} onChange={(e) => setDeliverablesText(e.target.value)} placeholder={"Ex.:\nRelatório mensal de vendas\nOnboarding de novos clientes"} />
+        <p className="text-xs text-muted-foreground">O que precisa acontecer aqui, sempre — independente de quem estiver.</p>
+      </div>
       <div className="space-y-1.5">
         <Label>Missão</Label>
         <Textarea rows={2} value={mission} onChange={(e) => setMission(e.target.value)} />
@@ -114,6 +133,8 @@ function AreaForm({ area, onSave, saving }: { area: Area; onSave: (v: Partial<Ar
         <Button
           disabled={saving}
           onClick={() => onSave({
+            purpose: purpose || null,
+            deliverables: deliverablesText.split("\n").map((s) => s.trim()).filter(Boolean),
             mission: mission || null,
             objective: objective || null,
             kpis: kpisText.split(",").map((s) => s.trim()).filter(Boolean),
