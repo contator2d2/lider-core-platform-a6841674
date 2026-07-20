@@ -187,6 +187,10 @@ function ConscienciaPage() {
       )}
 
       {profile && (
+        <HSHPanel profile={profile} />
+      )}
+
+      {profile && (
         <div className="grid gap-4 md:grid-cols-3">
           <SummaryCard
             title="Força principal"
