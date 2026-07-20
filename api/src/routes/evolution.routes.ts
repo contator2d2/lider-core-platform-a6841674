@@ -60,10 +60,19 @@ export type ScoreBreakdown = {
   indicators: { onTarget: number; withReadings: number };
 };
 
+export type DimensionBreakdown = {
+  score: number; // 0..100
+  parts: Array<{ label: string; value: number; hint?: string }>;
+  diagnostic: string;
+};
+
 export type ScoreResult = {
   score: number;
   breakdown: ScoreBreakdown;
   diagnostic: string;
+  hard: DimensionBreakdown;
+  soft: DimensionBreakdown;
+  heart: DimensionBreakdown;
 };
 
 export async function computeScoreForUser(orgId: string, userId: string): Promise<ScoreResult> {
@@ -152,6 +161,135 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
     indicators: { onTarget, withReadings },
   });
 
+  // ============================================================
+  // Dimensões H/S/H (spec §6)
+  // ============================================================
+
+  // HARD — estrutura: cadência de rituais + % metas SMART + % indicadores com meta
+  const [allIndicators, cycleGoals] = await Promise.all([
+    prisma.indicator.count({ where: { organizationId: orgId, active: true } }),
+    prisma.cycleGoal.count({
+      where: {
+        cycle: { organizationId: orgId, status: { in: ["active", "planned"] } },
+      },
+    }),
+  ]);
+  const indicatorsWithTarget = await prisma.indicator.count({
+    where: { organizationId: orgId, active: true, target: { not: null } },
+  });
+  const smartCoverage = allIndicators ? Math.min(1, cycleGoals / allIndicators) : cycleGoals ? 1 : 0;
+  const targetCoverage = allIndicators ? indicatorsWithTarget / allIndicators : 0;
+  const hardScoreRaw = 0.5 * ritualsScore + 0.25 * smartCoverage + 0.25 * targetCoverage;
+  const hardScore = Math.round(hardScoreRaw * 100);
+  const hard: DimensionBreakdown = {
+    score: hardScore,
+    parts: [
+      { label: "Cadência de rituais", value: ritualsScore, hint: `${done}/${planned} feitos em 30d` },
+      { label: "Metas SMART do ciclo", value: smartCoverage, hint: `${cycleGoals} meta(s) para ${allIndicators} indicador(es)` },
+      { label: "Indicadores com meta", value: targetCoverage, hint: `${indicatorsWithTarget}/${allIndicators}` },
+    ],
+    diagnostic:
+      hardScore >= 70
+        ? "Estrutura sustentando: rituais rodando e metas calibradas."
+        : ritualsScore < 0.6
+          ? "Cadência dos rituais está baixa — sem ritmo, a estrutura vaza."
+          : smartCoverage < 0.5
+            ? "Faltam metas SMART formalizadas no ciclo ativo."
+            : "Nem todos os indicadores têm meta — a leitura fica incompleta.",
+  };
+
+  // SOFT — execução: 1:1 no ritmo + delegações no prazo + feedbacks entregues
+  const [oneOnOnes, feedbacksGiven] = await Promise.all([
+    prisma.oneOnOne.count({
+      where: {
+        organizationId: orgId,
+        leaderId: userId,
+        occurredAt: { gte: since30 },
+      },
+    }),
+    prisma.feedbackRecord.count({
+      where: { organizationId: orgId, authorId: userId, createdAt: { gte: since30 } },
+    }),
+  ]);
+  const teamSize = await prisma.membership.count({
+    where: { organizationId: orgId, leaderMembershipId: { not: null } },
+  });
+  const directs = await prisma.membership.count({
+    where: {
+      organizationId: orgId,
+      leaderMembership: { userId },
+    },
+  });
+  const expected1on1 = Math.max(directs, 1);
+  const oneOnOneScore = Math.min(1, oneOnOnes / expected1on1);
+  const feedbackScore = Math.min(1, feedbacksGiven / Math.max(expected1on1 * 2, 4));
+  const softScoreRaw = 0.4 * oneOnOneScore + 0.35 * delegScore + 0.25 * feedbackScore;
+  const softScore = Math.round(softScoreRaw * 100);
+  const soft: DimensionBreakdown = {
+    score: softScore,
+    parts: [
+      { label: "1:1 no mês", value: oneOnOneScore, hint: `${oneOnOnes} realizadas / ${expected1on1} liderado(s)` },
+      { label: "Delegações no prazo", value: delegScore, hint: `${onTime}/${counted}` },
+      { label: "Feedbacks entregues", value: feedbackScore, hint: `${feedbacksGiven} em 30d` },
+    ],
+    diagnostic:
+      softScore >= 70
+        ? "Execução consistente — 1:1, delegação e feedback fluem."
+        : oneOnOneScore < 0.5
+          ? "1:1 abaixo do ritmo esperado com o time direto."
+          : delegScore < 0.6
+            ? "Delegações escapando do prazo — revise clareza e prioridade."
+            : "Feedbacks estão raros — o time está sem espelho.",
+  };
+
+  // HEART — cultura: regularidade de feedback + clima positivo + reconhecimento
+  const since90 = new Date(now.getTime() - 90 * 86400000);
+  const [feedbackWeekly, kudosCount, pulseResponses] = await Promise.all([
+    prisma.feedbackRecord.findMany({
+      where: { organizationId: orgId, authorId: userId, createdAt: { gte: since90 } },
+      select: { createdAt: true },
+    }),
+    prisma.kudos.count({
+      where: { organizationId: orgId, authorId: userId, createdAt: { gte: since30 } },
+    }),
+    prisma.pulseResponse.findMany({
+      where: {
+        assignment: { pulse: { organizationId: orgId, createdById: userId } },
+        submittedAt: { gte: since90 },
+      },
+      select: { score: true, submittedAt: true },
+    }).catch(() => [] as Array<{ score: number | null; submittedAt: Date | null }>),
+  ]);
+  // regularidade: quantas das últimas 12 semanas tiveram ao menos 1 feedback
+  const weekBuckets = new Set<string>();
+  for (const f of feedbackWeekly) {
+    const d = new Date(f.createdAt);
+    const wk = `${d.getUTCFullYear()}-${Math.floor((d.getUTCDate() + d.getUTCMonth() * 31) / 7)}`;
+    weekBuckets.add(wk);
+  }
+  const regularity = Math.min(1, weekBuckets.size / 12);
+  const positivePulses = pulseResponses.filter((p) => (p.score ?? 0) >= 7).length;
+  const climate = pulseResponses.length ? positivePulses / pulseResponses.length : 0;
+  const recognition = Math.min(1, kudosCount / 4);
+  const heartScoreRaw = 0.4 * regularity + 0.35 * climate + 0.25 * recognition;
+  const heartScore = Math.round(heartScoreRaw * 100);
+  const heart: DimensionBreakdown = {
+    score: heartScore,
+    parts: [
+      { label: "Regularidade de feedback", value: regularity, hint: `${weekBuckets.size}/12 semanas ativas` },
+      { label: "Clima (pulsos positivos)", value: climate, hint: `${positivePulses}/${pulseResponses.length} respostas ≥7` },
+      { label: "Reconhecimento (kudos)", value: recognition, hint: `${kudosCount} kudos em 30d` },
+    ],
+    diagnostic:
+      heartScore >= 70
+        ? "Cultura viva — feedback constante, clima saudável, reconhecimento circulando."
+        : regularity < 0.5
+          ? "Feedback é intermitente — o vínculo depende de constância."
+          : climate < 0.6
+            ? "Clima nos pulsos está frio — vale ouvir o time com mais profundidade."
+            : "Falta reconhecimento — kudos custam pouco e movem muito.",
+  };
+
   return {
     score,
     breakdown: {
@@ -163,6 +301,9 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
       indicators: { onTarget, withReadings },
     },
     diagnostic,
+    hard,
+    soft,
+    heart,
   };
 }
 
