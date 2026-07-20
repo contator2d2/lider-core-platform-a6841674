@@ -377,6 +377,12 @@ evolutionRouter.post("/:orgId/evolution/snapshot", async (req, res) => {
         indicatorsScore: r.breakdown.indicatorsScore,
         diagnostic: r.diagnostic,
         breakdown: r.breakdown as never,
+        hardScore: r.hard.score,
+        softScore: r.soft.score,
+        heartScore: r.heart.score,
+        hardBreakdown: r.hard as never,
+        softBreakdown: r.soft as never,
+        heartBreakdown: r.heart as never,
       },
       create: {
         organizationId: orgId,
@@ -389,6 +395,12 @@ evolutionRouter.post("/:orgId/evolution/snapshot", async (req, res) => {
         indicatorsScore: r.breakdown.indicatorsScore,
         diagnostic: r.diagnostic,
         breakdown: r.breakdown as never,
+        hardScore: r.hard.score,
+        softScore: r.soft.score,
+        heartScore: r.heart.score,
+        hardBreakdown: r.hard as never,
+        softBreakdown: r.soft as never,
+        heartBreakdown: r.heart as never,
       },
     });
     res.json(snap);
