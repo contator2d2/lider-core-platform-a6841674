@@ -18,6 +18,7 @@ import {
   Building,
   HelpCircle,
   UsersRound,
+  Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -37,6 +38,7 @@ const nav = [
   { to: "/app/organization", label: "Organização", icon: Building, section: "Organização" },
   { to: "/app/one-on-ones", label: "1:1s", icon: MessageSquare, section: "Organização" },
   { to: "/app/indicators", label: "Indicadores", icon: Target, section: "Resultado" },
+  { to: "/app/results", label: "Gestão à vista", icon: Activity, section: "Resultado" },
   { to: "/app/evolution", label: "Evolução", icon: Gauge, section: "Evolução" },
   { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução" },
   { to: "/app/360", label: "360 leve", icon: UsersRound, section: "Evolução" },
