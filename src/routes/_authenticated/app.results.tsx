@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowRight, CalendarRange, CheckCircle2, Loader2, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, ArrowRight, CalendarRange, CheckCircle2, Compass, Loader2, Scale, Target, TrendingDown, TrendingUp, Wrench } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 
@@ -48,6 +48,33 @@ type Overview = {
   } | null;
 };
 
+type DeviationClass = "on_target" | "execucao" | "recuperando" | "calibracao";
+type MetaVsReal = {
+  summary: Record<DeviationClass, number>;
+  rows: Array<{
+    id: string;
+    name: string;
+    unit: string | null;
+    area: { id: string; name: string } | null;
+    target: number;
+    direction: "higher_better" | "lower_better";
+    lastValue: number;
+    lastPeriod: { year: number; month: number };
+    gapPct: number;
+    status: "on_target" | "warning" | "off_target";
+    classification: DeviationClass;
+    diagnostic: string;
+    history: number[];
+  }>;
+};
+
+const DEV_META: Record<DeviationClass, { label: string; tone: string; dot: string; icon: typeof Wrench }> = {
+  on_target:   { label: "No verde",     tone: "text-emerald-600", dot: "bg-emerald-500", icon: CheckCircle2 },
+  recuperando: { label: "Recuperando",  tone: "text-sky-600",     dot: "bg-sky-500",     icon: Compass },
+  execucao:    { label: "Execução",     tone: "text-rose-600",    dot: "bg-rose-500",    icon: Wrench },
+  calibracao:  { label: "Calibração",   tone: "text-amber-600",   dot: "bg-amber-500",   icon: Scale },
+};
+
 const STATUS_DOT: Record<IndicatorStatus, string> = {
   on_target: "bg-emerald-500",
   warning: "bg-amber-500",
@@ -74,6 +101,12 @@ function ResultsPage() {
     queryKey: ["results-overview", orgId],
     enabled: !!orgId,
     queryFn: () => api<Overview>(`/organization/${orgId}/results-overview`),
+    staleTime: 60_000,
+  });
+  const mvr = useQuery({
+    queryKey: ["results-mvr", orgId],
+    enabled: !!orgId,
+    queryFn: () => api<MetaVsReal>(`/organization/${orgId}/results/meta-vs-real`),
     staleTime: 60_000,
   });
 
@@ -131,6 +164,94 @@ function ResultsPage() {
               <AreaCard key={a.id ?? "none"} area={a} />
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Diagnóstico</div>
+            <h2 className="mt-1 flex items-center gap-2 font-display text-xl">
+              <Scale className="h-4 w-4 text-accent" /> Meta × Realizado
+            </h2>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Cada desvio tem origem: ou a execução falhou, ou a meta foi mal calibrada. O sistema separa os dois para você agir no lugar certo.
+            </p>
+          </div>
+        </div>
+
+        {mvr.isLoading ? (
+          <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Analisando…</div>
+        ) : !mvr.data || mvr.data.rows.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            Sem indicadores com meta e leituras suficientes ainda.
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3 md:grid-cols-4">
+              {(Object.keys(DEV_META) as DeviationClass[]).map((k) => {
+                const m = DEV_META[k];
+                const Icon = m.icon;
+                return (
+                  <div key={k} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <span className={"inline-block h-2 w-2 rounded-full " + m.dot} />
+                      <Icon className="h-3.5 w-3.5" />
+                      {m.label}
+                    </div>
+                    <div className={"mt-2 font-display text-3xl " + m.tone}>
+                      {mvr.data!.summary[k] ?? 0}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+              {mvr.data.rows
+                .slice()
+                .sort((a, b) => {
+                  const order: Record<DeviationClass, number> = { execucao: 0, calibracao: 1, recuperando: 2, on_target: 3 };
+                  return order[a.classification] - order[b.classification];
+                })
+                .slice(0, 12)
+                .map((r) => {
+                  const m = DEV_META[r.classification];
+                  const Icon = m.icon;
+                  return (
+                    <li key={r.id} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr,auto,auto,auto] md:items-center md:gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={"inline-block h-2 w-2 rounded-full " + m.dot} />
+                          <span className="truncate text-sm font-medium">{r.name}</span>
+                          {r.area && (
+                            <span className="hidden shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground md:inline">
+                              {r.area.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">{r.diagnostic}</div>
+                      </div>
+                      <div className="hidden text-right tabular-nums text-sm md:block">
+                        <div>{r.lastValue}{r.unit ?? ""} <span className="text-muted-foreground">/ meta {r.target}{r.unit ?? ""}</span></div>
+                        <div className={"text-[11px] " + (r.status === "on_target" ? "text-emerald-600" : r.status === "warning" ? "text-amber-600" : "text-rose-600")}>
+                          {r.gapPct > 0 ? "+" : ""}{r.gapPct}%
+                        </div>
+                      </div>
+                      <span className={"inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-widest " + m.tone}>
+                        <Icon className="h-3 w-3" /> {m.label}
+                      </span>
+                      <Link
+                        to="/app/indicators"
+                        className="hidden items-center gap-1 text-[11px] text-accent hover:underline md:inline-flex"
+                      >
+                        Abrir PDCA <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </li>
+                  );
+                })}
+            </ul>
+          </>
         )}
       </section>
 
