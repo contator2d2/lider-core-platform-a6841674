@@ -340,12 +340,60 @@ function SummaryCard({
   );
 }
 
+function HSHPanel({ profile }: { profile: Profile }) {
+  const dims: Array<{ key: "hard" | "soft" | "heart"; label: string; sub: string; value: number | null; tone: string }> = [
+    { key: "hard", label: "Hard", sub: "Saber fazer — método, indicadores, planejamento", value: profile.hardSelfScore, tone: "bg-primary" },
+    { key: "soft", label: "Soft", sub: "Saber agir — comunicação, decisão, delegação", value: profile.softSelfScore, tone: "bg-accent" },
+    { key: "heart", label: "Heart", sub: "Saber ser — escuta, empatia, coerência", value: profile.heartSelfScore, tone: "bg-success" },
+  ];
+  const filled = dims.filter((d) => d.value != null).length;
+  return (
+    <section className="rounded-2xl border border-border bg-background p-6">
+      <div className="mb-4 flex items-baseline justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Lente Hard · Soft · Heart</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            Sua autoavaliação inicial nas 3 dimensões da liderança. O sistema vai inferir a evolução real a partir do seu uso em O e R.
+          </div>
+        </div>
+        {filled < 3 && (
+          <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-medium uppercase tracking-widest text-accent">
+            Preencha as 3 dimensões
+          </span>
+        )}
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {dims.map((d) => (
+          <div key={d.key} className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+            <div className="flex items-baseline justify-between">
+              <div className="font-display text-lg">{d.label}</div>
+              <div className="font-mono text-sm tabular-nums">
+                {d.value != null ? `${d.value}` : "—"}<span className="text-muted-foreground">/100</span>
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{d.sub}</p>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-border/50">
+              <div className={`h-full ${d.tone} transition-all`} style={{ width: `${d.value ?? 0}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ---------- Dialogs ----------
 function ProfileDialog({
   orgId, initial, onDone,
 }: { orgId: string; initial: Profile | null; onDone: () => void }) {
   const [declaredRole, setDeclaredRole] = useState(initial?.declaredRole ?? "");
+  const [notMine, setNotMine] = useState(initial?.notMine ?? "");
   const [assessmentType, setAssessmentType] = useState<Profile["assessmentType"]>(initial?.assessmentType ?? null);
+  const [mbtiType, setMbtiType] = useState(initial?.mbtiType ?? "");
+  const [discPrimary, setDiscPrimary] = useState<Profile["discPrimary"]>(initial?.discPrimary ?? null);
+  const [hardSelfScore, setHardSelfScore] = useState<number>(initial?.hardSelfScore ?? 50);
+  const [softSelfScore, setSoftSelfScore] = useState<number>(initial?.softSelfScore ?? 50);
+  const [heartSelfScore, setHeartSelfScore] = useState<number>(initial?.heartSelfScore ?? 50);
   const [strengths, setStrengths] = useState((initial?.strengths ?? []).join(", "));
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [communicationStyle, setCommunicationStyle] = useState(initial?.communicationStyle ?? "");
@@ -358,7 +406,13 @@ function ProfileDialog({
         method: "PUT",
         body: {
           declaredRole: declaredRole || null,
+          notMine: notMine || null,
           assessmentType,
+          mbtiType: mbtiType.toUpperCase() || null,
+          discPrimary,
+          hardSelfScore,
+          softSelfScore,
+          heartSelfScore,
           strengths: strengths.split(",").map((s) => s.trim()).filter(Boolean),
           notes: notes || null,
           communicationStyle: communicationStyle || null,
@@ -386,6 +440,22 @@ function ProfileDialog({
         <div>
           <Label>Papel declarado</Label>
           <Input value={declaredRole} onChange={(e) => setDeclaredRole(e.target.value)} placeholder="Ex.: líder integrador, formador de gente" />
+          <p className="mt-1 text-xs text-muted-foreground">Pra que essa liderança existe — em uma frase.</p>
+        </div>
+
+        <div>
+          <Label>O que NÃO é meu papel</Label>
+          <Textarea value={notMine} onChange={(e) => setNotMine(e.target.value)} placeholder="Ex.: executar entregas técnicas no lugar do time; resolver conflitos entre pares." className="min-h-[70px]" />
+        </div>
+
+        <div className="rounded-xl border border-border bg-secondary/20 p-4">
+          <div className="mb-3 text-xs uppercase tracking-widest text-muted-foreground">Autoavaliação Hard · Soft · Heart</div>
+          <div className="space-y-4">
+            <ScoreSlider label="Hard — método, indicadores, planejamento" value={hardSelfScore} onChange={setHardSelfScore} tone="bg-primary" />
+            <ScoreSlider label="Soft — comunicação, delegação, decisão" value={softSelfScore} onChange={setSoftSelfScore} tone="bg-accent" />
+            <ScoreSlider label="Heart — escuta, empatia, coerência" value={heartSelfScore} onChange={setHeartSelfScore} tone="bg-success" />
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Ponto de partida. Depois disso, o sistema mede evolução real a partir do uso — não pede autoavaliação toda semana.</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -403,6 +473,25 @@ function ProfileDialog({
           <div>
             <Label>Estilo de comunicação (egograma)</Label>
             <Input value={communicationStyle} onChange={(e) => setCommunicationStyle(e.target.value)} placeholder="Ex.: pai crítico dominante" />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Tipo MBTI (opcional)</Label>
+            <Input maxLength={4} value={mbtiType} onChange={(e) => setMbtiType(e.target.value.toUpperCase())} placeholder="Ex.: ENTJ" />
+          </div>
+          <div>
+            <Label>Perfil DISC dominante</Label>
+            <Select value={discPrimary ?? ""} onValueChange={(v) => setDiscPrimary((v || null) as Profile["discPrimary"])}>
+              <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="D">D — Dominância</SelectItem>
+                <SelectItem value="I">I — Influência</SelectItem>
+                <SelectItem value="S">S — Estabilidade</SelectItem>
+                <SelectItem value="C">C — Conformidade</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
