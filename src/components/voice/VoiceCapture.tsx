@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getToken } from "@/lib/api";
 
 export type VoiceIntent = {
-  tipo: "feedback" | "delegacao" | "nota";
+  tipo: "feedback" | "delegacao" | "nota" | "kudos";
   resumo: string;
   titulo?: string;
   prazoISO?: string | null;
@@ -116,7 +116,13 @@ export function VoiceCapture({
     return (
       <div className="rounded-xl border border-primary/40 bg-primary/5 p-4">
         <div className="mb-2 text-[10px] uppercase tracking-widest text-primary">
-          {intent.tipo === "feedback" ? "Feedback ditado" : intent.tipo === "delegacao" ? "Delegação ditada" : "Nota ditada"}
+          {intent.tipo === "feedback"
+            ? "Feedback ditado"
+            : intent.tipo === "delegacao"
+              ? "Delegação ditada"
+              : intent.tipo === "kudos"
+                ? "Kudos ditado"
+                : "Nota ditada"}
           {intent.membroSugerido && ` · ${intent.membroSugerido}`}
           {intent.prazoISO && ` · prazo ${new Date(intent.prazoISO).toLocaleDateString("pt-BR")}`}
         </div>
