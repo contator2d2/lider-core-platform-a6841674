@@ -61,7 +61,14 @@ function AreasPage() {
               <LayoutGrid className="h-3.5 w-3.5" /> Área
             </div>
             <div className="mt-2 font-display text-xl">{a.name}</div>
-            <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">{a.mission ?? "Sem missão definida."}</div>
+            <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+              {a.purpose ?? a.mission ?? "Sem propósito definido."}
+            </div>
+            {a.deliverables?.length > 0 && (
+              <div className="mt-2 text-[11px] text-muted-foreground">
+                {a.deliverables.length} entrega{a.deliverables.length === 1 ? "" : "s"} esperada{a.deliverables.length === 1 ? "" : "s"}
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-1.5">
               {a.kpis.slice(0, 3).map((k) => (
                 <span key={k} className="rounded-full bg-secondary px-2 py-0.5 text-[11px]">{k}</span>
