@@ -48,6 +48,11 @@ type Reading = {
   periodMonth: number;
   value: number;
   source: string;
+  notes?: string | null;
+  plan?: string | null;
+  doAction?: string | null;
+  check?: string | null;
+  act?: string | null;
 };
 
 type Indicator = {
