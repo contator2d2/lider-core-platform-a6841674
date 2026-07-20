@@ -435,6 +435,11 @@ function NewReadingContent({
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [value, setValue] = useState("");
   const [notes, setNotes] = useState("");
+  const [plan, setPlan] = useState("");
+  const [doAction, setDoAction] = useState("");
+  const [check, setCheck] = useState("");
+  const [act, setAct] = useState("");
+  const [showPdca, setShowPdca] = useState(false);
 
   const create = useMutation({
     mutationFn: () =>
@@ -445,6 +450,10 @@ function NewReadingContent({
           periodMonth: month,
           value: Number(String(value).replace(",", ".")),
           notes: notes || undefined,
+          plan: plan || undefined,
+          doAction: doAction || undefined,
+          check: check || undefined,
+          act: act || undefined,
         },
       }),
     onSuccess: () => {
@@ -500,6 +509,33 @@ function NewReadingContent({
             placeholder="Contexto da leitura"
           />
         </div>
+        <button
+          type="button"
+          onClick={() => setShowPdca((v) => !v)}
+          className="text-left text-xs font-medium uppercase tracking-widest text-accent hover:underline"
+        >
+          {showPdca ? "− Esconder PDCA" : "+ Ciclo PDCA (Plan · Do · Check · Act)"}
+        </button>
+        {showPdca && (
+          <div className="grid gap-3 rounded-xl border border-dashed border-border p-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">P · Plan — o que planejou</Label>
+              <Textarea rows={2} value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="Hipótese e plano de ação" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">D · Do — o que executou</Label>
+              <Textarea rows={2} value={doAction} onChange={(e) => setDoAction(e.target.value)} placeholder="Ações reais no período" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">C · Check — o que aprendeu</Label>
+              <Textarea rows={2} value={check} onChange={(e) => setCheck(e.target.value)} placeholder="Resultado vs. planejado" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">A · Act — o que muda agora</Label>
+              <Textarea rows={2} value={act} onChange={(e) => setAct(e.target.value)} placeholder="Ajuste para o próximo ciclo" />
+            </div>
+          </div>
+        )}
       </div>
       <DialogFooter>
         <Button
