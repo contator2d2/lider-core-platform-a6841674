@@ -111,6 +111,10 @@ function PulsesPage() {
     queryKey: ["pulses", orgId],
     enabled: !!orgId,
     queryFn: () => api<PulseSend[]>(`/organization/${orgId}/pulses`),
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
+    refetchInterval: 30_000,
+    staleTime: 0,
   });
 
   const { data: team = [] } = useQuery<TeamOption[]>({
