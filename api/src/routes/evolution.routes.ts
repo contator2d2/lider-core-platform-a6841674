@@ -170,7 +170,7 @@ export async function computeScoreForUser(orgId: string, userId: string): Promis
     prisma.indicator.count({ where: { organizationId: orgId, active: true } }),
     prisma.cycleGoal.count({
       where: {
-        cycle: { organizationId: orgId, status: { in: ["active", "planned"] } },
+          cycle: { organizationId: orgId, status: { in: ["active", "planning"] } },
       },
     }),
   ]);
