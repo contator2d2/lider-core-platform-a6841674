@@ -427,3 +427,59 @@ export async function computeIndicatorSignals(orgId: string) {
 
   return { signals, concentration };
 }
+
+// ------------------------------------------------------------
+// Alerta de resultado (Fase 2 · item 5)
+// Notifica in-app o dono do indicador (ou os líderes da org) quando
+// o indicador transita para "fora da meta" (gap > 10%).
+// ------------------------------------------------------------
+function evalStatus(
+  target: number | null | undefined,
+  direction: "higher_better" | "lower_better",
+  value: number | null | undefined,
+): "on_target" | "warning" | "off_target" | "unknown" {
+  if (value == null || target == null) return "unknown";
+  const on = direction === "higher_better" ? value >= target : value <= target;
+  if (on) return "on_target";
+  const gap = Math.abs(value - target) / Math.max(Math.abs(target), 1);
+  return gap <= 0.1 ? "warning" : "off_target";
+}
+
+async function maybeNotifyOffTarget(
+  indicator: {
+    id: string; name: string; unit: string | null;
+    target: number | null; direction: string;
+    ownerUserId: string | null; organizationId: string;
+    readings: Array<{ value: number; periodYear: number; periodMonth: number }>;
+  },
+  newValue: number,
+  orgId: string,
+) {
+  const dir = (indicator.direction === "lower_better" ? "lower_better" : "higher_better") as
+    | "higher_better"
+    | "lower_better";
+  const prev = indicator.readings[0]?.value ?? null;
+  const prevStatus = evalStatus(indicator.target, dir, prev);
+  const nextStatus = evalStatus(indicator.target, dir, newValue);
+  if (nextStatus !== "off_target" || prevStatus === "off_target") return;
+
+  const unit = indicator.unit ?? "";
+  const title = `⚠️ ${indicator.name} fora da meta`;
+  const body = `Último valor ${newValue}${unit} vs. meta ${indicator.target}${unit}. Abra um ciclo PDCA para reagir.`;
+  const linkUrl = "/app/indicators";
+
+  const recipients = new Set<string>();
+  if (indicator.ownerUserId) recipients.add(indicator.ownerUserId);
+  if (recipients.size === 0) {
+    const leaders = await prisma.membership.findMany({
+      where: { organizationId: orgId, role: { in: ["owner", "admin", "leader"] } },
+      select: { userId: true },
+    });
+    for (const l of leaders) recipients.add(l.userId);
+  }
+  await Promise.all(
+    Array.from(recipients).map((userId) =>
+      notifyInApp({ userId, organizationId: orgId, title, body, linkUrl }).catch(() => undefined),
+    ),
+  );
+}
