@@ -348,6 +348,17 @@ function IndicatorCard({ orgId, indicator }: { orgId: string; indicator: Indicat
       </div>
 
       <Sparkline readings={indicator.readings} />
+      {indicator.lastReading && (indicator.lastReading.plan || indicator.lastReading.doAction || indicator.lastReading.check || indicator.lastReading.act) && (
+        <div className="mt-4 rounded-xl border border-border/70 bg-background/60 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">PDCA da última leitura</div>
+          <dl className="mt-2 grid gap-1.5 text-xs">
+            {indicator.lastReading.plan && (<div className="flex gap-2"><dt className="w-4 font-semibold text-accent">P</dt><dd className="text-foreground/80">{indicator.lastReading.plan}</dd></div>)}
+            {indicator.lastReading.doAction && (<div className="flex gap-2"><dt className="w-4 font-semibold text-accent">D</dt><dd className="text-foreground/80">{indicator.lastReading.doAction}</dd></div>)}
+            {indicator.lastReading.check && (<div className="flex gap-2"><dt className="w-4 font-semibold text-accent">C</dt><dd className="text-foreground/80">{indicator.lastReading.check}</dd></div>)}
+            {indicator.lastReading.act && (<div className="flex gap-2"><dt className="w-4 font-semibold text-accent">A</dt><dd className="text-foreground/80">{indicator.lastReading.act}</dd></div>)}
+          </dl>
+        </div>
+      )}
 
       <div className="mt-4 flex justify-end">
         <Dialog open={openReading} onOpenChange={setOpenReading}>
