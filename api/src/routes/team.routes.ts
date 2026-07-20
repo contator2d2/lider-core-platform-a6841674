@@ -105,6 +105,9 @@ teamRouter.get("/:orgId/team", async (req, res) => {
               strengths: profile.strengths,
               developPoints: profile.developPoints,
               notes: profile.notes,
+              performanceLevel: profile.performanceLevel,
+              potentialLevel: profile.potentialLevel,
+              discPrimary: profile.discPrimary,
             }
           : null,
         openDelegations: delegCount.get(m.userId) ?? 0,
@@ -167,6 +170,9 @@ const profileSchema = z.object({
   strengths: z.array(z.string()).default([]),
   developPoints: z.array(z.string()).default([]),
   notes: z.string().optional().nullable(),
+  performanceLevel: z.number().int().min(1).max(3).optional().nullable(),
+  potentialLevel: z.number().int().min(1).max(3).optional().nullable(),
+  discPrimary: z.enum(["D", "I", "S", "C"]).optional().nullable(),
 });
 
 teamRouter.put("/:orgId/team/:membershipId/profile", async (req, res) => {
@@ -187,6 +193,9 @@ teamRouter.put("/:orgId/team/:membershipId/profile", async (req, res) => {
         strengths: data.strengths,
         developPoints: data.developPoints,
         notes: data.notes ?? null,
+        performanceLevel: data.performanceLevel ?? null,
+        potentialLevel: data.potentialLevel ?? null,
+        discPrimary: data.discPrimary ?? null,
         updatedBy: req.userId!,
       },
       create: {
@@ -199,6 +208,44 @@ teamRouter.put("/:orgId/team/:membershipId/profile", async (req, res) => {
         strengths: data.strengths,
         developPoints: data.developPoints,
         notes: data.notes ?? null,
+        performanceLevel: data.performanceLevel ?? null,
+        potentialLevel: data.potentialLevel ?? null,
+        discPrimary: data.discPrimary ?? null,
+        updatedBy: req.userId!,
+      },
+    });
+    res.json(saved);
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// Atalho para 9-box (define só performance × potencial)
+const boxSchema = z.object({
+  performanceLevel: z.number().int().min(1).max(3),
+  potentialLevel: z.number().int().min(1).max(3),
+});
+teamRouter.put("/:orgId/team/:membershipId/box", async (req, res) => {
+  try {
+    const { orgId, membershipId } = req.params;
+    const m = await prisma.membership.findFirst({
+      where: { id: membershipId, organizationId: orgId },
+    });
+    if (!m) return res.status(404).json({ error: "Not found" });
+    const data = boxSchema.parse(req.body);
+    const saved = await prisma.teamMemberProfile.upsert({
+      where: { membershipId },
+      update: {
+        performanceLevel: data.performanceLevel,
+        potentialLevel: data.potentialLevel,
+        updatedBy: req.userId!,
+      },
+      create: {
+        organizationId: orgId,
+        membershipId,
+        autonomyLevel: "n2_acompanho",
+        performanceLevel: data.performanceLevel,
+        potentialLevel: data.potentialLevel,
         updatedBy: req.userId!,
       },
     });
