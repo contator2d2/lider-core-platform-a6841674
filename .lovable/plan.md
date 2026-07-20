@@ -1,132 +1,125 @@
-# Roadmap Líder C.O.R.E. — 12 upgrades em 4 etapas
+## Gap Analysis — App atual vs. Especificação Funcional v2 (C.O.R.E. · Hard/Soft/Heart)
 
-Entrega incremental, cada etapa fecha valor sozinha e pode ir pra produção. Ordem pensada por impacto no dia a dia do líder × esforço.
+Base do diagnóstico: os 4 módulos da spec (C/O/R/E), a regra "não pedir o que dá pra inferir", e o faseamento em 4 fases validáveis (§8 do doc).
 
----
-
-## Etapa 1 — "O líder abre o app e já sabe o que fazer" (alto impacto, baixo esforço)
-
-**Itens: 1, 6, 11**
-
-### 1. Tela "Hoje você precisa…" (`/app` reformulado)
-- Nova seção topo do dashboard: lista priorizada gerada no backend agregando:
-  - delegações vencendo em ≤2 dias ou atrasadas
-  - rituais pendentes hoje
-  - 1:1s marcados para hoje/amanhã sem briefing
-  - cross-signals críticos abertos
-  - membros do time com queda de score ≥15% na semana
-- Cada item = card com CTA único ("Cobrar", "Marcar como feito", "Preparar 1:1", "Abrir perfil").
-- Endpoint novo: `GET /app/today` retorna array tipado com `{ type, priority, title, subtitle, cta, href, payload }`.
-
-### 6. Team Health no header
-- Score agregado do time (média ponderada dos CORE scores dos liderados diretos + delta 7d).
-- Componente `<TeamHealthPill>` no `AuthenticatedHeader`, click abre popover com breakdown por membro (mini lista com sparkline).
-- Endpoint: `GET /team/health` já parcialmente existe em `team.routes.ts`, adiciona agregação.
-
-### 11. "Explique esse número"
-- Botão `ⓘ Explicar` em cada KPI de `/app`, `/app/indicators`, `/app/evolution`, member detail.
-- Handler `POST /ai/explain-metric` com `{ metric, scope, window }` → gateway Gemini com contexto puxado do Prisma (últimos eventos que moveram a métrica).
-- UI: popover com resposta streamada, 2-3 parágrafos + 2 ações sugeridas.
+### Legenda
+✅ existe e atende · 🟡 existe parcial / precisa ajuste · ❌ não existe
 
 ---
 
-## Etapa 2 — "IA vira copiloto real de conversas" (alto impacto, esforço médio)
+### Módulo C — Consciência
 
-**Itens: 2, 3, 10**
+| Item da spec | Status | Onde está / o que falta |
+|---|---|---|
+| Papel declarado do líder | 🟡 | Onboarding cria perfil, mas não tem campo "pra que essa liderança existe / o que é seu / o que não é" |
+| Assessment DISC | ✅ | `pulses` DISC 24 pares (pra liderados) — falta versão auto-aplicada pro próprio líder e salvar como perfil permanente |
+| MBTI + sabotadores + egograma | ❌ | Nada disso existe |
+| Autoavaliação Hard/Soft/Heart (curta, ponto de partida) | ❌ | `app.consciencia` existe mas não tem essa lente |
+| Perfil resumido (força / risco) | 🟡 | `app.consciencia` mostra algo genérico, sem taxonomia H/S/H |
+| Mapa de gaps por dimensão H/S/H | ❌ | — |
+| Compromissos de mentoria com data de revisão | ❌ | — |
+| Alertas cruzados vindos de E | ❌ | — |
 
-### 2. Briefing automático de 1:1
-- Em `/app/one-on-ones` e no member detail, botão "Gerar briefing".
-- Backend `POST /ai/one-on-one/brief` agrega: últimos 5 feedbacks trocados, delegações abertas do membro, PDI ativo, cross-signals, últimos rituais, evolução do CORE score.
-- Retorna markdown estruturado (Contexto / Vitórias / Riscos / Perguntas sugeridas / Ações propostas). Salva como `OneOnOne.briefingMarkdown`.
-- Export PDF simples via `@react-pdf/renderer` (client-side, evita dep node no worker).
+### Módulo O — Organização (Hard)
 
-### 3. Captura por voz → feedback/delegação
-- Componente `<VoiceCapture>` reusável (usa `MediaRecorder` no browser).
-- Backend `POST /ai/transcribe` recebe blob, chama gateway `google/gemini-2.5-flash` (multimodal audio) → texto → classifica em `{ tipo: feedback|delegacao|nota, entidades: {membro?, prazo?}, resumo }`.
-- UI: botão flutuante 🎙 no `/app/team`, member detail e organization. Após transcrição mostra draft editável → confirmar cria o registro certo.
+| Item | Status | Notas |
+|---|---|---|
+| Mapa da área (propósito, entregas, estrutura) | 🟡 | `organization.areas`/`map`/`roles` existem, mas propósito e entregas não são campos estruturados |
+| Job descriptions + SLAs por posição | 🟡 | `organization.roles` tem cargo, falta SLA e critério de "feito" |
+| Indicadores de área e individuais | ✅ | `app.indicators` cobre |
+| Metas SMART do ciclo | 🟡 | Indicadores existem mas sem ciclo/meta SMART formal ligada |
+| Visão da equipe (perfil DISC + 9-box perf×potencial + gaps) | 🟡 | `app.team` lista pessoas, sem matriz 9-box nem perfil comportamental por membro |
+| Rituais de gestão definidos (cadência) | ✅ | `organization.rituals` |
+| Acordo de estrutura e pertencimento à cultura | ❌ | — |
+| Taxa de adesão a rituais (dado bruto pra R) | 🟡 | Existe check-in mas não é exposto como KPI de O |
 
-### 10. 360 leve trimestral
-- Nova rota `/app/360` + entidade `ThreeSixtyRound` (open trimestre × 3 perguntas × 1 nota + comentário por avaliador).
-- Fluxo: líder abre round → sistema envia notificação in-app pros pares/liderados → cada um responde em ~2min → líder vê consolidado anônimo com IA resumindo temas.
-- Migração Prisma + rotas CRUD + tela de resposta + tela de consolidação.
+### Módulo R — Resultado (Soft + Heart)
 
----
+| Item | Status |
+|---|---|
+| Rituais 1-toque feito/não feito | ✅ |
+| Delegações c/ prazo + status | ✅ + follow-up ativo (etapa 3 concluída) |
+| Feedback (fato + data) | ✅ `app.feedbacks` |
+| 1:1 com briefing IA | ✅ |
+| Reunião de análise de resultado (desvio→causa→plano) | ❌ Não existe ritual estruturado com PDCA |
+| Gestão à vista (indicador visível pro time) | ❌ Indicadores hoje só o líder vê |
+| Reconhecimento quando bate meta | ❌ |
+| Agenda semanal: previsto × realizado | 🟡 `TodayList` mostra hoje, falta visão semanal comparativa |
+| Bloco "Fazendo Certo" (cultura/valores/honestidade intelectual) | ❌ Nenhum registro estruturado |
+| Pulsos / DISC pro liderado | ✅ (extra além da spec, ótimo) |
 
-## Etapa 3 — "Rituais e delegações que se cobram sozinhos" (esforço médio)
+### Módulo E — Evolução
 
-**Itens: 4, 5, 9**
+| Item | Status |
+|---|---|
+| Meta × Realizado por indicador | 🟡 `evolution` mostra evolução mas não meta calibrada |
+| Análise de desvio (execução vs. meta mal calibrada) | ❌ |
+| Score de sustentação **por dimensão H/S/H** (não único) | ❌ Hoje existe "CORE score" único |
+| Cálculo 100% inferido (sem autoavaliação) | 🟡 Precisa revisar fórmula pra bater com regra da spec |
+| Diagnóstico automático ("evoluiu em Hard, travou em Heart") | ❌ |
+| Dashboard da Empresa (visão executiva, ROI, alertas de líderes em risco) | 🟡 `company.leadership` lista líderes, sem ROI nem alerta preditivo |
+| Foro íntimo protegido (feedback/mentoria não expostos ao RH) | 🟡 RLS existe mas regra não está formalizada / auditada |
 
-### 4. Delegações com follow-up ativo
-- Job diário no backend (cron via `pg_cron` chamando `/api/public/cron/delegation-followup`):
-  - D-2: notificação in-app + WhatsApp opcional pro dono.
-  - D0 vencida: notificação pro líder + sugestão IA "sugerir conversa" (rascunho de mensagem).
-  - Reincidente (3+ atrasos no trimestre): flag no perfil do membro, cross-signal automático.
-- UI: coluna "status vivo" na tabela de delegações com badges (no prazo / atenção / atrasada / crítica).
-
-### 5. Ritual check-in 1-clique
-- Refactor `/app/organization/rituals` mobile-first:
-  - Card grande do ritual do dia com botão único "Fiz ✓" que registra completion + timestamp + opcional 1 emoji de sentimento.
-  - Swipe pra próximo ritual.
-- Endpoint `POST /rituals/:id/check-in` já existe? Se sim, só expõe UX; senão adiciona.
-
-### 9. Trilha de evolução do próprio líder
-- `/app/evolution` ganha aba "Minha jornada":
-  - Timeline dos próprios rituais completados, feedbacks recebidos, marcos de PDI, mudanças de perfil de consciência.
-  - Gráfico do próprio CORE score ao longo de 12 meses (não só do time).
-- Backend agrega em `GET /evolution/me/journey`.
-
----
-
-## Etapa 4 — "O app sai da tela do desktop" (esforço maior, valor operacional)
-
-**Itens: 7, 8, 12**
-
-### 7. Mobile-first pass
-- Auditoria + refactor de `/app`, `/app/team`, `/app/one-on-ones`, `/app/organization/*`, `/app/ai`:
-  - Nav bottom bar em telas <768px (Início / Time / IA / Org / Mais).
-  - Botões alvo ≥44px, cards empilhados, tabelas viram lista.
-  - Header colapsa em scroll.
-- Sem quebrar desktop — usar `useMobile` + variantes Tailwind.
-
-### 8. Integrações
-- **Google Calendar**: connector OAuth já disponível — usar `standard_connectors` pra sync de 1:1s e rituais recorrentes.
-- **Slack**: notificação de delegação atrasada e briefing pronto no DM do líder.
-- **WhatsApp**: via provider externo (ex. Z-API/Twilio, secret user-provided) — enviar lembretes de ritual e delegação.
-- **Export CSV/PDF**: já tem `csv.ts`; adicionar botão "Exportar" em indicators, team, delegations.
-
-### 12. Modo offline / rascunhos
-- Service worker com `workbox` (PWA já tem manifest).
-- IndexedDB cache pra:
-  - lista de membros do time
-  - último dashboard
-  - drafts de feedback/delegação/nota criados offline
-- Fila de sincronização: reenvia POSTs quando volta online, com badge "N ações pendentes" no header.
+### Fora dos 4 módulos (extras já feitos)
+- Multi-tenant (franquia/empresa/org), billing Asaas, notificações in-app, PWA, captura por voz, pulsos públicos por token, IA gateway configurável.
 
 ---
 
-## Ordem de execução dentro de cada etapa
-1. Migração Prisma (se houver) + rotas backend + testes rápidos com curl.
-2. Componentes UI compartilhados.
-3. Telas.
-4. Notificações/cron/integração externa.
-5. Deploy da etapa → validar em produção antes da próxima.
+## Roadmap proposto (substitui `.lovable/plan.md`)
 
-## Fora do escopo geral
-- Refatoração de auth/RBAC (já ok).
-- Multi-idioma além de pt-BR.
-- App nativo iOS/Android (PWA cobre etapa 4).
+Realinha o plano de 12 itens à Fase 1→4 da spec. Cada fase entrega valor sozinha.
 
-## Detalhes técnicos relevantes
-- **IA**: tudo via Lovable AI Gateway com `google/gemini-2.5-flash` (rápido/barato) e `gemini-2.5-pro` só em briefing 1:1 e consolidação 360.
-- **Cron**: `/api/public/cron/*` no TanStack + assinatura HMAC, disparado por `pg_cron` no Supabase.
-- **Voz**: `MediaRecorder` → upload multipart → gateway multimodal → não guardar áudio (só transcrição) pra evitar storage pesado.
-- **PDF**: `@react-pdf/renderer` no cliente (evita libs Node-only no worker Cloudflare).
-- **Offline**: `workbox-window` + `idb-keyval`; fila simples com retry exponencial.
+### Fase 1 — Fundação C+O completa (2 sprints)
+Objetivo: diagnóstico do líder e da área ficam corretos e ricos, sem depender de R/E ainda.
 
-## Estimativa grosseira
-- Etapa 1: 1 sprint
-- Etapa 2: 1-2 sprints
-- Etapa 3: 1-2 sprints
-- Etapa 4: 2 sprints
+1. **Assessment C completo**: novo fluxo `/app/consciencia/assessment` com (a) papel declarado, (b) DISC auto-aplicado, (c) MBTI curto (16 perguntas), (d) 10 sabotadores (checklist), (e) egograma leve, (f) autoavaliação H/S/H (3 perguntas por dimensão). Resultado vira `LeaderProfile` persistente com revisão a cada 90 dias.
+2. **Perfil resumido H/S/H**: `app.consciencia` reformulado mostrando força/risco por dimensão, mapa de gaps, e ganchos pro PDI.
+3. **Mapa da área estruturado**: adicionar `purpose`, `deliverables[]`, `slaByRole` em Area/Role; tela `organization.areas` ganha editor guiado.
+4. **Visão da equipe 9-box**: matriz performance × potencial em `app.team`, com perfil DISC de cada membro (puxado do pulse DISC quando existir).
+5. **Metas SMART do ciclo**: entidade `Cycle` (trimestre) + `CycleGoal` ligada a indicador; tela em `organization.index`.
 
-Confirma esse plano que já começo pela Etapa 1?
+### Fase 2 — Execução R sólida (1-2 sprints)
+Objetivo: líder roda a semana inteira dentro do app, gerando dado bruto pra E.
+
+6. **Agenda semanal previsto×realizado**: nova view em `/app` com semana atual, rituais/1:1/entregas planejados vs. feitos.
+7. **Reunião de análise de resultado (PDCA)**: novo tipo de ritual com template desvio→causa raiz→plano; salva `RootCauseAnalysis` linkada ao indicador.
+8. **Gestão à vista**: toggle "visível pro time" em cada indicador → membros veem em `/app/indicators/shared`.
+9. **Bloco Fazendo Certo**: registro rápido de decisões por fato/dado, admissão de erro, reconhecimento — cada um gera evento comportamental usado em E.
+10. **Reconhecimento automático**: quando indicador bate meta, sugestão IA de mensagem de reconhecimento + botão "enviar pulse de reconhecimento".
+
+### Fase 3 — Medição E por dimensão (2 sprints)
+Objetivo: score H/S/H separado, calculado, com diagnóstico automático.
+
+11. **Motor de score H/S/H**:
+    - **Hard**: adesão a rituais de gestão + % metas SMART definidas + % indicadores com meta clara.
+    - **Soft**: frequência de 1:1 + delegações no prazo + feedbacks entregues (fato, não conteúdo).
+    - **Heart**: consistência de feedback (regularidade), pulsos de clima positivos, reconhecimentos, ausência de padrões de sabotador ativo cruzados com queda de clima.
+12. **Análise Meta × Realizado + causa**: em cada fechamento de ciclo, sistema classifica desvio como "execução" (R falhou) ou "calibração" (meta errada em O) — usa dados de rituais e indicadores.
+13. **Diagnóstico automático em C**: `LeaderInsight` gerado semanal ("Você evoluiu +12 em Hard, caiu -8 em Heart — provável causa: feedbacks caíram de 4/sem pra 1/sem"). Alimenta PDI.
+14. **Dashboard da Empresa v2**: `company.leadership` ganha ROI (custo do programa ÷ melhoria média H/S/H), lista de líderes em risco com motivo, evolução agregada por dimensão.
+15. **Auditoria de foro íntimo**: revisar RLS e endpoints garantindo que empresa nunca vê conteúdo de feedback/mentoria/assessment bruto — só score agregado. Adicionar teste automatizado.
+
+### Fase 4 — Inteligência e integrações (2 sprints)
+Objetivo: reduzir input manual, antecipar risco.
+
+16. **IA Coach preditiva**: modelo simples (heurística + gateway) que prevê queda H/S/H 2 semanas antes com base em rituais quebrados, atrasos e perfil de sabotador ativo.
+17. **Integração planilha/BI pra indicadores**: import CSV agendado + conectores (Google Sheets via `standard_connectors`) pra tirar input manual em O/E.
+18. **Google Calendar sync** (rituais e 1:1).
+19. **WhatsApp/Slack lembretes** (pulsos, delegações, rituais).
+20. **Modo offline** (workbox + IndexedDB, fila de sync).
+
+### Fora deste roadmap
+- Refatoração de auth/RBAC.
+- App nativo (PWA cobre).
+- Novos módulos além de C.O.R.E.
+
+### Ordem interna de cada fase
+1. Migração Prisma → 2. rotas API → 3. componentes → 4. telas → 5. jobs/notificações → 6. deploy da fase.
+
+### Onde já estamos bem à frente da spec
+- Multi-tenant, billing, notificações, pulsos públicos, voz, PWA, IA config.
+- Vale manter e polir, não refazer.
+
+---
+
+Se aprovar, começo pela **Fase 1 item 1 (Assessment C completo)** — é o que destrava a métrica H/S/H em todas as fases seguintes. Também posso quebrar cada fase em issues menores se preferir.
