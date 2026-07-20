@@ -197,6 +197,7 @@ model Organization {
   plan              PlanTier  @default(essencial)
   status            OrgStatus @default(trial)
   franchiseId       String?   @map("franchise_id") @db.Uuid
+  calendarToken     String?   @unique @map("calendar_token")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
@@ -1204,6 +1205,8 @@ model Indicator {
   maxTarget      Float?             @map("max_target")
   tags           String[]           @default([])
   active         Boolean            @default(true)
+  csvSyncUrl     String?            @map("csv_sync_url")
+  lastSyncAt     DateTime?          @map("last_sync_at")
   createdBy      String?            @map("created_by") @db.Uuid
   updatedBy      String?            @map("updated_by") @db.Uuid
   createdAt      DateTime           @default(now()) @map("created_at")

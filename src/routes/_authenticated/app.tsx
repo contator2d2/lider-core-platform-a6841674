@@ -19,6 +19,7 @@ import {
   HelpCircle,
   UsersRound,
   Activity,
+  Radar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -44,6 +45,7 @@ const nav = [
   { to: "/app/360", label: "360 leve", icon: UsersRound, section: "Evolução" },
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução" },
   { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução" },
+  { to: "/app/coach", label: "Coach preditivo", icon: Radar, section: "Evolução" },
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
 ] as const;
 
