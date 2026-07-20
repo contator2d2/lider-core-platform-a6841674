@@ -472,7 +472,7 @@ async function maybeNotifyOffTarget(
   if (indicator.ownerUserId) recipients.add(indicator.ownerUserId);
   if (recipients.size === 0) {
     const leaders = await prisma.membership.findMany({
-      where: { organizationId: orgId, role: { in: ["owner", "admin", "leader"] } },
+      where: { organizationId: orgId, role: { in: ["hr_admin", "leader", "franchise_owner"] } },
       select: { userId: true },
     });
     for (const l of leaders) recipients.add(l.userId);
