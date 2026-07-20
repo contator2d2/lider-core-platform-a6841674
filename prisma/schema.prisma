@@ -956,6 +956,12 @@ model LeadershipScoreSnapshot {
   indicatorsScore Float    @map("indicators_score")
   diagnostic      String?
   breakdown       Json?
+  hardScore       Int      @default(0) @map("hard_score")
+  softScore       Int      @default(0) @map("soft_score")
+  heartScore      Int      @default(0) @map("heart_score")
+  hardBreakdown   Json?    @map("hard_breakdown")
+  softBreakdown   Json?    @map("soft_breakdown")
+  heartBreakdown  Json?    @map("heart_breakdown")
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@unique([organizationId, userId, periodYear, periodMonth])
