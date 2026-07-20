@@ -600,6 +600,30 @@ function CommitmentDialog({ orgId, onDone }: { orgId: string; onDone: () => void
 }
 
 // ---------- labels ----------
+function ScoreSlider({ label, value, onChange, tone }: { label: string; value: number; onChange: (v: number) => void; tone: string }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between">
+        <Label className="text-xs font-normal text-muted-foreground">{label}</Label>
+        <span className="font-mono text-xs tabular-nums">{value}<span className="text-muted-foreground">/100</span></span>
+      </div>
+      <div className="relative">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border/60 accent-primary"
+          aria-label={label}
+        />
+        <div className={`pointer-events-none absolute inset-y-0 left-0 h-2 rounded-full ${tone} opacity-40`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function labelRisk(v: string) {
   return RISK_OPTIONS.find((r) => r.value === v)?.label ?? v;
 }
