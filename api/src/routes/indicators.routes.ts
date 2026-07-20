@@ -112,6 +112,52 @@ indicatorsRouter.delete("/:orgId/indicators/:id", async (req, res) => {
 });
 
 // ------------------------------------------------------------
+// Fase 4 · Item 17 — Sync automático de leituras a partir de um
+// Google Sheets publicado como CSV (ou qualquer URL CSV).
+// Formato esperado do CSV: colunas `periodo` (YYYY-MM ou MM/YYYY) e `valor`.
+// ------------------------------------------------------------
+indicatorsRouter.post("/:orgId/indicators/:id/sync", async (req, res) => {
+  try {
+    const ind = await prisma.indicator.findFirst({
+      where: { id: req.params.id, organizationId: req.params.orgId },
+    });
+    if (!ind) return res.status(404).json({ error: "Indicador não encontrado" });
+    if (!ind.csvSyncUrl) return res.status(400).json({ error: "Indicador sem URL de sincronização" });
+
+    const resp = await fetch(ind.csvSyncUrl, { redirect: "follow" });
+    if (!resp.ok) return res.status(502).json({ error: `Falha ao baixar CSV (${resp.status})` });
+    const csv = await resp.text();
+    const rows = parseCsv(csv);
+    if (!rows.length) return res.status(400).json({ error: "CSV vazio" });
+
+    let imported = 0;
+    let skipped = 0;
+    for (const row of rows) {
+      const period = row["periodo"] ?? row["período"] ?? row["period"] ?? row["mes"] ?? row["month"];
+      const valueStr = row["valor"] ?? row["value"] ?? row["valor_realizado"];
+      if (!period || !valueStr) { skipped++; continue; }
+      const value = Number(String(valueStr).replace(",", "."));
+      if (!Number.isFinite(value)) { skipped++; continue; }
+      const m = period.match(/(\d{4})[-/](\d{1,2})/) ?? period.match(/(\d{1,2})[-/](\d{4})/);
+      if (!m) { skipped++; continue; }
+      const y = Number(m[1].length === 4 ? m[1] : m[2]);
+      const mo = Number(m[1].length === 4 ? m[2] : m[1]);
+      if (mo < 1 || mo > 12) { skipped++; continue; }
+      await prisma.indicatorReading.upsert({
+        where: { indicatorId_periodYear_periodMonth: { indicatorId: ind.id, periodYear: y, periodMonth: mo } },
+        update: { value, source: "csv", recordedBy: req.userId },
+        create: { indicatorId: ind.id, periodYear: y, periodMonth: mo, value, source: "csv", recordedBy: req.userId },
+      });
+      imported++;
+    }
+    await prisma.indicator.update({ where: { id: ind.id }, data: { lastSyncAt: new Date() } });
+    res.json({ imported, skipped, total: rows.length });
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// ------------------------------------------------------------
 // Leituras mensais
 // ------------------------------------------------------------
 const readingSchema = z.object({
