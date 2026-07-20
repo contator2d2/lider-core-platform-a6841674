@@ -121,6 +121,7 @@ function TeamPage() {
   const [inviting, setInviting] = useState(false);
   const [filter, setFilter] = useState<"todos" | Status>("todos");
   const [q, setQ] = useState("");
+  const [view, setView] = useState<"lista" | "nine_box">("lista");
 
   const { data: members = [], isLoading } = useQuery<TeamMember[]>({
     queryKey: ["team", orgId],
@@ -172,6 +173,17 @@ function TeamPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setView(view === "lista" ? "nine_box" : "lista")}
+            className={
+              "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm transition-colors " +
+              (view === "nine_box"
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-card text-foreground hover:bg-secondary")
+            }
+          >
+            <Grid3x3 className="h-4 w-4" /> 9-box
+          </button>
           <button
             aria-label="Buscar"
             className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:bg-secondary"
@@ -299,6 +311,9 @@ function TeamPage() {
         </div>
       )}
 
+      {view === "nine_box" ? (
+        <NineBoxMatrix orgId={orgId} members={members} onEdit={setEditing} />
+      ) : (
       <div className="space-y-3">
         {visible.map(({ m, score, status }) => (
           <MemberRow key={m.membershipId} m={m} score={score} status={status} onEdit={() => setEditing(m)} />
@@ -309,6 +324,7 @@ function TeamPage() {
           </div>
         )}
       </div>
+      )}
 
       <button
         onClick={() => setInviting(true)}
