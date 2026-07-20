@@ -885,10 +885,17 @@ model LeaderProfile {
   organizationId     String          @map("organization_id") @db.Uuid
   userId             String          @map("user_id") @db.Uuid
   declaredRole       String?         @map("declared_role")
+  notMine            String?         @map("not_mine")
   assessmentType     AssessmentType? @map("assessment_type")
   assessmentTraits   Json?           @map("assessment_traits")
   sabotages          String[]        @default([])
   communicationStyle String?         @map("communication_style")
+  mbtiType           String?         @map("mbti_type")
+  discPrimary        String?         @map("disc_primary")
+  egogramaTraits     Json?           @map("egograma_traits")
+  hardSelfScore      Int?            @map("hard_self_score")
+  softSelfScore      Int?            @map("soft_self_score")
+  heartSelfScore     Int?            @map("heart_self_score")
   riskFlags          String[]        @default([]) @map("risk_flags")
   strengths          String[]        @default([])
   notes              String?
