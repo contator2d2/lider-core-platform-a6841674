@@ -135,7 +135,16 @@ indicatorsRouter.post("/:orgId/indicators/:id/readings", async (req, res) => {
           periodMonth: data.periodMonth,
         },
       },
-      update: { value: data.value, notes: data.notes ?? undefined, source: data.source, recordedBy: req.userId },
+      update: {
+        value: data.value,
+        notes: data.notes ?? undefined,
+        plan: data.plan ?? undefined,
+        doAction: data.doAction ?? undefined,
+        check: data.check ?? undefined,
+        act: data.act ?? undefined,
+        source: data.source,
+        recordedBy: req.userId,
+      },
       create: {
         indicatorId: req.params.id,
         periodYear: data.periodYear,
