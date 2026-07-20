@@ -39,6 +39,7 @@ import { Route as AuthenticatedAppHelpRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAppFeedbacksRouteImport } from './routes/_authenticated/app.feedbacks'
 import { Route as AuthenticatedAppEvolutionRouteImport } from './routes/_authenticated/app.evolution'
 import { Route as AuthenticatedAppConscienciaRouteImport } from './routes/_authenticated/app.consciencia'
+import { Route as AuthenticatedAppCoachRouteImport } from './routes/_authenticated/app.coach'
 import { Route as AuthenticatedAppAiRouteImport } from './routes/_authenticated/app.ai'
 import { Route as AuthenticatedApp360RouteImport } from './routes/_authenticated/app.360'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -239,6 +240,11 @@ const AuthenticatedAppConscienciaRoute =
     path: '/consciencia',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppCoachRoute = AuthenticatedAppCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppAiRoute = AuthenticatedAppAiRouteImport.update({
   id: '/ai',
   path: '/ai',
@@ -472,6 +478,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/app/360': typeof AuthenticatedApp360Route
   '/app/ai': typeof AuthenticatedAppAiRoute
+  '/app/coach': typeof AuthenticatedAppCoachRoute
   '/app/consciencia': typeof AuthenticatedAppConscienciaRouteWithChildren
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
@@ -534,6 +541,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/app/360': typeof AuthenticatedApp360Route
   '/app/ai': typeof AuthenticatedAppAiRoute
+  '/app/coach': typeof AuthenticatedAppCoachRoute
   '/app/consciencia': typeof AuthenticatedAppConscienciaRouteWithChildren
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
@@ -601,6 +609,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/app/360': typeof AuthenticatedApp360Route
   '/_authenticated/app/ai': typeof AuthenticatedAppAiRoute
+  '/_authenticated/app/coach': typeof AuthenticatedAppCoachRoute
   '/_authenticated/app/consciencia': typeof AuthenticatedAppConscienciaRouteWithChildren
   '/_authenticated/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/_authenticated/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
@@ -669,6 +678,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/360'
     | '/app/ai'
+    | '/app/coach'
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
@@ -731,6 +741,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/360'
     | '/app/ai'
+    | '/app/coach'
     | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
@@ -797,6 +808,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/app/360'
     | '/_authenticated/app/ai'
+    | '/_authenticated/app/coach'
     | '/_authenticated/app/consciencia'
     | '/_authenticated/app/evolution'
     | '/_authenticated/app/feedbacks'
@@ -1050,6 +1062,13 @@ declare module '@tanstack/react-router' {
       path: '/consciencia'
       fullPath: '/app/consciencia'
       preLoaderRoute: typeof AuthenticatedAppConscienciaRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/coach': {
+      id: '/_authenticated/app/coach'
+      path: '/coach'
+      fullPath: '/app/coach'
+      preLoaderRoute: typeof AuthenticatedAppCoachRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/ai': {
@@ -1423,6 +1442,7 @@ const AuthenticatedAppTeamRouteWithChildren =
 interface AuthenticatedAppRouteChildren {
   AuthenticatedApp360Route: typeof AuthenticatedApp360Route
   AuthenticatedAppAiRoute: typeof AuthenticatedAppAiRoute
+  AuthenticatedAppCoachRoute: typeof AuthenticatedAppCoachRoute
   AuthenticatedAppConscienciaRoute: typeof AuthenticatedAppConscienciaRouteWithChildren
   AuthenticatedAppEvolutionRoute: typeof AuthenticatedAppEvolutionRoute
   AuthenticatedAppFeedbacksRoute: typeof AuthenticatedAppFeedbacksRoute
@@ -1440,6 +1460,7 @@ interface AuthenticatedAppRouteChildren {
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedApp360Route: AuthenticatedApp360Route,
   AuthenticatedAppAiRoute: AuthenticatedAppAiRoute,
+  AuthenticatedAppCoachRoute: AuthenticatedAppCoachRoute,
   AuthenticatedAppConscienciaRoute:
     AuthenticatedAppConscienciaRouteWithChildren,
   AuthenticatedAppEvolutionRoute: AuthenticatedAppEvolutionRoute,
