@@ -229,6 +229,93 @@ indicatorsRouter.get("/:orgId/indicators/concentration", async (req, res) => {
   res.json({ threshold, total, byLeader });
 });
 
+// ------------------------------------------------------------
+// Gestão à vista — semáforos por área + metas do ciclo ativo
+// ------------------------------------------------------------
+indicatorsRouter.get("/:orgId/results-overview", async (req, res) => {
+  const orgId = req.params.orgId;
+  const [indicators, areas, activeCycle] = await Promise.all([
+    prisma.indicator.findMany({
+      where: { organizationId: orgId, active: true },
+      include: {
+        readings: {
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          take: 12,
+        },
+      },
+      orderBy: [{ name: "asc" }],
+    }),
+    prisma.area.findMany({
+      where: { organizationId: orgId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.cycle.findFirst({
+      where: { organizationId: orgId, status: "active" },
+      orderBy: { startAt: "desc" },
+      include: { goals: true },
+    }),
+  ]);
+
+  const scored = indicators.map(withStatus);
+  const buckets = new Map<string, typeof scored>();
+  for (const i of scored) {
+    const key = i.areaId ?? "__none__";
+    const arr = buckets.get(key) ?? [];
+    arr.push(i);
+    buckets.set(key, arr);
+  }
+
+  const areaBlocks = [
+    ...areas.map((a) => ({ id: a.id, name: a.name, indicators: buckets.get(a.id) ?? [] })),
+    ...(buckets.get("__none__")?.length
+      ? [{ id: null as string | null, name: "Sem área", indicators: buckets.get("__none__") ?? [] }]
+      : []),
+  ]
+    .map((b) => {
+      const counts = b.indicators.reduce(
+        (acc, i) => {
+          acc[i.status] = (acc[i.status] ?? 0) + 1;
+          return acc;
+        },
+        { on_target: 0, warning: 0, off_target: 0, unknown: 0 } as Record<string, number>,
+      );
+      const known = counts.on_target + counts.warning + counts.off_target;
+      const health = known
+        ? Math.round(((counts.on_target + counts.warning * 0.5) / known) * 100)
+        : null;
+      return { ...b, counts, health };
+    })
+    .filter((b) => b.indicators.length > 0);
+
+  const totals = scored.reduce(
+    (acc, i) => {
+      acc[i.status] = (acc[i.status] ?? 0) + 1;
+      return acc;
+    },
+    { on_target: 0, warning: 0, off_target: 0, unknown: 0 } as Record<string, number>,
+  );
+
+  const goalsRanked = (activeCycle?.goals ?? []).slice().sort((a, b) => {
+    const order: Record<string, number> = { off_track: 0, at_risk: 1, on_track: 2, done: 3, dropped: 4 };
+    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+  });
+
+  res.json({
+    totals,
+    areas: areaBlocks,
+    activeCycle: activeCycle
+      ? {
+          id: activeCycle.id,
+          name: activeCycle.name,
+          startAt: activeCycle.startAt,
+          endAt: activeCycle.endAt,
+          goals: goalsRanked,
+        }
+      : null,
+  });
+});
+
 export async function computeConcentration(orgId: string) {
   const threshold = 0.3;
   const active = await prisma.delegation.findMany({
