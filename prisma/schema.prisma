@@ -1606,3 +1606,27 @@ model Kudos {
   @@index([subjectUserId])
   @@map("kudos")
 }
+
+// ============================================================
+// Retrospectiva de ciclo (Fase 2 · item 4)
+// Wizard de fechamento: o que funcionou, o que melhorar,
+// aprendizados, próximos passos e nota de confiança do ciclo.
+// ============================================================
+model CycleRetrospective {
+  id             String   @id @default(uuid()) @db.Uuid
+  cycleId        String   @map("cycle_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  areaId         String?  @map("area_id") @db.Uuid
+  wentWell       String?  @map("went_well")
+  toImprove      String?  @map("to_improve")
+  learnings      String?
+  nextSteps      String?  @map("next_steps")
+  confidence     Int?
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([cycleId])
+  @@index([organizationId, createdAt])
+  @@map("cycle_retrospectives")
+}
