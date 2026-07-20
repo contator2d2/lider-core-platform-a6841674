@@ -43,10 +43,16 @@ export const Route = createFileRoute("/_authenticated/app/consciencia")({
 type Profile = {
   id: string;
   declaredRole: string | null;
+  notMine: string | null;
   assessmentType: "disc" | "big_five" | "other" | null;
   assessmentTraits: Record<string, unknown> | null;
   sabotages: string[];
   communicationStyle: string | null;
+  mbtiType: string | null;
+  discPrimary: "D" | "I" | "S" | "C" | null;
+  hardSelfScore: number | null;
+  softSelfScore: number | null;
+  heartSelfScore: number | null;
   riskFlags: string[];
   strengths: string[];
   notes: string | null;
