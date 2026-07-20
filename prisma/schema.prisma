@@ -1219,6 +1219,10 @@ model IndicatorReading {
   periodMonth Int                    @map("period_month") // 1-12
   value       Float
   notes       String?
+  plan        String?                @map("pdca_plan")
+  doAction    String?                @map("pdca_do")
+  check       String?                @map("pdca_check")
+  act         String?                @map("pdca_act")
   source      IndicatorReadingSource @default(manual)
   recordedBy  String?                @map("recorded_by") @db.Uuid
   createdAt   DateTime               @default(now()) @map("created_at")
