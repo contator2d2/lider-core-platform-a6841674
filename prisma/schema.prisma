@@ -141,21 +141,21 @@ model User {
 }
 
 model Profile {
-  id        String   @id @db.Uuid
-  user      User     @relation(fields: [id], references: [id], onDelete: Cascade)
-  fullName  String?  @map("full_name")
-  avatarUrl String?  @map("avatar_url")
-  jobTitle  String?  @map("job_title")
-  phone     String?
-  cpf       String?
-  whatsapp  String?
-  mfaEnabled Boolean @default(false) @map("mfa_enabled")
-  lastLoginAt DateTime? @map("last_login_at")
-  status    String   @default("active")
+  id                    String    @id @db.Uuid
+  user                  User      @relation(fields: [id], references: [id], onDelete: Cascade)
+  fullName              String?   @map("full_name")
+  avatarUrl             String?   @map("avatar_url")
+  jobTitle              String?   @map("job_title")
+  phone                 String?
+  cpf                   String?
+  whatsapp              String?
+  mfaEnabled            Boolean   @default(false) @map("mfa_enabled")
+  lastLoginAt           DateTime? @map("last_login_at")
+  status                String    @default("active")
   onboardingCompletedAt DateTime? @map("onboarding_completed_at")
-  onboardingSteps Json?           @map("onboarding_steps")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  onboardingSteps       Json?     @map("onboarding_steps")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   @@map("profiles")
 }
@@ -171,49 +171,49 @@ model UserRole {
 }
 
 model Organization {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String
-  slug        String    @unique
-  cnpj        String?
-  legalName   String?   @map("legal_name")
-  tradeName   String?   @map("trade_name")
-  stateRegistration String? @map("state_registration")
-  segment     String?
-  address     String?
-  city        String?
-  state       String?
-  zipCode     String?   @map("zip_code")
-  country     String?   @default("BR")
-  phone       String?
-  whatsapp    String?
-  email       String?
-  website     String?
-  logoUrl     String?   @map("logo_url")
-  primaryColor String?  @map("primary_color")
-  employeeCount Int?    @map("employee_count")
-  leaderCount   Int?    @map("leader_count")
-  licenseCount  Int?    @map("license_count")
-  notes         String?
-  plan        PlanTier  @default(essencial)
-  status      OrgStatus @default(trial)
-  franchiseId String?   @map("franchise_id") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  slug              String    @unique
+  cnpj              String?
+  legalName         String?   @map("legal_name")
+  tradeName         String?   @map("trade_name")
+  stateRegistration String?   @map("state_registration")
+  segment           String?
+  address           String?
+  city              String?
+  state             String?
+  zipCode           String?   @map("zip_code")
+  country           String?   @default("BR")
+  phone             String?
+  whatsapp          String?
+  email             String?
+  website           String?
+  logoUrl           String?   @map("logo_url")
+  primaryColor      String?   @map("primary_color")
+  employeeCount     Int?      @map("employee_count")
+  leaderCount       Int?      @map("leader_count")
+  licenseCount      Int?      @map("license_count")
+  notes             String?
+  plan              PlanTier  @default(essencial)
+  status            OrgStatus @default(trial)
+  franchiseId       String?   @map("franchise_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  memberships Membership[]
-  franchise   Franchise?   @relation(fields: [franchiseId], references: [id], onDelete: SetNull)
-  branches    Branch[]
-  areas       Area[]
-  teams       Team[]
-  licenses    License[]
+  memberships     Membership[]
+  franchise       Franchise?       @relation(fields: [franchiseId], references: [id], onDelete: SetNull)
+  branches        Branch[]
+  areas           Area[]
+  teams           Team[]
+  licenses        License[]
   onboardingItems OnboardingItem[]
 
-  orgRoles           OrgRole[]
-  rituals            Ritual[]
-  delegations        Delegation[]
-  decisions          Decision[]
-  documents          OrgDocument[]
-  healthSnapshots    HealthScoreSnapshot[]
+  orgRoles        OrgRole[]
+  rituals         Ritual[]
+  delegations     Delegation[]
+  decisions       Decision[]
+  documents       OrgDocument[]
+  healthSnapshots HealthScoreSnapshot[]
 
   @@map("organizations")
 }
@@ -243,19 +243,19 @@ model Membership {
 }
 
 model Branch {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  name           String
-  code           String?
-  address        String?
-  city           String?
-  state          String?
-  zipCode        String?  @map("zip_code")
-  phone          String?
-  responsibleUserId String? @map("responsible_user_id") @db.Uuid
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  name              String
+  code              String?
+  address           String?
+  city              String?
+  state             String?
+  zipCode           String?  @map("zip_code")
+  phone             String?
+  responsibleUserId String?  @map("responsible_user_id") @db.Uuid
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   areas        Area[]
@@ -292,20 +292,20 @@ model Area {
 }
 
 model Team {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  areaId         String   @map("area_id") @db.Uuid
-  name           String
-  objectives     String?
-  responsibleUserId String? @map("responsible_user_id") @db.Uuid
-  active         Boolean  @default(true)
-  mission        String?
-  kpis           String[] @default([])
-  leaderMembershipId String? @map("leader_membership_id") @db.Uuid
-  contextMd      String?  @map("context_md")
-  tags           String[] @default([])
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  areaId             String   @map("area_id") @db.Uuid
+  name               String
+  objectives         String?
+  responsibleUserId  String?  @map("responsible_user_id") @db.Uuid
+  active             Boolean  @default(true)
+  mission            String?
+  kpis               String[] @default([])
+  leaderMembershipId String?  @map("leader_membership_id") @db.Uuid
+  contextMd          String?  @map("context_md")
+  tags               String[] @default([])
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   area         Area         @relation(fields: [areaId], references: [id], onDelete: Cascade)
@@ -369,8 +369,8 @@ model License {
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  plan         Plan               @relation(fields: [planId], references: [id])
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan                @relation(fields: [planId], references: [id])
   assignments  LicenseAssignment[]
 
   @@index([organizationId])
@@ -553,37 +553,37 @@ model Branding {
 }
 
 model MethodologyCompetency {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique
-  name        String
-  description String?
-  weight      Int      @default(1)
-  orderIndex  Int      @default(0) @map("order_index")
-  active      Boolean  @default(true)
-  purpose            String?  @db.Text
-  behaviors          String[] @default([])
-  practices          String[] @default([])
-  guidingQuestions   String[] @default([]) @map("guiding_questions")
-  rituals            String[] @default([])
-  indicators         String[] @default([])
-  aiPrompt           String?  @map("ai_prompt") @db.Text
-  color              String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  code             String   @unique
+  name             String
+  description      String?
+  weight           Int      @default(1)
+  orderIndex       Int      @default(0) @map("order_index")
+  active           Boolean  @default(true)
+  purpose          String?  @db.Text
+  behaviors        String[] @default([])
+  practices        String[] @default([])
+  guidingQuestions String[] @default([]) @map("guiding_questions")
+  rituals          String[] @default([])
+  indicators       String[] @default([])
+  aiPrompt         String?  @map("ai_prompt") @db.Text
+  color            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("methodology_competencies")
 }
 
 model MethodologyDoc {
-  id              String   @id @default("singleton")
-  mission         String?  @db.Text
-  vision          String?  @db.Text
-  manifesto       String?  @db.Text
-  principles      String[] @default([])
-  leaderProfile   String?  @map("leader_profile") @db.Text
-  aiSystemPrompt  String?  @map("ai_system_prompt") @db.Text
-  pillars         Json?
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default("singleton")
+  mission        String?  @db.Text
+  vision         String?  @db.Text
+  manifesto      String?  @db.Text
+  principles     String[] @default([])
+  leaderProfile  String?  @map("leader_profile") @db.Text
+  aiSystemPrompt String?  @map("ai_system_prompt") @db.Text
+  pillars        Json?
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("methodology_doc")
 }
@@ -630,16 +630,16 @@ enum SettingCategory {
 }
 
 model PlatformSetting {
-  id         String          @id @default(uuid()) @db.Uuid
-  scope      ScopeType       @default(global)
-  scopeId    String?         @map("scope_id") @db.Uuid
-  category   SettingCategory @default(general)
-  key        String
-  value      String?
-  secret     Boolean         @default(false)
-  updatedBy  String?         @map("updated_by") @db.Uuid
-  createdAt  DateTime        @default(now()) @map("created_at")
-  updatedAt  DateTime        @updatedAt @map("updated_at")
+  id        String          @id @default(uuid()) @db.Uuid
+  scope     ScopeType       @default(global)
+  scopeId   String?         @map("scope_id") @db.Uuid
+  category  SettingCategory @default(general)
+  key       String
+  value     String?
+  secret    Boolean         @default(false)
+  updatedBy String?         @map("updated_by") @db.Uuid
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
 
   @@unique([scope, scopeId, category, key])
   @@index([category])
@@ -668,45 +668,45 @@ enum NotificationDirection {
 }
 
 model NotificationTemplate {
-  id          String              @id @default(uuid()) @db.Uuid
-  code        String              @unique
-  name        String
-  channel     NotificationChannel
-  subject     String?
-  body        String
+  id               String              @id @default(uuid()) @db.Uuid
+  code             String              @unique
+  name             String
+  channel          NotificationChannel
+  subject          String?
+  body             String
   // Meta Cloud API approved template name (homologação). Se preenchido,
   // usa `template` em vez de `text` no envio via canal Meta.
-  metaTemplateName String?         @map("meta_template_name")
-  metaLanguage     String?         @default("pt_BR") @map("meta_language")
-  variables   Json?
-  active      Boolean             @default(true)
-  createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt @map("updated_at")
+  metaTemplateName String?             @map("meta_template_name")
+  metaLanguage     String?             @default("pt_BR") @map("meta_language")
+  variables        Json?
+  active           Boolean             @default(true)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
 
   @@index([channel])
   @@map("notification_templates")
 }
 
 model NotificationLog {
-  id           String                @id @default(uuid()) @db.Uuid
-  channel      NotificationChannel
-  direction    NotificationDirection @default(outbound)
-  status       NotificationStatus    @default(pending)
-  to           String
-  from         String?
-  templateCode String?               @map("template_code")
-  subject      String?
-  body         String?
-  providerId   String?               @map("provider_id")
-  providerRaw  Json?                 @map("provider_raw")
-  error        String?
-  userId       String?               @map("user_id") @db.Uuid
-  organizationId String?             @map("organization_id") @db.Uuid
-  title        String?
-  linkUrl      String?               @map("link_url")
-  readAt       DateTime?             @map("read_at")
-  createdAt    DateTime              @default(now()) @map("created_at")
-  updatedAt    DateTime              @updatedAt @map("updated_at")
+  id             String                @id @default(uuid()) @db.Uuid
+  channel        NotificationChannel
+  direction      NotificationDirection @default(outbound)
+  status         NotificationStatus    @default(pending)
+  to             String
+  from           String?
+  templateCode   String?               @map("template_code")
+  subject        String?
+  body           String?
+  providerId     String?               @map("provider_id")
+  providerRaw    Json?                 @map("provider_raw")
+  error          String?
+  userId         String?               @map("user_id") @db.Uuid
+  organizationId String?               @map("organization_id") @db.Uuid
+  title          String?
+  linkUrl        String?               @map("link_url")
+  readAt         DateTime?             @map("read_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
 
   @@index([channel])
   @@index([status])
@@ -885,10 +885,17 @@ model LeaderProfile {
   organizationId     String          @map("organization_id") @db.Uuid
   userId             String          @map("user_id") @db.Uuid
   declaredRole       String?         @map("declared_role")
+  notMine            String?         @map("not_mine")
   assessmentType     AssessmentType? @map("assessment_type")
   assessmentTraits   Json?           @map("assessment_traits")
   sabotages          String[]        @default([])
   communicationStyle String?         @map("communication_style")
+  mbtiType           String?         @map("mbti_type")
+  discPrimary        String?         @map("disc_primary")
+  egogramaTraits     Json?           @map("egograma_traits")
+  hardSelfScore      Int?            @map("hard_self_score")
+  softSelfScore      Int?            @map("soft_self_score")
+  heartSelfScore     Int?            @map("heart_self_score")
   riskFlags          String[]        @default([]) @map("risk_flags")
   strengths          String[]        @default([])
   notes              String?
@@ -936,18 +943,18 @@ model CrossSignal {
 // MÓDULO E — Evolução (score de sustentação por líder)
 // ============================================================
 model LeadershipScoreSnapshot {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  periodYear     Int      @map("period_year")
-  periodMonth    Int      @map("period_month")
-  score          Int
-  ritualsScore   Float    @map("rituals_score")
-  delegScore     Float    @map("deleg_score")
-  indicatorsScore Float   @map("indicators_score")
-  diagnostic     String?
-  breakdown      Json?
-  createdAt      DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  periodYear      Int      @map("period_year")
+  periodMonth     Int      @map("period_month")
+  score           Int
+  ritualsScore    Float    @map("rituals_score")
+  delegScore      Float    @map("deleg_score")
+  indicatorsScore Float    @map("indicators_score")
+  diagnostic      String?
+  breakdown       Json?
+  createdAt       DateTime @default(now()) @map("created_at")
 
   @@unique([organizationId, userId, periodYear, periodMonth])
   @@index([organizationId, userId])
@@ -971,7 +978,7 @@ model OrgRole {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assignments  RoleAssignment[]
 
   @@index([organizationId])
@@ -1180,7 +1187,7 @@ model Indicator {
   ownerUserId    String?            @map("owner_user_id") @db.Uuid
   name           String
   description    String?
-  unit           String?            // %, R$, un, dias, etc.
+  unit           String? // %, R$, un, dias, etc.
   direction      IndicatorDirection @default(higher_better)
   target         Float?
   minTarget      Float?             @map("min_target")
@@ -1230,10 +1237,10 @@ model FeedbackRecord {
   subjectUserId  String?        @map("subject_user_id") @db.Uuid
   subjectLabel   String?        @map("subject_label") // livre quando não é usuário do sistema
   type           FeedbackType   @default(alinhamento)
-  fact           String         // Fato observável
-  impact         String         // Impacto no time/negócio
-  expectation    String         // O que se espera
-  agreement      String?        // O que ficou combinado
+  fact           String // Fato observável
+  impact         String // Impacto no time/negócio
+  expectation    String // O que se espera
+  agreement      String? // O que ficou combinado
   dueAt          DateTime?      @map("due_at")
   followUpAt     DateTime?      @map("follow_up_at")
   status         FeedbackStatus @default(registrado)
@@ -1251,19 +1258,19 @@ model FeedbackRecord {
 // TEAM MEMBER PROFILE — Tela 3 (Mapa da Equipe)
 // ============================================================
 model TeamMemberProfile {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizationId String         @map("organization_id") @db.Uuid
-  membershipId   String         @unique @map("membership_id") @db.Uuid
-  roleTitle      String?        @map("role_title")
-  expectedDeliverables String[] @default([]) @map("expected_deliverables")
-  keyIndicators  String[]       @default([]) @map("key_indicators")
-  autonomyLevel  AutonomyLevel  @default(n2_acompanho) @map("autonomy_level")
-  strengths      String[]       @default([])
-  developPoints  String[]       @default([]) @map("develop_points")
-  notes          String?
-  updatedBy      String?        @map("updated_by") @db.Uuid
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id                   String        @id @default(uuid()) @db.Uuid
+  organizationId       String        @map("organization_id") @db.Uuid
+  membershipId         String        @unique @map("membership_id") @db.Uuid
+  roleTitle            String?       @map("role_title")
+  expectedDeliverables String[]      @default([]) @map("expected_deliverables")
+  keyIndicators        String[]      @default([]) @map("key_indicators")
+  autonomyLevel        AutonomyLevel @default(n2_acompanho) @map("autonomy_level")
+  strengths            String[]      @default([])
+  developPoints        String[]      @default([]) @map("develop_points")
+  notes                String?
+  updatedBy            String?       @map("updated_by") @db.Uuid
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
   @@index([organizationId])
   @@map("team_member_profiles")
@@ -1278,7 +1285,7 @@ model Pdi {
   subjectUserId  String    @map("subject_user_id") @db.Uuid
   authorId       String    @map("author_id") @db.Uuid
   title          String
-  focus          String?   // foco central (competência / módulo C.O.R.E.)
+  focus          String? // foco central (competência / módulo C.O.R.E.)
   startAt        DateTime  @default(now()) @map("start_at")
   reviewAt       DateTime? @map("review_at")
   status         PdiStatus @default(ativo)
@@ -1294,15 +1301,15 @@ model Pdi {
 }
 
 model PdiGoal {
-  id          String        @id @default(uuid()) @db.Uuid
-  pdiId       String        @map("pdi_id") @db.Uuid
-  title       String
-  action      String?       // ação concreta
-  dueAt       DateTime?     @map("due_at")
-  status      PdiGoalStatus @default(a_fazer)
-  evidence    String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id        String        @id @default(uuid()) @db.Uuid
+  pdiId     String        @map("pdi_id") @db.Uuid
+  title     String
+  action    String? // ação concreta
+  dueAt     DateTime?     @map("due_at")
+  status    PdiGoalStatus @default(a_fazer)
+  evidence  String?
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
   pdi Pdi @relation(fields: [pdiId], references: [id], onDelete: Cascade)
 
@@ -1333,20 +1340,20 @@ enum OneOnOneItemKind {
 }
 
 model OneOnOne {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizationId String         @map("organization_id") @db.Uuid
-  leaderId       String         @map("leader_id") @db.Uuid
-  subjectUserId  String         @map("subject_user_id") @db.Uuid
-  scheduledAt    DateTime       @map("scheduled_at")
-  durationMin    Int            @default(30) @map("duration_min")
-  status         OneOnOneStatus @default(scheduled)
-  mood           Int?           // 1..5 humor do liderado (opcional)
-  summary        String?
-  privateNotes   String?        @map("private_notes")
-  briefingMarkdown   String?    @map("briefing_markdown")
-  briefingGeneratedAt DateTime? @map("briefing_generated_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id                  String         @id @default(uuid()) @db.Uuid
+  organizationId      String         @map("organization_id") @db.Uuid
+  leaderId            String         @map("leader_id") @db.Uuid
+  subjectUserId       String         @map("subject_user_id") @db.Uuid
+  scheduledAt         DateTime       @map("scheduled_at")
+  durationMin         Int            @default(30) @map("duration_min")
+  status              OneOnOneStatus @default(scheduled)
+  mood                Int? // 1..5 humor do liderado (opcional)
+  summary             String?
+  privateNotes        String?        @map("private_notes")
+  briefingMarkdown    String?        @map("briefing_markdown")
+  briefingGeneratedAt DateTime?      @map("briefing_generated_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
   items OneOnOneItem[]
 
@@ -1356,15 +1363,15 @@ model OneOnOne {
 }
 
 model OneOnOneItem {
-  id          String           @id @default(uuid()) @db.Uuid
-  oneOnOneId  String           @map("one_on_one_id") @db.Uuid
-  kind        OneOnOneItemKind
-  content     String
-  done        Boolean          @default(false)
-  dueAt       DateTime?        @map("due_at")
-  orderIndex  Int              @default(0) @map("order_index")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  id         String           @id @default(uuid()) @db.Uuid
+  oneOnOneId String           @map("one_on_one_id") @db.Uuid
+  kind       OneOnOneItemKind
+  content    String
+  done       Boolean          @default(false)
+  dueAt      DateTime?        @map("due_at")
+  orderIndex Int              @default(0) @map("order_index")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
 
   oneOnOne OneOnOne @relation(fields: [oneOnOneId], references: [id], onDelete: Cascade)
 
@@ -1382,17 +1389,17 @@ enum ThreeSixtyStatus {
 }
 
 model ThreeSixtyRound {
-  id             String           @id @default(uuid()) @db.Uuid
-  organizationId String           @map("organization_id") @db.Uuid
-  subjectUserId  String           @map("subject_user_id") @db.Uuid
-  createdById    String           @map("created_by_id") @db.Uuid
-  title          String
-  quarter        String           // ex.: "2026-Q1"
-  status         ThreeSixtyStatus @default(open)
-  summaryMarkdown String?         @map("summary_markdown")
-  closedAt       DateTime?        @map("closed_at")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @map("organization_id") @db.Uuid
+  subjectUserId   String           @map("subject_user_id") @db.Uuid
+  createdById     String           @map("created_by_id") @db.Uuid
+  title           String
+  quarter         String // ex.: "2026-Q1"
+  status          ThreeSixtyStatus @default(open)
+  summaryMarkdown String?          @map("summary_markdown")
+  closedAt        DateTime?        @map("closed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
 
   responses ThreeSixtyResponse[]
 
@@ -1402,17 +1409,17 @@ model ThreeSixtyRound {
 }
 
 model ThreeSixtyResponse {
-  id           String   @id @default(uuid()) @db.Uuid
-  roundId      String   @map("round_id") @db.Uuid
-  evaluatorId  String   @map("evaluator_id") @db.Uuid
-  score1       Int      @map("score_1") // Continuar fazendo (1..5)
-  score2       Int      @map("score_2") // Começar a fazer (1..5)
-  score3       Int      @map("score_3") // Parar de fazer (1..5)
-  comment1     String?  @map("comment_1")
-  comment2     String?  @map("comment_2")
-  comment3     String?  @map("comment_3")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  roundId     String   @map("round_id") @db.Uuid
+  evaluatorId String   @map("evaluator_id") @db.Uuid
+  score1      Int      @map("score_1") // Continuar fazendo (1..5)
+  score2      Int      @map("score_2") // Começar a fazer (1..5)
+  score3      Int      @map("score_3") // Parar de fazer (1..5)
+  comment1    String?  @map("comment_1")
+  comment2    String?  @map("comment_2")
+  comment3    String?  @map("comment_3")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   round ThreeSixtyRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
@@ -1468,7 +1475,7 @@ model PulseSend {
   subjectLabel   String?         @map("subject_label")
   subjectPhone   String?         @map("subject_phone")
   token          String          @unique
-  message        String?         // custom message shown on the public page
+  message        String? // custom message shown on the public page
   status         PulseSendStatus @default(pending)
   expiresAt      DateTime        @map("expires_at")
   answeredAt     DateTime?       @map("answered_at")
