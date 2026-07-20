@@ -323,6 +323,7 @@ function LeadershipRoom() {
           <DelegationsCard data={data?.delegations} loading={loading} onOpen={openDeleg} />
           <AiCoachCard />
           <DecisionsCard data={data?.decisions} loading={loading} onOpen={openDecision} />
+          <KudosWall orgId={orgId} />
         </div>
 
         {/* FABs flutuantes (posicionados acima da bottom nav com safe-area) */}
