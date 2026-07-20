@@ -298,14 +298,33 @@ indicatorsRouter.get("/:orgId/indicators/concentration", async (req, res) => {
 // ------------------------------------------------------------
 indicatorsRouter.get("/:orgId/results/meta-vs-real", async (req, res) => {
   const orgId = req.params.orgId;
-  const indicators = await prisma.indicator.findMany({
+  const indicatorsRaw = await prisma.indicator.findMany({
     where: { organizationId: orgId, active: true, target: { not: null } },
-    include: {
-      readings: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 6 },
-      area: { select: { id: true, name: true } },
-    },
     orderBy: { name: "asc" },
   });
+  const indicatorIds = indicatorsRaw.map((i) => i.id);
+  const areaIds = Array.from(new Set(indicatorsRaw.map((i) => i.areaId).filter((v): v is string => !!v)));
+  const [readings, areas] = await Promise.all([
+    prisma.indicatorReading.findMany({
+      where: { indicatorId: { in: indicatorIds } },
+      orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+    }),
+    areaIds.length
+      ? prisma.area.findMany({ where: { id: { in: areaIds } }, select: { id: true, name: true } })
+      : Promise.resolve([] as Array<{ id: string; name: string }>),
+  ]);
+  const readingsByIndicator = new Map<string, typeof readings>();
+  for (const r of readings) {
+    const arr = readingsByIndicator.get(r.indicatorId) ?? [];
+    if (arr.length < 6) arr.push(r);
+    readingsByIndicator.set(r.indicatorId, arr);
+  }
+  const areaMap = new Map(areas.map((a) => [a.id, a]));
+  const indicators = indicatorsRaw.map((i) => ({
+    ...i,
+    readings: readingsByIndicator.get(i.id) ?? [],
+    area: i.areaId ? areaMap.get(i.areaId) ?? null : null,
+  }));
 
   const rows = indicators
     .map((i) => {
