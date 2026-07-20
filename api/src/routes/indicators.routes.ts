@@ -55,6 +55,7 @@ const indicatorSchema = z.object({
   maxTarget: z.number().optional().nullable(),
   tags: z.array(z.string()).default([]),
   active: z.boolean().default(true),
+  csvSyncUrl: z.string().url().optional().nullable(),
 });
 
 indicatorsRouter.get("/:orgId/indicators", async (req, res) => {
