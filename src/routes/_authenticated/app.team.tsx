@@ -628,6 +628,216 @@ function ProfileDialog({
   );
 }
 
+// ============================================================
+// 9-Box: Performance × Potencial
+// ============================================================
+const PERF_LABEL = ["Baixa", "Média", "Alta"] as const;
+const POT_LABEL  = ["Baixo", "Médio", "Alto"] as const;
+const BOX_LABEL: Record<string, { title: string; tone: string }> = {
+  "3-1": { title: "Enigma",           tone: "bg-sky-50 dark:bg-sky-500/10" },
+  "3-2": { title: "Crescimento",      tone: "bg-sky-100 dark:bg-sky-500/15" },
+  "3-3": { title: "Estrela",          tone: "bg-emerald-100 dark:bg-emerald-500/20" },
+  "2-1": { title: "Dilema",           tone: "bg-amber-50 dark:bg-amber-500/10" },
+  "2-2": { title: "Mantenedor",       tone: "bg-secondary" },
+  "2-3": { title: "Alta performance", tone: "bg-emerald-50 dark:bg-emerald-500/10" },
+  "1-1": { title: "Insuficiente",     tone: "bg-rose-50 dark:bg-rose-500/10" },
+  "1-2": { title: "Efetivo",          tone: "bg-secondary" },
+  "1-3": { title: "Especialista",     tone: "bg-sky-50 dark:bg-sky-500/10" },
+};
+
+function NineBoxMatrix({
+  orgId, members, onEdit,
+}: { orgId: string; members: TeamMember[]; onEdit: (m: TeamMember) => void }) {
+  const qc = useQueryClient();
+  const [picking, setPicking] = useState<TeamMember | null>(null);
+
+  const save = useMutation({
+    mutationFn: ({ id, perf, pot }: { id: string; perf: number; pot: number }) =>
+      api(`/organization/${orgId}/team/${id}/box`, {
+        method: "PUT",
+        body: { performanceLevel: perf, potentialLevel: pot },
+      }),
+    onSuccess: () => {
+      toast.success("Posição atualizada.");
+      qc.invalidateQueries({ queryKey: ["team", orgId] });
+      setPicking(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cellOf = (perf: number, pot: number) =>
+    members.filter(
+      (m) => m.profile?.performanceLevel === perf && m.profile?.potentialLevel === pot,
+    );
+  const unclassified = members.filter(
+    (m) => !m.profile?.performanceLevel || !m.profile?.potentialLevel,
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-baseline justify-between">
+          <div>
+            <div className="font-display text-lg leading-tight">Matriz 9-box</div>
+            <p className="text-xs text-muted-foreground">Performance atual × potencial futuro. Clique numa pessoa para reposicionar.</p>
+          </div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            {members.length - unclassified.length}/{members.length} posicionados
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          {/* eixo Y = potencial */}
+          <div className="flex w-6 flex-col justify-between py-4 text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span className="-rotate-90 origin-left translate-y-2">Alto</span>
+            <span className="-rotate-90 origin-left translate-y-2">Médio</span>
+            <span className="-rotate-90 origin-left translate-y-2">Baixo</span>
+          </div>
+          <div className="flex-1">
+            <div className="grid grid-cols-3 gap-2">
+              {[3, 2, 1].map((pot) =>
+                [1, 2, 3].map((perf) => {
+                  const key = `${perf}-${pot}`;
+                  const box = BOX_LABEL[key];
+                  const people = cellOf(perf, pot);
+                  return (
+                    <div key={key} className={"min-h-[110px] rounded-xl border border-border/70 p-2 " + box.tone}>
+                      <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <span className="font-semibold text-foreground/80">{box.title}</span>
+                        <span>{people.length}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {people.map((m) => (
+                          <button
+                            key={m.membershipId}
+                            title={m.fullName}
+                            onClick={() => setPicking(m)}
+                            className="inline-flex items-center gap-1 rounded-full border border-border bg-background/90 px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-secondary"
+                          >
+                            <span className="grid h-4 w-4 place-items-center rounded-full bg-secondary text-[9px] font-bold">
+                              {initials(m.fullName)}
+                            </span>
+                            <span className="max-w-[100px] truncate">{m.fullName.split(" ")[0]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }),
+              )}
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
+              <span>Perf. baixa</span><span>Perf. média</span><span>Perf. alta</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {unclassified.length > 0 && (
+        <div className="rounded-2xl border border-dashed border-border p-4">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Sem classificação ({unclassified.length})
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {unclassified.map((m) => (
+              <button
+                key={m.membershipId}
+                onClick={() => setPicking(m)}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:bg-secondary"
+              >
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-secondary text-[10px] font-bold">
+                  {initials(m.fullName)}
+                </span>
+                {m.fullName}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!picking} onOpenChange={(o) => !o && setPicking(null)}>
+        {picking && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Posicionar — {picking.fullName}</DialogTitle>
+            </DialogHeader>
+            <NineBoxPicker
+              initialPerf={picking.profile?.performanceLevel ?? null}
+              initialPot={picking.profile?.potentialLevel ?? null}
+              saving={save.isPending}
+              onOpenProfile={() => { const m = picking; setPicking(null); onEdit(m); }}
+              onSave={(perf, pot) => save.mutate({ id: picking.membershipId, perf, pot })}
+            />
+          </DialogContent>
+        )}
+      </Dialog>
+    </div>
+  );
+}
+
+function NineBoxPicker({
+  initialPerf, initialPot, saving, onSave, onOpenProfile,
+}: {
+  initialPerf: number | null;
+  initialPot: number | null;
+  saving: boolean;
+  onSave: (perf: number, pot: number) => void;
+  onOpenProfile: () => void;
+}) {
+  const [perf, setPerf] = useState<number>(initialPerf ?? 2);
+  const [pot, setPot]   = useState<number>(initialPot ?? 2);
+  return (
+    <div className="space-y-4 py-2">
+      <div>
+        <Label className="text-xs uppercase tracking-widest text-muted-foreground">Performance atual</Label>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((v) => (
+            <button
+              key={v}
+              onClick={() => setPerf(v)}
+              className={
+                "rounded-xl border p-2 text-sm transition-colors " +
+                (perf === v
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card hover:bg-secondary")
+              }
+            >
+              {PERF_LABEL[v - 1]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs uppercase tracking-widest text-muted-foreground">Potencial</Label>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((v) => (
+            <button
+              key={v}
+              onClick={() => setPot(v)}
+              className={
+                "rounded-xl border p-2 text-sm transition-colors " +
+                (pot === v
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card hover:bg-secondary")
+              }
+            >
+              {POT_LABEL[v - 1]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <button onClick={onOpenProfile} className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">
+          Editar perfil completo →
+        </button>
+        <Button disabled={saving} onClick={() => onSave(perf, pot)}>
+          {saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}Salvar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function InviteDialog({ orgId, onDone }: { orgId: string; onDone: () => void }) {
   const qc = useQueryClient();
   const [fullName, setFullName] = useState("");
