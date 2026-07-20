@@ -52,10 +52,15 @@ kudosRouter.get("/:orgId/kudos", async (req, res) => {
   const users = userIds.length
     ? await prisma.user.findMany({
         where: { id: { in: userIds } },
-        select: { id: true, fullName: true, avatarUrl: true },
+        select: { id: true, email: true, profile: { select: { fullName: true, avatarUrl: true } } },
       })
     : [];
-  const byId = new Map(users.map((u) => [u.id, u]));
+  const byId = new Map(
+    users.map((u) => [
+      u.id,
+      { id: u.id, fullName: u.profile?.fullName ?? u.email ?? null, avatarUrl: u.profile?.avatarUrl ?? null },
+    ]),
+  );
 
   res.json(
     rows.map((k) => ({
@@ -106,10 +111,9 @@ kudosRouter.post("/:orgId/kudos", async (req, res) => {
     await notifyInApp({
       organizationId: orgId,
       userId: d.subjectUserId,
-      kind: "kudos_recebido",
       title: "Você recebeu um kudos 🎉",
       body: d.message.slice(0, 140),
-      href: "/app",
+      linkUrl: "/app",
     }).catch(() => undefined);
   }
 
