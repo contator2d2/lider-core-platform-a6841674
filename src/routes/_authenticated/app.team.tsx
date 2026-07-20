@@ -13,6 +13,7 @@ import {
   Pencil,
   Search,
   Sparkles,
+  Grid3x3,
   TrendingUp,
   UserPlus,
   Users,
@@ -73,6 +74,9 @@ type TeamMember = {
     strengths: string[];
     developPoints: string[];
     notes: string | null;
+    performanceLevel: number | null;
+    potentialLevel: number | null;
+    discPrimary: string | null;
   } | null;
   openDelegations: number;
   feedbackCount: number;
