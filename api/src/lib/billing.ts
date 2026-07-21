@@ -25,13 +25,13 @@ async function loadOwner(ownerType: OwnerType, ownerId: string): Promise<OwnerSn
   if (ownerType === "individual") {
     const u = await prisma.user.findUnique({
       where: { id: ownerId },
-      select: { id: true, email: true, profile: { select: { fullName: true, cpfCnpj: true, phone: true } } },
+      select: { id: true, email: true, profile: { select: { fullName: true, phone: true } } },
     });
     if (!u) return null;
     return {
       id: u.id,
       name: u.profile?.fullName ?? u.email,
-      cnpj: u.profile?.cpfCnpj ?? null,
+      cnpj: null,
       email: u.email,
       phone: u.profile?.phone ?? null,
     };
