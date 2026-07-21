@@ -70,7 +70,7 @@ calendarPublicRouter.get("/calendar/:orgId/:token.ics", async (req, res) => {
   const [occurrences, delegations, oneOnOnes] = await Promise.all([
     prisma.ritualOccurrence.findMany({
       where: { ritual: { organizationId: orgId }, scheduledAt: { gte: from, lte: to } },
-      include: { ritual: { select: { name: true, kind: true } } },
+      include: { ritual: { select: { name: true, type: true } } },
     }),
     prisma.delegation.findMany({
       where: { organizationId: orgId, dueAt: { gte: from, lte: to }, status: { in: ["open", "in_progress"] } },
