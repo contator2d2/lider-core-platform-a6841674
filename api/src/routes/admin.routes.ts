@@ -348,6 +348,7 @@ const planSchema = z.object({
   limits: z.record(z.any()).optional().nullable(),
   features: z.array(z.string()).default([]),
   active: z.boolean().default(true),
+  target: z.enum(["organization", "individual"]).default("organization"),
 });
 
 type PlanInput = z.infer<typeof planSchema>;
@@ -388,7 +389,7 @@ adminRouter.get("/subscriptions", async (_req, res) => {
 });
 
 const subSchema = z.object({
-  ownerType: z.enum(["franchise", "organization"]),
+  ownerType: z.enum(["franchise", "organization", "individual"]),
   ownerId: z.string().uuid(),
   planId: z.string().uuid(),
   status: z.enum(["trial", "active", "past_due", "canceled"]).default("trial"),

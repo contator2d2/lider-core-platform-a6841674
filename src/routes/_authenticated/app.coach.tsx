@@ -17,6 +17,7 @@ import {
   Users2,
   Wifi,
   WifiOff,
+  Sparkles,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -65,6 +66,21 @@ type Reminders = {
 
 type Feed = { token: string; url: string; webcal: string };
 
+type AIRecs = { generatedAt: string; markdown: string; context: Record<string, number> };
+
+function simpleMarkdown(md: string) {
+  const html = md
+    .replace(/</g, "&lt;")
+    .replace(/^##\s+(.+)$/gm, '<h3 class="mt-4 mb-2 font-display text-lg text-foreground">$1</h3>')
+    .replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-5 list-decimal">$1</li>')
+    .replace(/^-\s+(.+)$/gm, '<li class="ml-5 list-disc">$1</li>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code class="rounded bg-secondary px-1 py-0.5 text-xs">$1</code>')
+    .replace(/\n{2,}/g, '</p><p class="mt-2">')
+    .replace(/\n/g, "<br/>");
+  return `<p>${html}</p>`;
+}
+
 const DIM_META = {
   hard: { label: "Hard · Estrutura", icon: Building2, tone: "text-sky-600", dot: "bg-sky-500" },
   soft: { label: "Soft · Execução", icon: Users2, tone: "text-emerald-600", dot: "bg-emerald-500" },
@@ -111,6 +127,10 @@ function CoachPage() {
       toast.success("Novo link gerado. O antigo parou de funcionar.");
       qc.invalidateQueries({ queryKey: ["coach-feed", orgId] });
     },
+  });
+  const aiRecs = useMutation({
+    mutationFn: () => api<AIRecs>(`/organization/${orgId}/coach/ai-recommendations`, { method: "POST" }),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (!orgId) return null;
@@ -165,6 +185,45 @@ function CoachPage() {
             })}
           </div>
         )}
+      </section>
+
+      {/* IA Coach — recomendações personalizadas */}
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <h2 className="flex items-center gap-2 font-display text-xl">
+            <Sparkles className="h-4 w-4 text-accent" /> IA Coach — recomendações personalizadas
+          </h2>
+          <Button size="sm" onClick={() => aiRecs.mutate()} disabled={aiRecs.isPending}>
+            {aiRecs.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
+            {aiRecs.data ? "Gerar novamente" : "Gerar recomendações"}
+          </Button>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5">
+          {!aiRecs.data && !aiRecs.isPending && (
+            <p className="text-sm text-muted-foreground">
+              Clique em <b>Gerar recomendações</b> pra que a IA analise seus sinais H·S·H, indicadores e rituais e devolva um diagnóstico curto + 3 a 5 ações pra esta semana. Usa o provedor configurado em <em>Admin → Provedor de IA</em>.
+            </p>
+          )}
+          {aiRecs.isPending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> A IA está analisando os últimos 28 dias…
+            </div>
+          )}
+          {aiRecs.data && (
+            <>
+              <div
+                className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground"
+                dangerouslySetInnerHTML={{ __html: simpleMarkdown(aiRecs.data.markdown) }}
+              />
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[11px] text-muted-foreground">
+                <span>Gerado em {new Date(aiRecs.data.generatedAt).toLocaleString("pt-BR")}</span>
+                <Button size="sm" variant="ghost" onClick={() => { void navigator.clipboard.writeText(aiRecs.data!.markdown); toast.success("Copiado"); }}>
+                  <Copy className="mr-1 h-3.5 w-3.5" /> Copiar
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </section>
 
       {/* Reminders */}

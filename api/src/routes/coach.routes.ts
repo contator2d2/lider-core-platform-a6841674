@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { completeChat } from "../lib/ai-gateway.js";
 
 /**
  * Fase 4 · IA Coach preditiva + Lembretes.
@@ -253,4 +254,126 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
   }
 
   res.json({ generatedAt: now.toISOString(), items });
+});
+
+// ------------------------------------------------------------
+// POST /organization/:orgId/coach/ai-recommendations
+// Usa a IA configurada em Admin → Provedor de IA (OpenAI/Gemini)
+// para gerar recomendações personalizadas baseadas nos sinais H/S/H.
+// ------------------------------------------------------------
+coachRouter.post("/:orgId/coach/ai-recommendations", async (req, res) => {
+  const orgId = req.params.orgId;
+  const now = new Date();
+  const fourWeeks = new Date(now.getTime() - 28 * 86400_000);
+  const twoWeeks = new Date(now.getTime() - 14 * 86400_000);
+
+  try {
+    const [org, ritualOcc, delegations, feedbacks, pulses, oneOnOnes, indicators] = await Promise.all([
+      prisma.organization.findUnique({ where: { id: orgId }, select: { name: true } }),
+      prisma.ritualOccurrence.findMany({
+        where: { ritual: { organizationId: orgId }, scheduledAt: { gte: fourWeeks } },
+        select: { status: true, scheduledAt: true, ritual: { select: { name: true, type: true } } },
+      }),
+      prisma.delegation.findMany({
+        where: { organizationId: orgId },
+        select: { title: true, status: true, dueAt: true, doneAt: true },
+      }),
+      prisma.feedbackRecord.findMany({
+        where: { organizationId: orgId, createdAt: { gte: fourWeeks } },
+        select: { createdAt: true, type: true },
+      }),
+      prisma.pulseSend.findMany({
+        where: { organizationId: orgId, createdAt: { gte: fourWeeks } },
+        select: { status: true, answeredAt: true },
+      }),
+      prisma.oneOnOne.findMany({
+        where: { organizationId: orgId, scheduledAt: { gte: fourWeeks } },
+        select: { status: true, scheduledAt: true },
+      }),
+      prisma.indicator.findMany({
+        where: { organizationId: orgId },
+        select: {
+          name: true,
+          target: true,
+          unit: true,
+          readings: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 1, select: { value: true } },
+        },
+        take: 20,
+      }),
+    ]);
+
+    const ritLast = ritualOcc.filter((o) => o.scheduledAt >= twoWeeks);
+    const ritDoneRate = ritLast.length ? ritLast.filter((o) => o.status === "done").length / ritLast.length : 0;
+    const overdue = delegations.filter((d) => d.status !== "done" && d.dueAt && d.dueAt < now).length;
+    const fbLast2w = feedbacks.filter((f) => f.createdAt >= twoWeeks).length;
+    const fbPrev2w = feedbacks.filter((f) => f.createdAt < twoWeeks).length;
+    const openPulses = pulses.filter((p) => p.answeredAt == null).length;
+    const closedPulses = pulses.filter((p) => p.answeredAt != null).length;
+    const scheduled1on1 = oneOnOnes.filter((o) => o.status === "scheduled").length;
+    const done1on1 = oneOnOnes.filter((o) => o.status === "done").length;
+
+    const indicatorLines = indicators
+      .filter((i) => i.readings.length > 0)
+      .slice(0, 8)
+      .map((i) => {
+        const cur = i.readings[0]?.value ?? null;
+        const gap = cur != null && i.target ? (((cur - i.target) / i.target) * 100).toFixed(1) : "n/a";
+        return `- ${i.name}: atual=${cur ?? "?"}${i.unit ?? ""} · meta=${i.target ?? "?"}${i.unit ?? ""} · desvio=${gap}%`;
+      })
+      .join("\n");
+
+    const context = `Empresa: ${org?.name ?? "—"}
+Janela analisada: últimos 28 dias (comparativo 2 semanas atuais vs. 2 semanas anteriores)
+
+HARD (Estrutura & Rituais):
+- Rituais realizados nas últimas 2 semanas: ${(ritDoneRate * 100).toFixed(0)}% (${ritLast.filter((o) => o.status === "done").length}/${ritLast.length})
+- 1:1s agendados: ${scheduled1on1} · concluídos no período: ${done1on1}
+
+SOFT (Execução & Delegações):
+- Delegações com prazo estourado: ${overdue}
+- Total de delegações abertas/andamento: ${delegations.filter((d) => d.status !== "done").length}
+
+HEART (Cultura & Escuta):
+- Feedbacks: ${fbLast2w} (últimas 2s) vs ${fbPrev2w} (2s anteriores)
+- Pulsos: ${closedPulses} respondidos · ${openPulses} pendentes
+
+INDICADORES (últimas leituras):
+${indicatorLines || "(nenhum indicador com leitura)"}`;
+
+    const messages = [
+      {
+        role: "system" as const,
+        content: `Você é um coach executivo especializado na metodologia C.O.R.E. (Consciência, Organização, Resultado, Evolução) para líderes brasileiros. Sua tarefa é analisar os sinais H/S/H (Hard/Soft/Heart) de uma equipe e devolver:
+
+1) Um DIAGNÓSTICO curto (2-3 frases) do momento da liderança;
+2) 3 a 5 RECOMENDAÇÕES PRÁTICAS e específicas, cada uma com: título curto, dimensão (Hard | Soft | Heart), prazo sugerido e o primeiro passo concreto (o "faça agora");
+3) Um RITUAL da semana — 1 conversa ou reunião de 20 min para desbloquear o time.
+
+Regras:
+- Português do Brasil, tom direto e sênior, sem clichês de coach.
+- Se um sinal está bom, elogie objetivamente e não force problema.
+- Use apenas os dados fornecidos, sem inventar métricas.
+- Formato de saída: markdown com títulos ## Diagnóstico, ## Recomendações e ## Ritual da semana. Nas recomendações use lista numerada.`,
+      },
+      { role: "user" as const, content: context },
+    ];
+
+    const text = await completeChat({ messages, temperature: 0.5 });
+    res.json({
+      generatedAt: now.toISOString(),
+      context: {
+        ritDoneRate,
+        overdue,
+        fbLast2w,
+        fbPrev2w,
+        openPulses,
+        closedPulses,
+        indicators: indicators.length,
+      },
+      markdown: text,
+    });
+  } catch (err) {
+    const e = err as Error;
+    res.status(400).json({ error: e.message });
+  }
 });

@@ -33,6 +33,7 @@ type Plan = {
   features: string[];
   limits: Record<string, unknown> | null;
   active: boolean;
+  target?: "organization" | "individual";
 };
 
 function formatMoney(cents: number, currency = "BRL") {
@@ -49,6 +50,7 @@ type PlanForm = {
   active: boolean;
   features: string[];
   limits: Record<string, string>;
+  target: "organization" | "individual";
 };
 
 const emptyForm: PlanForm = {
@@ -61,6 +63,7 @@ const emptyForm: PlanForm = {
   active: true,
   features: [],
   limits: {},
+  target: "organization",
 };
 
 function limitsToForm(l: Record<string, unknown> | null): Record<string, string> {
@@ -107,6 +110,7 @@ function PlansPage() {
         active: form.active,
         features: form.features,
         limits: limitsFromForm(form.limits),
+        target: form.target,
       };
       return editing
         ? api<Plan>(`/admin/plans/${editing.id}`, { method: "PATCH", body })
@@ -149,6 +153,7 @@ function PlansPage() {
       active: p.active,
       features: p.features ?? [],
       limits: limitsToForm(p.limits),
+      target: p.target ?? "organization",
     });
     setOpen(true);
   };
@@ -322,6 +327,20 @@ function PlansPage() {
                 />
                 Plano ativo (visível para contratação)
               </label>
+              <div className="space-y-1.5">
+                <Label>Público-alvo</Label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={form.target}
+                  onChange={(e) => setForm({ ...form, target: e.target.value as "organization" | "individual" })}
+                >
+                  <option value="organization">Empresa / Franquia</option>
+                  <option value="individual">Individual (líder pessoa física)</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Planos individuais aparecem no upgrade pessoal do líder; planos de empresa aparecem no contrato da organização.
+                </p>
+              </div>
             </section>
 
             {/* Funcionalidades */}

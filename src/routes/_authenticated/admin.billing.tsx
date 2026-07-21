@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle2, RefreshCw, PlayCircle, Wifi } from "lucide-react";
+import { AlertCircle, CheckCircle2, RefreshCw, PlayCircle, Wifi, Beaker } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/admin/billing")({ component: BillingPage });
@@ -78,6 +78,15 @@ function BillingPage() {
     mutationFn: (id: string) => api(`/billing/subscriptions/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success("Assinatura cancelada");
+      qc.invalidateQueries({ queryKey: ["billing"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const simulate = useMutation({
+    mutationFn: (p: { subscriptionId: string; event: string }) =>
+      api("/billing/simulate-webhook", { method: "POST", body: p }),
+    onSuccess: (_d, v) => {
+      toast.success(`Webhook simulado: ${v.event}`);
       qc.invalidateQueries({ queryKey: ["billing"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -159,7 +168,26 @@ function BillingPage() {
               <div className="text-[11px] text-muted-foreground truncate" title={s.providerSubscriptionId ?? ""}>
                 {s.providerSubscriptionId ?? "sem provedor"}
               </div>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-1">
+                <select
+                  className="h-8 rounded-md border border-input bg-background px-2 text-[11px]"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const ev = e.target.value;
+                    e.currentTarget.value = "";
+                    if (!ev) return;
+                    if (!confirm(`Simular evento ${ev} em ${s.ownerName}?`)) return;
+                    simulate.mutate({ subscriptionId: s.id, event: ev });
+                  }}
+                  title="Simular webhook Asaas"
+                >
+                  <option value="">Simular…</option>
+                  <option value="PAYMENT_CONFIRMED">✅ Pagamento confirmado</option>
+                  <option value="PAYMENT_RECEIVED">💰 Recebido</option>
+                  <option value="PAYMENT_OVERDUE">⚠️ Atrasado (past_due)</option>
+                  <option value="PAYMENT_REFUNDED">↩️ Estornado</option>
+                  <option value="PAYMENT_DELETED">🗑 Excluído</option>
+                </select>
                 {s.status !== "canceled" && (
                   <Button size="sm" variant="ghost" onClick={() => confirm(`Cancelar assinatura de ${s.ownerName}?`) && cancel.mutate(s.id)}>
                     Cancelar
@@ -184,6 +212,12 @@ function BillingPage() {
         <p className="mt-3 text-xs text-muted-foreground">
           No painel Asaas → Configurações → Notificações → Webhooks: cole a URL acima, cole o mesmo <code>asaas_webhook_token</code> no campo "Token de autenticação" e ative os eventos de pagamento (PAYMENT_CONFIRMED, PAYMENT_RECEIVED, PAYMENT_OVERDUE, PAYMENT_REFUNDED, PAYMENT_DELETED).
         </p>
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+          <Beaker className="h-3.5 w-3.5 text-accent" />
+          <span>
+            Use o botão <b>Simular…</b> em cada assinatura para testar o fluxo <b>confirmação → suspensão → reativação</b> sem cobrança real. O handler roda o mesmo caminho do webhook oficial (invoice + status + activateOwner).
+          </span>
+        </div>
       </div>
     </>
   );
