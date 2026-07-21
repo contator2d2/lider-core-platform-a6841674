@@ -17,6 +17,7 @@ import {
   Users2,
   Wifi,
   WifiOff,
+  Sparkles,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -65,6 +66,21 @@ type Reminders = {
 
 type Feed = { token: string; url: string; webcal: string };
 
+type AIRecs = { generatedAt: string; markdown: string; context: Record<string, number> };
+
+function simpleMarkdown(md: string) {
+  const html = md
+    .replace(/</g, "&lt;")
+    .replace(/^##\s+(.+)$/gm, '<h3 class="mt-4 mb-2 font-display text-lg text-foreground">$1</h3>')
+    .replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-5 list-decimal">$1</li>')
+    .replace(/^-\s+(.+)$/gm, '<li class="ml-5 list-disc">$1</li>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code class="rounded bg-secondary px-1 py-0.5 text-xs">$1</code>')
+    .replace(/\n{2,}/g, '</p><p class="mt-2">')
+    .replace(/\n/g, "<br/>");
+  return `<p>${html}</p>`;
+}
+
 const DIM_META = {
   hard: { label: "Hard · Estrutura", icon: Building2, tone: "text-sky-600", dot: "bg-sky-500" },
   soft: { label: "Soft · Execução", icon: Users2, tone: "text-emerald-600", dot: "bg-emerald-500" },
@@ -111,6 +127,10 @@ function CoachPage() {
       toast.success("Novo link gerado. O antigo parou de funcionar.");
       qc.invalidateQueries({ queryKey: ["coach-feed", orgId] });
     },
+  });
+  const aiRecs = useMutation({
+    mutationFn: () => api<AIRecs>(`/organization/${orgId}/coach/ai-recommendations`, { method: "POST" }),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (!orgId) return null;
