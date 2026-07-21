@@ -9,6 +9,7 @@ import {
   createOneTimeCharge,
   getPixQr,
   runDunning,
+  handleAsaasEvent,
 } from "../lib/billing.js";
 import { loadAsaasConfig, getAsaasClient } from "../lib/asaas.js";
 
@@ -255,4 +256,134 @@ billingRouter.post("/me/subscribe", async (req, res) => {
 billingRouter.post("/dunning/run", requireRoles("super_admin"), async (_req, res) => {
   const results = await runDunning();
   res.json({ processed: results.length, results });
+});
+
+// ---------- Simulate Asaas webhook (super admin, para validar fluxo end-to-end) ----------
+// Constrói um payment sintético para uma assinatura existente e roda o
+// handler de webhook. Perfeito pra testar suspensão / reativação sem
+// precisar disparar cobrança real.
+billingRouter.post("/simulate-webhook", requireRoles("super_admin"), async (req, res) => {
+  const schema = z.object({
+    subscriptionId: z.string().uuid(),
+    event: z.enum([
+      "PAYMENT_CONFIRMED",
+      "PAYMENT_RECEIVED",
+      "PAYMENT_OVERDUE",
+      "PAYMENT_REFUNDED",
+      "PAYMENT_DELETED",
+    ]),
+    amountCents: z.number().int().positive().optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const sub = await prisma.subscription.findUnique({
+    where: { id: parsed.data.subscriptionId },
+    include: { plan: { select: { priceMonthly: true } } },
+  });
+  if (!sub) return res.status(404).json({ error: "Assinatura não encontrada" });
+  const valueCents = parsed.data.amountCents ?? sub.plan?.priceMonthly ?? 0;
+  const statusMap: Record<string, string> = {
+    PAYMENT_CONFIRMED: "CONFIRMED",
+    PAYMENT_RECEIVED: "RECEIVED",
+    PAYMENT_OVERDUE: "OVERDUE",
+    PAYMENT_REFUNDED: "REFUNDED",
+    PAYMENT_DELETED: "DELETED",
+  };
+  const now = new Date();
+  const payment = {
+    id: `sim_${Date.now()}`,
+    customer: sub.providerCustomerId ?? "sim_customer",
+    subscription: sub.providerSubscriptionId ?? sub.id,
+    value: valueCents / 100,
+    billingType: "PIX",
+    status: statusMap[parsed.data.event],
+    dueDate: now.toISOString().slice(0, 10),
+    paymentDate: parsed.data.event === "PAYMENT_CONFIRMED" || parsed.data.event === "PAYMENT_RECEIVED"
+      ? now.toISOString().slice(0, 10)
+      : null,
+    invoiceUrl: null,
+  };
+  // Se a assinatura ainda não tem providerSubscriptionId, garantir vinculação
+  if (!sub.providerSubscriptionId) {
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: { providerSubscriptionId: sub.id, provider: sub.provider ?? "asaas-simulated" },
+    });
+    payment.subscription = sub.id;
+  }
+  try {
+    await handleAsaasEvent(parsed.data.event, payment as never);
+    const after = await prisma.subscription.findUnique({
+      where: { id: sub.id },
+      include: { invoices: { orderBy: { createdAt: "desc" }, take: 3 } },
+    });
+    res.json({ ok: true, event: parsed.data.event, subscription: after });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message });
+  }
+});
+
+// ---------- Individual plans (assinatura pessoal do usuário logado) ----------
+billingRouter.get("/plans/individual", async (_req, res) => {
+  const list = await prisma.plan.findMany({
+    where: { active: true, target: "individual" },
+    orderBy: { priceMonthly: "asc" },
+    select: {
+      id: true, name: true, slug: true, description: true,
+      priceMonthly: true, priceYearly: true, features: true,
+    },
+  });
+  res.json(list);
+});
+
+billingRouter.get("/me/individual", async (req, res) => {
+  const sub = await prisma.subscription.findFirst({
+    where: { ownerType: "individual", ownerId: req.userId! },
+    orderBy: { createdAt: "desc" },
+    include: {
+      plan: { select: { id: true, name: true, slug: true, priceMonthly: true, features: true } },
+      invoices: { orderBy: { createdAt: "desc" }, take: 10 },
+    },
+  });
+  res.json({ subscription: sub });
+});
+
+billingRouter.post("/me/individual/subscribe", async (req, res) => {
+  const schema = z.object({
+    planId: z.string().uuid(),
+    billingType: z.string().optional(),
+    cycle: z.enum(["MONTHLY", "YEARLY"]).optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const plan = await prisma.plan.findUnique({ where: { id: parsed.data.planId } });
+  if (!plan) return res.status(404).json({ error: "Plano não encontrado" });
+  if (plan.target !== "individual") return res.status(400).json({ error: "Plano não é individual" });
+  try {
+    const sub = await createSubscription({
+      ownerType: "individual",
+      ownerId: req.userId!,
+      planId: parsed.data.planId,
+      billingType: parsed.data.billingType,
+      cycle: parsed.data.cycle,
+    });
+    res.status(201).json(sub);
+  } catch (err) {
+    const e = err as Error & { status?: number };
+    res.status(e.status ?? 400).json({ error: e.message });
+  }
+});
+
+billingRouter.delete("/me/individual", async (req, res) => {
+  const sub = await prisma.subscription.findFirst({
+    where: { ownerType: "individual", ownerId: req.userId!, status: { in: ["active", "trial", "past_due"] } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!sub) return res.status(404).json({ error: "Sem assinatura ativa" });
+  try {
+    const canceled = await cancelSubscription(sub.id);
+    res.json(canceled);
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+  }
 });
