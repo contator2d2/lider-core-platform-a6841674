@@ -187,6 +187,45 @@ function CoachPage() {
         )}
       </section>
 
+      {/* IA Coach — recomendações personalizadas */}
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <h2 className="flex items-center gap-2 font-display text-xl">
+            <Sparkles className="h-4 w-4 text-accent" /> IA Coach — recomendações personalizadas
+          </h2>
+          <Button size="sm" onClick={() => aiRecs.mutate()} disabled={aiRecs.isPending}>
+            {aiRecs.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
+            {aiRecs.data ? "Gerar novamente" : "Gerar recomendações"}
+          </Button>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5">
+          {!aiRecs.data && !aiRecs.isPending && (
+            <p className="text-sm text-muted-foreground">
+              Clique em <b>Gerar recomendações</b> pra que a IA analise seus sinais H·S·H, indicadores e rituais e devolva um diagnóstico curto + 3 a 5 ações pra esta semana. Usa o provedor configurado em <em>Admin → Provedor de IA</em>.
+            </p>
+          )}
+          {aiRecs.isPending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> A IA está analisando os últimos 28 dias…
+            </div>
+          )}
+          {aiRecs.data && (
+            <>
+              <div
+                className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground"
+                dangerouslySetInnerHTML={{ __html: simpleMarkdown(aiRecs.data.markdown) }}
+              />
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[11px] text-muted-foreground">
+                <span>Gerado em {new Date(aiRecs.data.generatedAt).toLocaleString("pt-BR")}</span>
+                <Button size="sm" variant="ghost" onClick={() => { void navigator.clipboard.writeText(aiRecs.data!.markdown); toast.success("Copiado"); }}>
+                  <Copy className="mr-1 h-3.5 w-3.5" /> Copiar
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
       {/* Reminders */}
       <section className="space-y-4">
         <div className="flex items-end justify-between">
