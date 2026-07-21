@@ -28,53 +28,69 @@ function badReq(res: Response, err: unknown) {
 }
 
 kudosRouter.param("orgId", async (req, res, next, orgId) => {
-  if (!(await assertOrgAccess(req.userId!, orgId))) {
-    return res.status(403).json({ error: "Forbidden" });
+  try {
+    if (!(await assertOrgAccess(req.userId!, orgId))) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    next();
+  } catch (err) {
+    console.error("[kudos] falha ao validar acesso", err);
+    return res.status(500).json({ error: "Não foi possível validar o acesso aos kudos agora." });
   }
-  next();
 });
 
 // GET /organization/:orgId/kudos?subjectUserId=&limit=
 kudosRouter.get("/:orgId/kudos", async (req, res) => {
-  const orgId = req.params.orgId;
-  const subjectUserId = typeof req.query.subjectUserId === "string" ? req.query.subjectUserId : undefined;
-  const limit = Math.min(Number(req.query.limit) || 30, 100);
+  try {
+    const orgId = req.params.orgId;
+    const subjectUserId = typeof req.query.subjectUserId === "string" ? req.query.subjectUserId : undefined;
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
 
-  const rows = await prisma.kudos.findMany({
-    where: { organizationId: orgId, ...(subjectUserId ? { subjectUserId } : {}) },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
+    const rows = await prisma.kudos.findMany({
+      where: { organizationId: orgId, ...(subjectUserId ? { subjectUserId } : {}) },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    }).catch((err) => {
+      console.error("[kudos] falha ao carregar mural", err);
+      return [];
+    });
 
-  const userIds = Array.from(
-    new Set(rows.flatMap((k) => [k.authorId, k.subjectUserId].filter((v): v is string => !!v))),
-  );
-  const users = userIds.length
-    ? await prisma.user.findMany({
-        where: { id: { in: userIds } },
-        select: { id: true, email: true, profile: { select: { fullName: true, avatarUrl: true } } },
-      })
-    : [];
-  const byId = new Map(
-    users.map((u) => [
-      u.id,
-      { id: u.id, fullName: u.profile?.fullName ?? u.email ?? null, avatarUrl: u.profile?.avatarUrl ?? null },
-    ]),
-  );
+    const userIds = Array.from(
+      new Set(rows.flatMap((k) => [k.authorId, k.subjectUserId].filter((v): v is string => !!v))),
+    );
+    const users = userIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, email: true, profile: { select: { fullName: true, avatarUrl: true } } },
+        }).catch((err) => {
+          console.error("[kudos] falha ao carregar usuários", err);
+          return [];
+        })
+      : [];
+    const byId = new Map(
+      users.map((u) => [
+        u.id,
+        { id: u.id, fullName: u.profile?.fullName ?? u.email ?? null, avatarUrl: u.profile?.avatarUrl ?? null },
+      ]),
+    );
 
-  res.json(
-    rows.map((k) => ({
-      id: k.id,
-      category: k.category,
-      message: k.message,
-      tags: k.tags,
-      createdAt: k.createdAt,
-      author: byId.get(k.authorId) ?? { id: k.authorId, fullName: null, avatarUrl: null },
-      subject: k.subjectUserId
-        ? byId.get(k.subjectUserId) ?? { id: k.subjectUserId, fullName: k.subjectLabel ?? null, avatarUrl: null }
-        : { id: null, fullName: k.subjectLabel ?? null, avatarUrl: null },
-    })),
-  );
+    res.json(
+      rows.map((k) => ({
+        id: k.id,
+        category: k.category,
+        message: k.message,
+        tags: k.tags,
+        createdAt: k.createdAt,
+        author: byId.get(k.authorId) ?? { id: k.authorId, fullName: null, avatarUrl: null },
+        subject: k.subjectUserId
+          ? byId.get(k.subjectUserId) ?? { id: k.subjectUserId, fullName: k.subjectLabel ?? null, avatarUrl: null }
+          : { id: null, fullName: k.subjectLabel ?? null, avatarUrl: null },
+      })),
+    );
+  } catch (err) {
+    console.error("[kudos] falha inesperada", err);
+    res.status(500).json({ error: "Não foi possível carregar o mural de kudos agora." });
+  }
 });
 
 const createSchema = z.object({

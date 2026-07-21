@@ -41,17 +41,18 @@ const loginSchema = z.object({
 
 authRouter.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const { email, password } = parsed.data;
+  if (!parsed.success) return res.status(400).json({ error: "Informe um email válido e a senha." });
+  const { password } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
   const user = await prisma.user.findUnique({
     where: { email },
     include: { profile: true },
   });
-  if (!user) return res.status(401).json({ error: "Credenciais inválidas" });
+  if (!user) return res.status(401).json({ error: "Usuário ou senha inválidos." });
 
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: "Credenciais inválidas" });
+  if (!ok) return res.status(401).json({ error: "Usuário ou senha inválidos." });
 
   const token = signToken({ sub: user.id, email: user.email });
   return res.json({
