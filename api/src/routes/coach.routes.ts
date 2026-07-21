@@ -161,7 +161,7 @@ coachRouter.get("/:orgId/coach/reminders", async (req, res) => {
       take: 30,
     }),
     prisma.pulseSend.findMany({
-      where: { organizationId: orgId, answeredAt: null, status: { in: ["pending", "sent"] } },
+      where: { organizationId: orgId, answeredAt: null, status: "pending" },
       include: { template: { select: { title: true } } },
       orderBy: { createdAt: "asc" },
       take: 30,
