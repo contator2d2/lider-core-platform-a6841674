@@ -268,12 +268,13 @@ async function activateOwner(ownerType: OwnerType, ownerId: string) {
       where: { id: ownerId },
       data: { status: "active" },
     }).catch(() => null);
-  } else {
+  } else if (ownerType === "franchise") {
     await prisma.franchise.update({
       where: { id: ownerId },
       data: { status: "active" },
     }).catch(() => null);
   }
+  // individual: nothing to activate at owner level
 }
 
 // ----- Dunning (run periodically) -----
@@ -295,13 +296,13 @@ export async function runDunning() {
       await cancelSubscription(sub.id).catch(() => null);
       if (sub.ownerType === "organization")
         await prisma.organization.update({ where: { id: sub.ownerId }, data: { status: "canceled" } }).catch(() => null);
-      else
+      else if (sub.ownerType === "franchise")
         await prisma.franchise.update({ where: { id: sub.ownerId }, data: { status: "canceled" } }).catch(() => null);
       results.push({ subscriptionId: sub.id, action: "canceled" });
     } else if (days >= 15) {
       if (sub.ownerType === "organization")
         await prisma.organization.update({ where: { id: sub.ownerId }, data: { status: "suspended" } }).catch(() => null);
-      else
+      else if (sub.ownerType === "franchise")
         await prisma.franchise.update({ where: { id: sub.ownerId }, data: { status: "suspended" } }).catch(() => null);
       results.push({ subscriptionId: sub.id, action: "suspended" });
     } else if (days >= 7) {
