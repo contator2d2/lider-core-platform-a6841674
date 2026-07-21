@@ -280,7 +280,7 @@ coachRouter.post("/:orgId/coach/ai-recommendations", async (req, res) => {
       }),
       prisma.feedbackRecord.findMany({
         where: { organizationId: orgId, createdAt: { gte: fourWeeks } },
-        select: { createdAt: true, sentiment: true },
+        select: { createdAt: true, type: true },
       }),
       prisma.pulseSend.findMany({
         where: { organizationId: orgId, createdAt: { gte: fourWeeks } },
@@ -292,7 +292,12 @@ coachRouter.post("/:orgId/coach/ai-recommendations", async (req, res) => {
       }),
       prisma.indicator.findMany({
         where: { organizationId: orgId },
-        select: { name: true, target: true, unit: true, readings: { orderBy: { periodStart: "desc" }, take: 1, select: { value: true } } },
+        select: {
+          name: true,
+          target: true,
+          unit: true,
+          readings: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 1, select: { value: true } },
+        },
         take: 20,
       }),
     ]);
