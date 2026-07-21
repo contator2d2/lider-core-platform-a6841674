@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { completeChat } from "../lib/ai-gateway.js";
 
 /**
  * Fase 4 · IA Coach preditiva + Lembretes.
