@@ -7,6 +7,9 @@ import {
   Building,
   Gauge,
   Loader2,
+  Lock,
+  Coins,
+  TrendingUp,
   ShieldAlert,
   Sparkles,
   Users,
@@ -54,6 +57,19 @@ type Dashboard = {
   avgScore: number;
 };
 
+type Roi = {
+  invest: { totalCents: number; currency: string; invoices: number };
+  delta: { overall: number; hard: number; soft: number; heart: number; sampleRecent: number; samplePrev: number };
+  roi: { pointsPerThousandBRL: number | null; leadersMeasured: number; leadersHealthy: number; leadersAtRisk: number };
+};
+
+type PrivacyAudit = {
+  contract: string;
+  updatedAt: string;
+  rules: Array<{ area: string; scope: string; exposed: string[]; protected: string[] }>;
+  note: string;
+};
+
 function LeadershipDashboardPage() {
   const { user } = useAuth();
   const primary =
@@ -65,6 +81,17 @@ function LeadershipDashboardPage() {
     queryKey: ["evolution", "dashboard", orgId],
     enabled: !!orgId,
     queryFn: () => api<Dashboard>(`/organization/${orgId}/evolution/dashboard`),
+  });
+
+  const { data: roi } = useQuery({
+    queryKey: ["company", "roi", orgId],
+    enabled: !!orgId,
+    queryFn: () => api<Roi>(`/companies/${orgId}/roi`),
+  });
+  const { data: audit } = useQuery({
+    queryKey: ["company", "privacy-audit", orgId],
+    enabled: !!orgId,
+    queryFn: () => api<PrivacyAudit>(`/companies/${orgId}/privacy-audit`),
   });
 
   if (!orgId) {
@@ -98,6 +125,62 @@ function LeadershipDashboardPage() {
 
       {data && (
         <>
+          {roi && (
+            <FadeIn>
+              <section className="card-elevated p-6">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+                  <TrendingUp className="h-3.5 w-3.5" /> ROI do programa · últimos 12 meses
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-4">
+                  <RoiTile
+                    icon={<Coins className="h-4 w-4" />}
+                    label="Investimento"
+                    value={
+                      "R$ " +
+                      (roi.invest.totalCents / 100).toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    }
+                    hint={`${roi.invest.invoices} fatura(s) paga(s)`}
+                  />
+                  <RoiTile
+                    label="Δ score médio"
+                    value={(roi.delta.overall > 0 ? "+" : "") + roi.delta.overall}
+                    hint={`${roi.delta.sampleRecent} snapshots recentes vs ${roi.delta.samplePrev}`}
+                    tone={roi.delta.overall > 0 ? "good" : roi.delta.overall < 0 ? "bad" : "default"}
+                  />
+                  <RoiTile
+                    label="Retorno"
+                    value={
+                      roi.roi.pointsPerThousandBRL != null
+                        ? `${roi.roi.pointsPerThousandBRL} pts/R$1k`
+                        : "—"
+                    }
+                    hint={`${roi.roi.leadersMeasured} líder(es) medidos`}
+                    tone={
+                      (roi.roi.pointsPerThousandBRL ?? 0) > 0
+                        ? "good"
+                        : (roi.roi.pointsPerThousandBRL ?? 0) < 0
+                        ? "bad"
+                        : "default"
+                    }
+                  />
+                  <RoiTile
+                    label="Distribuição"
+                    value={`${roi.roi.leadersHealthy} ✓ · ${roi.roi.leadersAtRisk} ⚠`}
+                    hint="Saudáveis vs em risco (score <50)"
+                  />
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <DimensionDelta label="Hard" value={roi.delta.hard} />
+                  <DimensionDelta label="Soft" value={roi.delta.soft} />
+                  <DimensionDelta label="Heart" value={roi.delta.heart} />
+                </div>
+              </section>
+            </FadeIn>
+          )}
+
           <section className="grid gap-4 md:grid-cols-4">
             <MetricCard
               eyebrow="Score médio"
@@ -287,8 +370,83 @@ function LeadershipDashboardPage() {
             </div>
           </section>
           </FadeIn>
+
+          {audit && (
+            <FadeIn delay={0.4}>
+              <section className="card-elevated p-6">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+                  <Lock className="h-3.5 w-3.5" /> Foro íntimo · contrato {audit.contract}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{audit.note}</p>
+                <div className="mt-4 overflow-hidden rounded-xl border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 uppercase tracking-widest text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Área</th>
+                        <th className="px-3 py-2 text-left">Escopo</th>
+                        <th className="px-3 py-2 text-left">Empresa vê</th>
+                        <th className="px-3 py-2 text-left">Protegido</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {audit.rules.map((r) => (
+                        <tr key={r.area} className="border-t border-border">
+                          <td className="px-3 py-2 font-medium">{r.area}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{r.scope}</td>
+                          <td className="px-3 py-2 text-success">{r.exposed.join(", ") || "—"}</td>
+                          <td className="px-3 py-2 text-destructive">{r.protected.join(", ") || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </FadeIn>
+          )}
         </>
       )}
+    </div>
+  );
+}
+
+function RoiTile({
+  icon,
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?: "default" | "good" | "bad";
+}) {
+  const toneCls =
+    tone === "good" ? "text-success" : tone === "bad" ? "text-destructive" : "text-foreground";
+  return (
+    <div className="rounded-xl border border-border bg-background p-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div className={"metric-number mt-2 text-2xl " + toneCls}>{value}</div>
+      {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
+
+function DimensionDelta({ label, value }: { label: string; value: number }) {
+  const tone = value > 0 ? "text-success" : value < 0 ? "text-destructive" : "text-muted-foreground";
+  const Icon = value > 0 ? ArrowUp : value < 0 ? ArrowDown : Sparkles;
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border bg-secondary/20 px-4 py-3">
+      <span className="text-sm font-medium">{label}</span>
+      <span className={"inline-flex items-center gap-1 text-sm font-medium " + tone}>
+        <Icon className="h-3.5 w-3.5" />
+        {value > 0 ? "+" : ""}
+        {value}
+      </span>
     </div>
   );
 }
