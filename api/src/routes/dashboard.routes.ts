@@ -30,69 +30,70 @@ export type TodayItem = {
 };
 
 dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
-  const orgId = req.params.orgId;
-  const userId = req.userId!;
-  if (!(await assertOrgAccess(userId, orgId))) return res.status(403).json({ error: "Forbidden" });
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    if (!(await assertOrgAccess(userId, orgId))) return res.status(403).json({ error: "Forbidden" });
 
-  const now = new Date();
-  const in2days = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfTomorrow = new Date(startOfToday.getTime() + 48 * 3600 * 1000);
+    const now = new Date();
+    const in2days = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfTomorrow = new Date(startOfToday.getTime() + 48 * 3600 * 1000);
 
-  const [overdueDelegs, dueSoonDelegs, todaysRituals, upcoming1on1s, signals] = await Promise.all([
-    prisma.delegation.findMany({
-      where: {
-        organizationId: orgId,
-        delegatorId: userId,
-        status: { in: ["open", "in_progress", "blocked"] },
-        dueAt: { lt: now },
-      },
-      orderBy: { dueAt: "asc" },
-      take: 10,
-    }).catch(() => []),
-    prisma.delegation.findMany({
-      where: {
-        organizationId: orgId,
-        delegatorId: userId,
-        status: { in: ["open", "in_progress"] },
-        dueAt: { gte: now, lte: in2days },
-      },
-      orderBy: { dueAt: "asc" },
-      take: 10,
-    }).catch(() => []),
-    prisma.ritualOccurrence.findMany({
-      where: {
-        ritual: { organizationId: orgId, ownerId: userId },
-        scheduledAt: { gte: startOfToday, lte: endOfTomorrow },
-        status: { in: ["scheduled", "in_progress"] },
-      },
-      include: { ritual: { select: { id: true, name: true } } },
-      orderBy: { scheduledAt: "asc" },
-      take: 10,
-    }).catch(() => []),
-    prisma.oneOnOne.findMany({
-      where: {
-        organizationId: orgId,
-        leaderId: userId,
-        scheduledAt: { gte: startOfToday, lte: endOfTomorrow },
-        status: "scheduled",
-      },
-      orderBy: { scheduledAt: "asc" },
-      take: 10,
-    }).catch(() => []),
-    prisma.crossSignal.findMany({
-      where: {
-        organizationId: orgId,
-        userId,
-        dismissedAt: null,
-        severity: { in: ["high", "critical"] as never },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }).catch(() => []),
-  ]);
+    const [overdueDelegs, dueSoonDelegs, todaysRituals, upcoming1on1s, signals] = await Promise.all([
+      prisma.delegation.findMany({
+        where: {
+          organizationId: orgId,
+          delegatorId: userId,
+          status: { in: ["open", "in_progress", "blocked"] },
+          dueAt: { lt: now },
+        },
+        orderBy: { dueAt: "asc" },
+        take: 10,
+      }).catch((err) => { console.error("[dashboard] delegações atrasadas", err); return []; }),
+      prisma.delegation.findMany({
+        where: {
+          organizationId: orgId,
+          delegatorId: userId,
+          status: { in: ["open", "in_progress"] },
+          dueAt: { gte: now, lte: in2days },
+        },
+        orderBy: { dueAt: "asc" },
+        take: 10,
+      }).catch((err) => { console.error("[dashboard] delegações próximas", err); return []; }),
+      prisma.ritualOccurrence.findMany({
+        where: {
+          ritual: { organizationId: orgId, ownerId: userId },
+          scheduledAt: { gte: startOfToday, lte: endOfTomorrow },
+          status: { in: ["scheduled", "in_progress"] },
+        },
+        include: { ritual: { select: { id: true, name: true } } },
+        orderBy: { scheduledAt: "asc" },
+        take: 10,
+      }).catch((err) => { console.error("[dashboard] rituais", err); return []; }),
+      prisma.oneOnOne.findMany({
+        where: {
+          organizationId: orgId,
+          leaderId: userId,
+          scheduledAt: { gte: startOfToday, lte: endOfTomorrow },
+          status: "scheduled",
+        },
+        orderBy: { scheduledAt: "asc" },
+        take: 10,
+      }).catch((err) => { console.error("[dashboard] 1:1", err); return []; }),
+      prisma.crossSignal.findMany({
+        where: {
+          organizationId: orgId,
+          userId,
+          dismissedAt: null,
+          severity: { in: ["high", "critical"] as never },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      }).catch((err) => { console.error("[dashboard] sinais", err); return []; }),
+    ]);
 
-  const items: TodayItem[] = [];
+    const items: TodayItem[] = [];
 
   for (const d of overdueDelegs) {
     items.push({
@@ -153,17 +154,21 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
 
   items.sort((a, b) => a.priority - b.priority);
 
-  res.json({
-    generatedAt: now.toISOString(),
-    items: items.slice(0, 20),
-    counts: {
-      overdue: overdueDelegs.length,
-      dueSoon: dueSoonDelegs.length,
-      rituals: todaysRituals.length,
-      oneOnOnes: upcoming1on1s.length,
-      signals: signals.length,
-    },
-  });
+    res.json({
+      generatedAt: now.toISOString(),
+      items: items.slice(0, 20),
+      counts: {
+        overdue: overdueDelegs.length,
+        dueSoon: dueSoonDelegs.length,
+        rituals: todaysRituals.length,
+        oneOnOnes: upcoming1on1s.length,
+        signals: signals.length,
+      },
+    });
+  } catch (err) {
+    console.error("[dashboard] falha ao carregar hoje", err);
+    res.status(500).json({ error: "Não foi possível carregar o painel de hoje agora." });
+  }
 });
 
 dashboardRouter.get("/:orgId/team/health-summary", async (req, res) => {

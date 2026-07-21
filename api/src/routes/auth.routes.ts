@@ -16,7 +16,8 @@ const registerSchema = z.object({
 authRouter.post("/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const { email, password, fullName } = parsed.data;
+  const { password, fullName } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return res.status(409).json({ error: "Email já cadastrado" });
@@ -40,66 +41,101 @@ const loginSchema = z.object({
 });
 
 authRouter.post("/login", async (req, res) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const { email, password } = parsed.data;
+  try {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Informe um email válido e a senha." });
+    const { password } = parsed.data;
+    const email = parsed.data.email.trim().toLowerCase();
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { profile: true },
-  });
-  if (!user) return res.status(401).json({ error: "Credenciais inválidas" });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, passwordHash: true },
+    });
+    if (!user) return res.status(401).json({ error: "Usuário ou senha inválidos." });
 
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: "Credenciais inválidas" });
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: "Usuário ou senha inválidos." });
 
-  const token = signToken({ sub: user.id, email: user.email });
-  return res.json({
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      fullName: user.profile?.fullName ?? null,
-      avatarUrl: user.profile?.avatarUrl ?? null,
-    },
-  });
+    const profile = await prisma.profile.findUnique({
+      where: { id: user.id },
+      select: { fullName: true, avatarUrl: true },
+    }).catch((err) => {
+      console.error("[auth] falha ao carregar perfil no login", err);
+      return null;
+    });
+
+    const token = signToken({ sub: user.id, email: user.email });
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: profile?.fullName ?? null,
+        avatarUrl: profile?.avatarUrl ?? null,
+      },
+    });
+  } catch (err) {
+    console.error("[auth] falha no login", err);
+    return res.status(500).json({ error: "Não foi possível entrar agora. Tente novamente em instantes." });
+  }
 });
 
 authRouter.get("/me", requireAuth, async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.userId! },
-    include: {
-      profile: true,
-      roles: { select: { role: true } },
-      memberships: {
-        include: { organization: { select: { id: true, name: true, slug: true, plan: true } } },
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! },
+      include: {
+        roles: { select: { role: true } },
+        memberships: {
+          include: { organization: { select: { id: true, name: true, slug: true, plan: true } } },
+        },
+        franchiseMemberships: {
+          include: { franchise: { select: { id: true, name: true, slug: true, status: true } } },
+        },
       },
-      franchiseMemberships: {
-        include: { franchise: { select: { id: true, name: true, slug: true, status: true } } },
+    });
+    if (!user) return res.status(404).json({ error: "Not found" });
+
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.userId! },
+      select: {
+        fullName: true,
+        avatarUrl: true,
+        jobTitle: true,
+        phone: true,
+        whatsapp: true,
+        onboardingCompletedAt: true,
+        onboardingSteps: true,
       },
-    },
-  });
-  if (!user) return res.status(404).json({ error: "Not found" });
-  return res.json({
-    id: user.id,
-    email: user.email,
-    fullName: user.profile?.fullName ?? null,
-    avatarUrl: user.profile?.avatarUrl ?? null,
-    jobTitle: user.profile?.jobTitle ?? null,
-    phone: user.profile?.phone ?? null,
-    whatsapp: user.profile?.whatsapp ?? null,
-    onboardingCompletedAt: user.profile?.onboardingCompletedAt ?? null,
-    onboardingSteps: user.profile?.onboardingSteps ?? null,
-    roles: user.roles.map((r: { role: string }) => r.role),
-    memberships: user.memberships.map((m: { role: string; organization: { id: string; name: string; slug: string; plan: string } }) => ({
-      role: m.role,
-      organization: m.organization,
-    })),
-    franchiseMemberships: user.franchiseMemberships.map((m: { role: string; franchise: { id: string; name: string; slug: string; status: string } }) => ({
-      role: m.role,
-      franchise: m.franchise,
-    })),
-  });
+    }).catch((err) => {
+      console.error("[auth] falha ao carregar perfil em /me", err);
+      return null;
+    });
+
+    return res.json({
+      id: user.id,
+      email: user.email,
+      fullName: profile?.fullName ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+      jobTitle: profile?.jobTitle ?? null,
+      phone: profile?.phone ?? null,
+      whatsapp: profile?.whatsapp ?? null,
+      onboardingCompletedAt: profile?.onboardingCompletedAt ?? null,
+      onboardingSteps: profile?.onboardingSteps ?? null,
+      roles: user.roles.map((r: { role: string }) => r.role),
+      memberships: user.memberships.map((m: { role: string; organization: { id: string; name: string; slug: string; plan: string } }) => ({
+        role: m.role,
+        organization: m.organization,
+      })),
+      franchiseMemberships: user.franchiseMemberships.map((m: { role: string; franchise: { id: string; name: string; slug: string; status: string } }) => ({
+        role: m.role,
+        franchise: m.franchise,
+      })),
+    });
+  } catch (err) {
+    console.error("[auth] falha em /me", err);
+    return res.status(500).json({ error: "Não foi possível carregar sua sessão agora." });
+  }
 });
 
 authRouter.get("/me/permissions", requireAuth, async (req, res) => {

@@ -31,91 +31,113 @@ function badReq(res: Response, err: unknown) {
 }
 
 teamRouter.param("orgId", async (req, res, next, orgId) => {
-  if (!(await assertOrgAccess(req.userId!, orgId))) {
-    return res.status(403).json({ error: "Forbidden" });
+  try {
+    if (!(await assertOrgAccess(req.userId!, orgId))) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    next();
+  } catch (err) {
+    console.error("[team] falha ao validar acesso", err);
+    return res.status(500).json({ error: "Não foi possível validar o acesso à equipe agora." });
   }
-  next();
 });
 
 // GET /:orgId/team — lista consolidada
 teamRouter.get("/:orgId/team", async (req, res) => {
-  const orgId = req.params.orgId;
-  const memberships = await prisma.membership.findMany({
-    where: { organizationId: orgId },
-    include: {
-      user: { include: { profile: true } },
-      area: true,
-      team: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const profiles = await prisma.teamMemberProfile.findMany({
-    where: { organizationId: orgId },
-  });
-  const profileByMembership = new Map(profiles.map((p) => [p.membershipId, p]));
-
-  const userIds = memberships.map((m) => m.userId);
-
-  const [openDelegs, feedbacks, pdis] = await Promise.all([
-    prisma.delegation.groupBy({
-      by: ["assigneeId"],
-      where: {
-        organizationId: orgId,
-        assigneeId: { in: userIds },
-        status: { notIn: ["done", "canceled"] },
+  try {
+    const orgId = req.params.orgId;
+    const memberships = await prisma.membership.findMany({
+      where: { organizationId: orgId },
+      include: {
+        user: { include: { profile: true } },
+        area: true,
+        team: true,
       },
-      _count: { _all: true },
-    }),
-    prisma.feedbackRecord.groupBy({
-      by: ["subjectUserId"],
-      where: { organizationId: orgId, subjectUserId: { in: userIds } },
-      _count: { _all: true },
-    }),
-    prisma.pdi.findMany({
-      where: { organizationId: orgId, subjectUserId: { in: userIds }, status: "ativo" },
-      select: { subjectUserId: true },
-    }),
-  ]);
+      orderBy: { createdAt: "asc" },
+    });
 
-  const delegCount = new Map(openDelegs.map((d) => [d.assigneeId, d._count._all]));
-  const feedbackCount = new Map(feedbacks.map((f) => [f.subjectUserId, f._count._all]));
-  const activePdi = new Set(pdis.map((p) => p.subjectUserId));
+    const profiles = await prisma.teamMemberProfile.findMany({
+      where: { organizationId: orgId },
+    }).catch((err) => {
+      console.error("[team] falha ao carregar perfis", err);
+      return [];
+    });
+    const profileByMembership = new Map(profiles.map((p) => [p.membershipId, p]));
 
-  res.json(
-    memberships.map((m) => {
-      const profile = profileByMembership.get(m.id);
-      return {
-        membershipId: m.id,
-        userId: m.userId,
-        role: m.role,
-        fullName: m.user.profile?.fullName ?? m.user.email,
-        email: m.user.email,
-        avatarUrl: m.user.profile?.avatarUrl ?? null,
-        areaName: m.area?.name ?? null,
-        teamName: m.team?.name ?? null,
-        whatsapp: m.user.profile?.whatsapp ?? m.user.profile?.phone ?? null,
-        phone: m.user.profile?.phone ?? null,
-        profile: profile
-          ? {
-              roleTitle: profile.roleTitle,
-              expectedDeliverables: profile.expectedDeliverables,
-              keyIndicators: profile.keyIndicators,
-              autonomyLevel: profile.autonomyLevel,
-              strengths: profile.strengths,
-              developPoints: profile.developPoints,
-              notes: profile.notes,
-              performanceLevel: profile.performanceLevel,
-              potentialLevel: profile.potentialLevel,
-              discPrimary: profile.discPrimary,
-            }
-          : null,
-        openDelegations: delegCount.get(m.userId) ?? 0,
-        feedbackCount: feedbackCount.get(m.userId) ?? 0,
-        hasActivePdi: activePdi.has(m.userId),
-      };
-    }),
-  );
+    const userIds = memberships.map((m) => m.userId);
+
+    const [openDelegs, feedbacks, pdis] = await Promise.all([
+      prisma.delegation.groupBy({
+        by: ["assigneeId"],
+        where: {
+          organizationId: orgId,
+          assigneeId: { in: userIds },
+          status: { notIn: ["done", "canceled"] },
+        },
+        _count: { _all: true },
+      }).catch((err) => {
+        console.error("[team] falha ao contar delegações", err);
+        return [];
+      }),
+      prisma.feedbackRecord.groupBy({
+        by: ["subjectUserId"],
+        where: { organizationId: orgId, subjectUserId: { in: userIds } },
+        _count: { _all: true },
+      }).catch((err) => {
+        console.error("[team] falha ao contar feedbacks", err);
+        return [];
+      }),
+      prisma.pdi.findMany({
+        where: { organizationId: orgId, subjectUserId: { in: userIds }, status: "ativo" },
+        select: { subjectUserId: true },
+      }).catch((err) => {
+        console.error("[team] falha ao carregar PDIs", err);
+        return [];
+      }),
+    ]);
+
+    const delegCount = new Map(openDelegs.map((d) => [d.assigneeId, d._count._all]));
+    const feedbackCount = new Map(feedbacks.map((f) => [f.subjectUserId, f._count._all]));
+    const activePdi = new Set(pdis.map((p) => p.subjectUserId));
+
+    res.json(
+      memberships.map((m) => {
+        const profile = profileByMembership.get(m.id);
+        return {
+          membershipId: m.id,
+          userId: m.userId,
+          role: m.role,
+          fullName: m.user.profile?.fullName ?? m.user.email,
+          email: m.user.email,
+          avatarUrl: m.user.profile?.avatarUrl ?? null,
+          areaName: m.area?.name ?? null,
+          teamName: m.team?.name ?? null,
+          whatsapp: m.user.profile?.whatsapp ?? m.user.profile?.phone ?? null,
+          phone: m.user.profile?.phone ?? null,
+          profile: profile
+            ? {
+                roleTitle: profile.roleTitle,
+                expectedDeliverables: profile.expectedDeliverables,
+                keyIndicators: profile.keyIndicators,
+                autonomyLevel: profile.autonomyLevel,
+                strengths: profile.strengths,
+                developPoints: profile.developPoints,
+                notes: profile.notes,
+                performanceLevel: profile.performanceLevel,
+                potentialLevel: profile.potentialLevel,
+                discPrimary: profile.discPrimary,
+              }
+            : null,
+          openDelegations: delegCount.get(m.userId) ?? 0,
+          feedbackCount: feedbackCount.get(m.userId) ?? 0,
+          hasActivePdi: activePdi.has(m.userId),
+        };
+      }),
+    );
+  } catch (err) {
+    console.error("[team] falha ao carregar mapa da equipe", err);
+    res.status(500).json({ error: "Não foi possível carregar o mapa da equipe agora." });
+  }
 });
 
 // GET /:orgId/team/:membershipId — detalhe
