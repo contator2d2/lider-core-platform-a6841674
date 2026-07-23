@@ -12,7 +12,7 @@ type AuthState = {
   user: Me | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, planSlug?: string) => Promise<void>;
   signOut: () => void;
   refresh: () => Promise<void>;
 };
@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(token);
         await loadMe();
       },
-      signUp: async (email, password, fullName) => {
-        const { token } = await authApi.register(email, password, fullName);
+      signUp: async (email, password, fullName, planSlug) => {
+        const { token } = await authApi.register(email, password, fullName, planSlug);
         setToken(token);
         await loadMe();
       },
