@@ -58,6 +58,7 @@ import { Route as AuthenticatedAdminInvoicesRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminHierarchyRouteImport } from './routes/_authenticated/admin.hierarchy'
 import { Route as AuthenticatedAdminHelpRouteImport } from './routes/_authenticated/admin.help'
 import { Route as AuthenticatedAdminFranchisesRouteImport } from './routes/_authenticated/admin.franchises'
+import { Route as AuthenticatedAdminFeatureTemplatesRouteImport } from './routes/_authenticated/admin.feature-templates'
 import { Route as AuthenticatedAdminDataRouteImport } from './routes/_authenticated/admin.data'
 import { Route as AuthenticatedAdminBrandingRouteImport } from './routes/_authenticated/admin.branding'
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
@@ -347,6 +348,12 @@ const AuthenticatedAdminFranchisesRoute =
     path: '/franchises',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminFeatureTemplatesRoute =
+  AuthenticatedAdminFeatureTemplatesRouteImport.update({
+    id: '/feature-templates',
+    path: '/feature-templates',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminDataRoute = AuthenticatedAdminDataRouteImport.update({
   id: '/data',
   path: '/data',
@@ -460,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
+  '/admin/feature-templates': typeof AuthenticatedAdminFeatureTemplatesRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
@@ -523,6 +531,7 @@ export interface FileRoutesByTo {
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/admin/data': typeof AuthenticatedAdminDataRoute
+  '/admin/feature-templates': typeof AuthenticatedAdminFeatureTemplatesRoute
   '/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
@@ -591,6 +600,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/branding': typeof AuthenticatedAdminBrandingRoute
   '/_authenticated/admin/data': typeof AuthenticatedAdminDataRoute
+  '/_authenticated/admin/feature-templates': typeof AuthenticatedAdminFeatureTemplatesRoute
   '/_authenticated/admin/franchises': typeof AuthenticatedAdminFranchisesRoute
   '/_authenticated/admin/help': typeof AuthenticatedAdminHelpRoute
   '/_authenticated/admin/hierarchy': typeof AuthenticatedAdminHierarchyRoute
@@ -660,6 +670,7 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/branding'
     | '/admin/data'
+    | '/admin/feature-templates'
     | '/admin/franchises'
     | '/admin/help'
     | '/admin/hierarchy'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/branding'
     | '/admin/data'
+    | '/admin/feature-templates'
     | '/admin/franchises'
     | '/admin/help'
     | '/admin/hierarchy'
@@ -790,6 +802,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/branding'
     | '/_authenticated/admin/data'
+    | '/_authenticated/admin/feature-templates'
     | '/_authenticated/admin/franchises'
     | '/_authenticated/admin/help'
     | '/_authenticated/admin/hierarchy'
@@ -1197,6 +1210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFranchisesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/feature-templates': {
+      id: '/_authenticated/admin/feature-templates'
+      path: '/feature-templates'
+      fullPath: '/admin/feature-templates'
+      preLoaderRoute: typeof AuthenticatedAdminFeatureTemplatesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/data': {
       id: '/_authenticated/admin/data'
       path: '/data'
@@ -1325,6 +1345,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBrandingRoute: typeof AuthenticatedAdminBrandingRoute
   AuthenticatedAdminDataRoute: typeof AuthenticatedAdminDataRoute
+  AuthenticatedAdminFeatureTemplatesRoute: typeof AuthenticatedAdminFeatureTemplatesRoute
   AuthenticatedAdminFranchisesRoute: typeof AuthenticatedAdminFranchisesRoute
   AuthenticatedAdminHelpRoute: typeof AuthenticatedAdminHelpRoute
   AuthenticatedAdminHierarchyRoute: typeof AuthenticatedAdminHierarchyRoute
@@ -1350,6 +1371,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
   AuthenticatedAdminBrandingRoute: AuthenticatedAdminBrandingRoute,
   AuthenticatedAdminDataRoute: AuthenticatedAdminDataRoute,
+  AuthenticatedAdminFeatureTemplatesRoute:
+    AuthenticatedAdminFeatureTemplatesRoute,
   AuthenticatedAdminFranchisesRoute: AuthenticatedAdminFranchisesRoute,
   AuthenticatedAdminHelpRoute: AuthenticatedAdminHelpRoute,
   AuthenticatedAdminHierarchyRoute: AuthenticatedAdminHierarchyRoute,
