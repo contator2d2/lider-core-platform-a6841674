@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/app/consciencia/assessment
 });
 
 type DiscPrimary = "D" | "I" | "S" | "C";
+type CerebralMode = "aguia" | "lobo" | "gato" | "tubarao";
 type Profile = {
   declaredRole: string | null; notMine: string | null;
   discPrimary: DiscPrimary | null; mbtiType: string | null;
@@ -31,10 +32,21 @@ const DISC = [
   { key: "S" as const, title: "Estável",    desc: "Cooperativo, paciente, mantém o time unido." },
   { key: "C" as const, title: "Cauteloso",  desc: "Analítico, metódico, valoriza precisão." },
 ];
-const SABOTAGES = [
-  "Juiz interno","Agradador","Hiper-realizador","Hiper-racional","Vítima",
-  "Evasivo","Controlador","Reservado","Inquieto","Perfeccionista",
-];
+
+// 10 pilares oficiais (Positive Intelligence + Módulo C v2)
+const SABOTAGE_PILLARS = [
+  { id: "Juiz interno",       q: "Costumo julgar duramente a mim, aos outros ou às circunstâncias." },
+  { id: "Agradador",          q: "Foco em agradar e evito criar desconforto mesmo quando preciso." },
+  { id: "Hiper-realizador",   q: "Meu valor depende do quanto entrego. É difícil parar." },
+  { id: "Hiper-racional",     q: "Racionalizo tudo. Emoção do outro me incomoda." },
+  { id: "Vítima",             q: "Percebo que sofro mais do que os outros nas mesmas situações." },
+  { id: "Evasivo",            q: "Evito conflitos e conversas difíceis, mesmo caras." },
+  { id: "Controlador",        q: "Preciso ter tudo sob controle, custe o que custar." },
+  { id: "Reservado",          q: "Guardo o que sinto e mantenho distância emocional." },
+  { id: "Inquieto",           q: "Fico entediado rápido. Preciso de estímulos novos." },
+  { id: "Perfeccionista",     q: "Retenho entregas até que estejam impecáveis." },
+] as const;
+
 const RISKS = [
   { value: "controle", label: "Controle excessivo" },
   { value: "evita_conflito", label: "Evita conflito" },
@@ -44,22 +56,103 @@ const RISKS = [
   { value: "acomodacao", label: "Acomodação" },
 ];
 
+// 30 perguntas oficiais Hard·Soft·Heart (10 por dimensão)
 const HSH_QUESTIONS = {
   hard: [
     "Sei traduzir a estratégia em indicadores claros para meu time.",
     "Planejo semana e trimestre com método (não no improviso).",
     "Sei ler dados e mudar rota quando o número muda.",
+    "Documento processos e não dependo de memória.",
+    "Estabeleço critérios claros de aceite antes de pedir entrega.",
+    "Priorizo com base em impacto e esforço, não em urgência.",
+    "Uso agenda como ferramenta estratégica, não caixa de recados.",
+    "Faço revisão semanal do que planejei versus o que entreguei.",
+    "Sei diferenciar KPI de rota (leading) de KPI de saída (lagging).",
+    "Fecho ciclo com relatório objetivo, sem narrativa.",
   ],
   soft: [
     "Delego com clareza e acompanho sem sufocar.",
     "Dou feedback direto, no tempo certo, sem rodeio.",
     "Conduzo decisões difíceis mesmo sob pressão.",
+    "Corrijo em público quando o padrão precisa se tornar comum.",
+    "Digo \"não\" sem culpar terceiros.",
+    "Marco 1:1 mesmo quando não há incêndio.",
+    "Trato conflito como sinal, não como problema a evitar.",
+    "Reconheço em público e critico em particular.",
+    "Faço perguntas em vez de dar respostas prontas.",
+    "Fecho reunião com decisão + responsável + prazo.",
   ],
   heart: [
     "Escuto o que não foi dito e acolho antes de reagir.",
     "Sou coerente entre o que falo e o que faço.",
     "Cuido de mim para poder cuidar de quem lidero.",
+    "Reconheço quando erro e ajusto sem defesa.",
+    "Peço desculpas quando extrapolo.",
+    "Sei distinguir minha ansiedade da urgência real.",
+    "Fico presente na conversa sem checar celular.",
+    "Sinto empatia sem perder direção.",
+    "Percebo quando alguém está sofrendo antes que fale.",
+    "Meu time me procura antes de escalar.",
   ],
+};
+
+// 8 blocos de predominância cerebral (Águia/Lobo/Gato/Tubarão)
+const CEREBRAL: Array<{ id: string; label: string; opts: Array<{ text: string; dim: CerebralMode }> }> = [
+  { id: "b1", label: "Diante de um problema novo…", opts: [
+    { text: "Subo o zoom e vejo o todo antes de agir.", dim: "aguia" },
+    { text: "Assumo o comando e articulo o grupo.",       dim: "lobo" },
+    { text: "Sinto o clima e busco saída criativa.",      dim: "gato" },
+    { text: "Ataco agora, ajusto depois.",                dim: "tubarao" },
+  ]},
+  { id: "b2", label: "O que mais me motiva é…", opts: [
+    { text: "Descobrir padrões e estratégias.",   dim: "aguia" },
+    { text: "Formar time forte e proteger.",      dim: "lobo" },
+    { text: "Liberdade e adaptar rota.",           dim: "gato" },
+    { text: "Vencer disputas e bater metas.",     dim: "tubarao" },
+  ]},
+  { id: "b3", label: "Sob pressão eu tendo a…", opts: [
+    { text: "Isolar e analisar antes de decidir.", dim: "aguia" },
+    { text: "Chamar o time e coordenar frente.",   dim: "lobo" },
+    { text: "Improvisar e mudar de tática.",       dim: "gato" },
+    { text: "Acelerar e forçar resultado.",        dim: "tubarao" },
+  ]},
+  { id: "b4", label: "Meu jeito de decidir…", opts: [
+    { text: "Dados, cenários, longo prazo.",       dim: "aguia" },
+    { text: "Consenso do time, protejo os meus.",  dim: "lobo" },
+    { text: "Intuição e leitura do momento.",      dim: "gato" },
+    { text: "Rápido e direto, sem hesitar.",       dim: "tubarao" },
+  ]},
+  { id: "b5", label: "Sou reconhecido(a) por…", opts: [
+    { text: "Visão de alto.",                      dim: "aguia" },
+    { text: "Liderança de grupo.",                 dim: "lobo" },
+    { text: "Criatividade e independência.",       dim: "gato" },
+    { text: "Foco em resultado e velocidade.",     dim: "tubarao" },
+  ]},
+  { id: "b6", label: "Minha maior fragilidade é…", opts: [
+    { text: "Ficar preso na análise.",             dim: "aguia" },
+    { text: "Exigir demais do time.",              dim: "lobo" },
+    { text: "Fugir quando prende demais.",         dim: "gato" },
+    { text: "Passar por cima de gente.",           dim: "tubarao" },
+  ]},
+  { id: "b7", label: "Prefiro trabalhar…", opts: [
+    { text: "Com espaço mental para pensar.",      dim: "aguia" },
+    { text: "Comandando grupo alinhado.",          dim: "lobo" },
+    { text: "Sozinho(a) e no meu ritmo.",          dim: "gato" },
+    { text: "Em ambiente com placar visível.",     dim: "tubarao" },
+  ]},
+  { id: "b8", label: "Se pudesse mudar uma coisa em mim…", opts: [
+    { text: "Agir mais rápido.",                   dim: "aguia" },
+    { text: "Ser menos protetor(a).",              dim: "lobo" },
+    { text: "Comprometer-me mais com longo prazo.", dim: "gato" },
+    { text: "Escutar antes de reagir.",            dim: "tubarao" },
+  ]},
+];
+
+const CEREBRAL_LABEL: Record<CerebralMode, string> = {
+  aguia: "Águia — visão de alto",
+  lobo: "Lobo — liderança de grupo",
+  gato: "Gato — criativo independente",
+  tubarao: "Tubarão — foco em resultado",
 };
 
 function AssessmentWizard() {
@@ -77,11 +170,12 @@ function AssessmentWizard() {
   const [notMine, setNotMine] = useState("");
   const [discPrimary, setDiscPrimary] = useState<DiscPrimary | null>(null);
   const [mbtiType, setMbtiType] = useState("");
-  const [sabotages, setSabotages] = useState<string[]>([]);
   const [riskFlags, setRiskFlags] = useState<string[]>([]);
-  const [hard, setHard] = useState<number[]>([3, 3, 3]);
-  const [soft, setSoft] = useState<number[]>([3, 3, 3]);
-  const [heart, setHeart] = useState<number[]>([3, 3, 3]);
+  const [sabAns, setSabAns] = useState<Record<string, number>>({});
+  const [cerAns, setCerAns] = useState<Record<string, CerebralMode>>({});
+  const [hard, setHard] = useState<number[]>(Array(10).fill(3));
+  const [soft, setSoft] = useState<number[]>(Array(10).fill(3));
+  const [heart, setHeart] = useState<number[]>(Array(10).fill(3));
 
   // hidrata quando dados chegam
   useMemo(() => {
@@ -90,7 +184,6 @@ function AssessmentWizard() {
     setNotMine(initial.notMine ?? "");
     setDiscPrimary(initial.discPrimary ?? null);
     setMbtiType(initial.mbtiType ?? "");
-    setSabotages(initial.sabotages ?? []);
     setRiskFlags(initial.riskFlags ?? []);
   }, [initial]);
 
@@ -98,6 +191,36 @@ function AssessmentWizard() {
   const hardScore = avg(hard);
   const softScore = avg(soft);
   const heartScore = avg(heart);
+
+  // Scores derivados
+  const sabotageScores: Record<string, number> = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const p of SABOTAGE_PILLARS) {
+      const v = sabAns[p.id];
+      if (typeof v === "number") out[p.id] = v * 20;
+    }
+    return out;
+  }, [sabAns]);
+  const topSabotages = useMemo(
+    () => Object.entries(sabotageScores).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k),
+    [sabotageScores],
+  );
+  const cerebralProfile = useMemo(() => {
+    const counts = { aguia: 0, lobo: 0, gato: 0, tubarao: 0 } as Record<CerebralMode, number>;
+    for (const b of CEREBRAL) {
+      const c = cerAns[b.id];
+      if (c) counts[c] += 1;
+    }
+    const total = counts.aguia + counts.lobo + counts.gato + counts.tubarao || 1;
+    const pct: Record<CerebralMode, number> = {
+      aguia: Math.round((counts.aguia / total) * 100),
+      lobo: Math.round((counts.lobo / total) * 100),
+      gato: Math.round((counts.gato / total) * 100),
+      tubarao: Math.round((counts.tubarao / total) * 100),
+    };
+    const primary = (Object.keys(pct) as CerebralMode[]).sort((a, b) => pct[b] - pct[a])[0];
+    return { pct, primary };
+  }, [cerAns]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -109,7 +232,13 @@ function AssessmentWizard() {
           discPrimary,
           mbtiType: mbtiType.toUpperCase() || null,
           assessmentType: "disc",
-          sabotages,
+          sabotages: topSabotages,
+          sabotageScores,
+          cerebralProfile: cerebralProfile.pct,
+          cerebralPrimary: cerebralProfile.primary,
+          hardAnswers: hard,
+          softAnswers: soft,
+          heartAnswers: heart,
           riskFlags,
           hardSelfScore: hardScore,
           softSelfScore: softScore,
@@ -118,7 +247,7 @@ function AssessmentWizard() {
         },
       }),
     onSuccess: () => {
-      toast.success("Assessment concluído.");
+      toast.success("Assessment oficial concluído.");
       navigate({ to: "/app/consciencia" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar"),
@@ -129,14 +258,17 @@ function AssessmentWizard() {
 
   const steps = [
     { title: "Papel",      hint: "Pra que sua liderança existe." },
-    { title: "DISC · MBTI", hint: "Como você opera no mundo." },
-    { title: "Sabotadores", hint: "As vozes que travam você." },
-    { title: "Riscos",      hint: "Padrões que aparecem sob pressão." },
-    { title: "Hard · Soft · Heart", hint: "Autoavaliação nas 3 dimensões." },
+    { title: "DISC · MBTI",         hint: "Como você opera no mundo." },
+    { title: "Sabotadores (oficial)", hint: "10 pilares · escala 1 a 5." },
+    { title: "Predominância cerebral", hint: "Águia · Lobo · Gato · Tubarão." },
+    { title: "Riscos",              hint: "Padrões que aparecem sob pressão." },
+    { title: "Hard · Soft · Heart", hint: "30 afirmações oficiais (10 por dimensão)." },
   ];
   const canNext = () => {
     if (step === 0) return declaredRole.trim().length > 3;
     if (step === 1) return !!discPrimary;
+    if (step === 2) return Object.keys(sabAns).length >= 8;
+    if (step === 3) return Object.keys(cerAns).length >= 6;
     return true;
   };
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
@@ -204,29 +336,81 @@ function AssessmentWizard() {
         )}
 
         {step === 2 && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Marque as vozes internas que mais atrapalham você.</p>
-            <div className="flex flex-wrap gap-2">
-              {SABOTAGES.map((s) => {
-                const on = sabotages.includes(s);
-                return (
-                  <button
-                    key={s}
-                    onClick={() => toggle(sabotages, s, setSabotages)}
-                    className={
-                      "rounded-full border px-3 py-1.5 text-sm transition-colors " +
-                      (on ? "border-foreground bg-foreground text-background" : "border-border bg-card hover:bg-secondary")
-                    }
-                  >
-                    {s}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Para cada afirmação, escolha o quanto ela te descreve (1 = nada · 5 = totalmente).
+            </p>
+            <ul className="space-y-4">
+              {SABOTAGE_PILLARS.map((p) => (
+                <li key={p.id} className="rounded-xl border border-border/60 p-3">
+                  <div className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">{p.id}</div>
+                  <div className="text-sm">{p.q}</div>
+                  <div className="mt-2 flex gap-1.5">
+                    {[1,2,3,4,5].map((v) => (
+                      <button key={v}
+                        onClick={() => setSabAns((prev) => ({ ...prev, [p.id]: v }))}
+                        className={
+                          "h-9 flex-1 rounded-lg border text-sm transition-colors " +
+                          (sabAns[p.id] === v
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-card hover:bg-secondary")
+                        }>{v}</button>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {topSabotages.length > 0 && (
+              <div className="rounded-xl border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+                Top 3 (parcial): <span className="font-medium text-foreground">{topSabotages.join(" · ")}</span>
+              </div>
+            )}
           </div>
         )}
 
         {step === 3 && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Em cada bloco, escolha a frase que MAIS te representa hoje.</p>
+            <ul className="space-y-4">
+              {CEREBRAL.map((b) => (
+                <li key={b.id} className="rounded-xl border border-border/60 p-3">
+                  <div className="text-sm font-medium">{b.label}</div>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    {b.opts.map((o) => (
+                      <button key={o.dim}
+                        onClick={() => setCerAns((prev) => ({ ...prev, [b.id]: o.dim }))}
+                        className={
+                          "rounded-lg border p-2.5 text-left text-sm transition-colors " +
+                          (cerAns[b.id] === o.dim
+                            ? "border-foreground bg-foreground/5"
+                            : "border-border hover:bg-secondary/60")
+                        }>
+                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{o.dim}</div>
+                        <div className="mt-0.5">{o.text}</div>
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {Object.keys(cerAns).length >= 6 && (
+              <div className="rounded-xl border border-border bg-secondary/40 p-3">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground">Predominância parcial</div>
+                <div className="mt-1 font-display text-lg">{CEREBRAL_LABEL[cerebralProfile.primary]}</div>
+                <div className="mt-2 grid grid-cols-4 gap-2 text-center text-xs">
+                  {(Object.keys(cerebralProfile.pct) as CerebralMode[]).map((k) => (
+                    <div key={k}>
+                      <div className="text-muted-foreground">{k}</div>
+                      <div className="font-mono">{cerebralProfile.pct[k]}%</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Padrões que aparecem quando a pressão sobe.</p>
             <div className="grid gap-2 md:grid-cols-2">
@@ -250,9 +434,9 @@ function AssessmentWizard() {
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="space-y-6">
-            <p className="text-sm text-muted-foreground">Para cada afirmação, escolha de 1 (discordo totalmente) a 5 (concordo totalmente).</p>
+            <p className="text-sm text-muted-foreground">30 afirmações oficiais — 10 por dimensão. Escolha de 1 (discordo) a 5 (concordo).</p>
             <HshBlock title="Hard — saber fazer" color="bg-primary" values={hard} setValues={setHard} questions={HSH_QUESTIONS.hard} />
             <HshBlock title="Soft — saber agir"  color="bg-accent"  values={soft} setValues={setSoft} questions={HSH_QUESTIONS.soft} />
             <HshBlock title="Heart — saber ser"  color="bg-success" values={heart} setValues={setHeart} questions={HSH_QUESTIONS.heart} />
