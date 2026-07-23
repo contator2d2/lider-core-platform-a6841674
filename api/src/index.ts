@@ -30,6 +30,7 @@ import { kudosRouter } from "./routes/kudos.routes.js";
 import { coachRouter } from "./routes/coach.routes.js";
 import { calendarRouter, calendarPublicRouter } from "./routes/calendar.routes.js";
 import { featureTemplatesRouter, bootstrapFeatureTemplates, resolveUserFeatures } from "./routes/feature-templates.routes.js";
+import { signupPlansRouter, publicSignupPlansRouter, bootstrapSignupPlans } from "./routes/signup-plans.routes.js";
 import { requireAuth } from "./auth.js";
 import { prisma } from "./prisma.js";
 
@@ -101,6 +102,8 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.use("/api/public", webhooksRouter);
 app.use("/api/public", publicPulsesRouter);
 app.use("/api/public", calendarPublicRouter);
+// Rota pública de listagem de planos de cadastro
+app.use("/auth", publicSignupPlansRouter);
 
 app.use("/auth", authRouter);
 app.use("/organizations", orgsRouter);
@@ -130,6 +133,7 @@ app.use("/organization", calendarRouter);
 
 // Templates modulares
 app.use("/admin/feature-templates", featureTemplatesRouter);
+app.use("/admin/signup-plans", signupPlansRouter);
 
 // Resolvedor de features para o usuário logado (consumido pela UI)
 app.get("/auth/me/features", requireAuth, async (req, res) => {
@@ -158,6 +162,7 @@ app.listen(env.PORT, () => {
   void bootstrapDefaultModules();
   void bootstrapDefaultPermissions();
   void bootstrapFeatureTemplates();
+  void bootstrapSignupPlans();
 });
 
 async function bootstrapSuperAdmins() {

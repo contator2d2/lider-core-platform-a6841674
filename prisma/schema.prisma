@@ -393,6 +393,21 @@ model FeatureTemplateItem {
   @@map("feature_template_items")
 }
 
+model SignupPlan {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String?
+  targetRole  AppRole  @map("target_role")
+  planTier    PlanTier @default(essencial) @map("plan_tier")
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("signup_plans")
+}
+
 model License {
   id             String        @id @default(uuid()) @db.Uuid
   organizationId String        @map("organization_id") @db.Uuid

@@ -136,15 +136,20 @@ export const authApi = {
       "/auth/login",
       { method: "POST", body: { email, password }, auth: false },
     ),
-  register: (email: string, password: string, fullName: string) =>
+  register: (email: string, password: string, fullName: string, planSlug?: string) =>
     api<{ token: string; user: { id: string; email: string; fullName: string } }>(
       "/auth/register",
-      { method: "POST", body: { email, password, fullName }, auth: false },
+      { method: "POST", body: { email, password, fullName, planSlug }, auth: false },
     ),
   me: () => api<Me>("/auth/me", { method: "GET" }),
   permissions: () =>
     api<{ roles: string[]; grants: { resource: string; action: string }[]; super: boolean }>(
       "/auth/me/permissions",
       { method: "GET" },
+    ),
+  listSignupPlans: () =>
+    api<{ plans: Array<{ slug: string; name: string; description: string | null; targetRole: string; planTier: string }> }>(
+      "/auth/signup-plans",
+      { method: "GET", auth: false },
     ),
 };
