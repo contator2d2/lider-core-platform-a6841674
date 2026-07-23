@@ -86,12 +86,41 @@ const profileSchema = z.object({
   markAssessedNow: z.boolean().optional(),
 });
 
+// Módulo C v2 — extensão do perfil
+const profileV2Schema = profileSchema.extend({
+  activityDescription: z.string().optional().nullable(),
+  sabotageScores: z.record(z.number()).optional().nullable(),
+  cerebralProfile: z.record(z.number()).optional().nullable(),
+  cerebralPrimary: z.enum(["aguia", "lobo", "gato", "tubarao"]).optional().nullable(),
+  qpScore: z.number().int().min(0).max(100).optional().nullable(),
+  hardAnswers: z.array(z.number()).optional().nullable(),
+  softAnswers: z.array(z.number()).optional().nullable(),
+  heartAnswers: z.array(z.number()).optional().nullable(),
+  discAnswers: z.record(z.any()).optional().nullable(),
+  discProfile: z.record(z.any()).optional().nullable(),
+  coachCadence: z.enum(["weekly", "biweekly", "monthly"]).optional(),
+});
+
 conscienciaRouter.put("/:orgId/consciencia/me", async (req, res) => {
   try {
-    const data = profileSchema.parse(req.body);
+    const data = profileV2Schema.parse(req.body);
     const userId = req.userId!;
     const orgId = req.params.orgId;
     const assessmentAt = data.markAssessedNow ? new Date() : undefined;
+
+    const v2Fields = {
+      ...(data.activityDescription !== undefined ? { activityDescription: data.activityDescription ?? null } : {}),
+      ...(data.sabotageScores !== undefined ? { sabotageScores: (data.sabotageScores ?? null) as never } : {}),
+      ...(data.cerebralProfile !== undefined ? { cerebralProfile: (data.cerebralProfile ?? null) as never } : {}),
+      ...(data.cerebralPrimary !== undefined ? { cerebralPrimary: data.cerebralPrimary ?? null } : {}),
+      ...(data.qpScore !== undefined ? { qpScore: data.qpScore ?? null } : {}),
+      ...(data.hardAnswers !== undefined ? { hardAnswers: (data.hardAnswers ?? null) as never } : {}),
+      ...(data.softAnswers !== undefined ? { softAnswers: (data.softAnswers ?? null) as never } : {}),
+      ...(data.heartAnswers !== undefined ? { heartAnswers: (data.heartAnswers ?? null) as never } : {}),
+      ...(data.discAnswers !== undefined ? { discAnswers: (data.discAnswers ?? null) as never } : {}),
+      ...(data.discProfile !== undefined ? { discProfile: (data.discProfile ?? null) as never } : {}),
+      ...(data.coachCadence !== undefined ? { coachCadence: data.coachCadence } : {}),
+    };
 
     const saved = await prisma.leaderProfile.upsert({
       where: { organizationId_userId: { organizationId: orgId, userId } },
@@ -112,6 +141,7 @@ conscienciaRouter.put("/:orgId/consciencia/me", async (req, res) => {
         strengths: data.strengths,
         notes: data.notes ?? null,
         ...(assessmentAt ? { assessmentAt } : {}),
+        ...v2Fields,
       },
       create: {
         organizationId: orgId,
@@ -132,6 +162,7 @@ conscienciaRouter.put("/:orgId/consciencia/me", async (req, res) => {
         strengths: data.strengths,
         notes: data.notes ?? null,
         assessmentAt: assessmentAt ?? new Date(),
+        ...v2Fields,
       },
     });
 
@@ -351,3 +382,265 @@ async function upsertSignal(
     });
   }
 }
+
+// ============================================================
+// MÓDULO C v2 — Atividade · PDI auto · Agenda · Coach · Mapa
+// ============================================================
+
+// -------- Descrição de atividades --------
+conscienciaRouter.put("/:orgId/consciencia/me/activity", async (req, res) => {
+  try {
+    const parsed = z
+      .object({
+        activityDescription: z.string().max(20000).optional().nullable(),
+        activityDescriptionUrl: z.string().url().optional().nullable(),
+      })
+      .parse(req.body);
+    const saved = await prisma.leaderProfile.upsert({
+      where: {
+        organizationId_userId: { organizationId: req.params.orgId, userId: req.userId! },
+      },
+      update: {
+        activityDescription: parsed.activityDescription ?? null,
+        activityDescriptionUrl: parsed.activityDescriptionUrl ?? null,
+      },
+      create: {
+        organizationId: req.params.orgId,
+        userId: req.userId!,
+        activityDescription: parsed.activityDescription ?? null,
+        activityDescriptionUrl: parsed.activityDescriptionUrl ?? null,
+      },
+    });
+    res.json(saved);
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// -------- PDI auto-gerado (heurístico) --------
+conscienciaRouter.post("/:orgId/consciencia/pdi/auto-generate", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    const profile = await prisma.leaderProfile.findUnique({
+      where: { organizationId_userId: { organizationId: orgId, userId } },
+    });
+    if (!profile)
+      return res.status(400).json({ error: "Preencha o assessment antes de gerar o PDI." });
+
+    const goals: Array<{ title: string; description: string; priority: "high" | "medium" | "low"; source: string }> = [];
+
+    const scores = [
+      { k: "hard", label: "Hard — método e indicadores", v: profile.hardSelfScore ?? 50 },
+      { k: "soft", label: "Soft — decisão e delegação", v: profile.softSelfScore ?? 50 },
+      { k: "heart", label: "Heart — escuta e coerência", v: profile.heartSelfScore ?? 50 },
+    ].sort((a, b) => a.v - b.v);
+    const lowest = scores[0];
+    goals.push({
+      title: `Elevar ${lowest.label} de ${lowest.v} → 75 em 90 dias`,
+      description:
+        "Trilha C.O.R.E. quinzenal focada nessa dimensão + 1 aplicação prática por semana no time.",
+      priority: "high",
+      source: "hsh_gap",
+    });
+
+    const sabotageScores = (profile.sabotageScores as Record<string, number> | null) ?? null;
+    if (sabotageScores) {
+      const top = Object.entries(sabotageScores)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .filter(([, v]) => v >= 40);
+      for (const [name, score] of top) {
+        goals.push({
+          title: `Neutralizar o sabotador "${name}"`,
+          description: `Score ${score}/100. Prática: 1 interceptação por dia + journaling quinzenal.`,
+          priority: score >= 70 ? "high" : "medium",
+          source: `sabotage:${name}`,
+        });
+      }
+    } else if (profile.sabotages?.length) {
+      for (const s of profile.sabotages.slice(0, 3)) {
+        goals.push({
+          title: `Reduzir o padrão "${s}"`,
+          description: "Prática: 1 interceptação por dia + revisão semanal em 1:1 consigo mesmo.",
+          priority: "medium",
+          source: `sabotage:${s}`,
+        });
+      }
+    }
+
+    for (const r of (profile.riskFlags ?? []).slice(0, 2)) {
+      goals.push({
+        title: `Trabalhar o risco declarado "${r}"`,
+        description:
+          "Combinar prática com ritual quinzenal do time e feedback direto do liderado mais afetado.",
+        priority: "medium",
+        source: `risk:${r}`,
+      });
+    }
+
+    if (profile.activityDescription && profile.activityDescription.length > 60) {
+      goals.push({
+        title: "Delegar 2 entregas presas no papel do líder",
+        description:
+          "Sua descrição de atividades sinaliza acúmulo executivo. Escolha 2 entregas para delegar nas próximas 2 semanas com critério de aceite claro.",
+        priority: "medium",
+        source: "activity_delegation",
+      });
+    }
+
+    await prisma.leaderProfile.update({
+      where: { organizationId_userId: { organizationId: orgId, userId } },
+      data: { autoPdiGeneratedAt: new Date() },
+    });
+
+    res.json({ generatedAt: new Date().toISOString(), goals });
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// -------- Trilha do coach (metodologia C.O.R.E.) --------
+conscienciaRouter.post("/:orgId/consciencia/coach/plan", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    const { cadence } = z
+      .object({ cadence: z.enum(["weekly", "biweekly", "monthly"]) })
+      .parse(req.body);
+    const profile = await prisma.leaderProfile.findUnique({
+      where: { organizationId_userId: { organizationId: orgId, userId } },
+    });
+    if (!profile) return res.status(400).json({ error: "Preencha o assessment antes." });
+
+    const cadenceLabel = cadence === "weekly" ? "Semanal" : cadence === "biweekly" ? "Quinzenal" : "Mensal";
+    const h = profile.hardSelfScore ?? 50;
+    const s = profile.softSelfScore ?? 50;
+    const hr = profile.heartSelfScore ?? 50;
+    const focus = h <= s && h <= hr ? "Hard" : s <= hr ? "Soft" : "Heart";
+    const sabotages = (profile.sabotages ?? []).slice(0, 2).join(", ") || "seus padrões internos";
+
+    const md = [
+      `# Trilha ${cadenceLabel} — Metodologia C.O.R.E.`,
+      ``,
+      `**Foco desta rodada:** ${focus} — dimensão mais frágil hoje.`,
+      ``,
+      `## C — Consciência`,
+      `Observe durante a rodada quando "${sabotages}" aparece. Anote 3 gatilhos concretos.`,
+      ``,
+      `## O — Organização`,
+      focus === "Hard"
+        ? "Traduza a meta do trimestre em 1 indicador claro. Revise em cada 1:1."
+        : focus === "Soft"
+        ? "Delegue 1 entrega travada com critério de aceite, prazo e 1 checkpoint."
+        : "Reserve 30 min sem agenda com o liderado mais crítico. Só escuta.",
+      ``,
+      `## R — Resultado`,
+      "Defina 1 KPI de rota e 1 KPI de saída para acompanhar até a próxima trilha.",
+      ``,
+      `## E — Evolução`,
+      `Ao final, avalie de 0 a 10 quanto a prática moveu "${focus}". Registre 1 aprendizado.`,
+    ].join("\n");
+
+    await prisma.leaderProfile.update({
+      where: { organizationId_userId: { organizationId: orgId, userId } },
+      data: {
+        coachTrackMarkdown: md,
+        coachTrackGeneratedAt: new Date(),
+        coachCadence: cadence,
+      },
+    });
+
+    res.json({ markdown: md, cadence, generatedAt: new Date().toISOString() });
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+// -------- Agenda de liderança --------
+const agendaSchema = z.object({
+  title: z.string().min(1),
+  detail: z.string().optional().nullable(),
+  kind: z.string().optional(),
+  memberLabel: z.string().optional().nullable(),
+  scheduledAt: z.string().datetime().optional().nullable(),
+  source: z.string().optional(),
+});
+
+conscienciaRouter.get("/:orgId/consciencia/agenda", async (req, res) => {
+  const items = await prisma.leaderAgendaItem.findMany({
+    where: { organizationId: req.params.orgId, userId: req.userId! },
+    orderBy: [{ done: "asc" }, { scheduledAt: "asc" }, { createdAt: "desc" }],
+  });
+  res.json({ items });
+});
+
+conscienciaRouter.post("/:orgId/consciencia/agenda", async (req, res) => {
+  try {
+    const data = agendaSchema.parse(req.body);
+    const item = await prisma.leaderAgendaItem.create({
+      data: {
+        organizationId: req.params.orgId,
+        userId: req.userId!,
+        title: data.title,
+        detail: data.detail ?? null,
+        kind: data.kind ?? "acao",
+        memberLabel: data.memberLabel ?? null,
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        source: data.source ?? "manual",
+      },
+    });
+    res.status(201).json(item);
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+conscienciaRouter.patch("/:orgId/consciencia/agenda/:id", async (req, res) => {
+  try {
+    const existing = await prisma.leaderAgendaItem.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!existing || existing.userId !== req.userId)
+      return res.status(404).json({ error: "Not found" });
+    const data = agendaSchema
+      .partial()
+      .extend({ done: z.boolean().optional() })
+      .parse(req.body);
+    const item = await prisma.leaderAgendaItem.update({
+      where: { id: req.params.id },
+      data: {
+        ...(data.title != null ? { title: data.title } : {}),
+        ...(data.detail !== undefined ? { detail: data.detail ?? null } : {}),
+        ...(data.kind != null ? { kind: data.kind } : {}),
+        ...(data.memberLabel !== undefined ? { memberLabel: data.memberLabel ?? null } : {}),
+        ...(data.scheduledAt !== undefined
+          ? { scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null }
+          : {}),
+        ...(data.done !== undefined ? { done: data.done } : {}),
+      },
+    });
+    res.json(item);
+  } catch (err) {
+    badReq(res, err);
+  }
+});
+
+conscienciaRouter.delete("/:orgId/consciencia/agenda/:id", async (req, res) => {
+  const existing = await prisma.leaderAgendaItem.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!existing || existing.userId !== req.userId)
+    return res.status(404).json({ error: "Not found" });
+  await prisma.leaderAgendaItem.delete({ where: { id: req.params.id } });
+  res.status(204).end();
+});
+
+// -------- Mapa comportamental dos liderados --------
+conscienciaRouter.get("/:orgId/consciencia/subordinate-map", async (req, res) => {
+  const items = await prisma.subordinateAssessment.findMany({
+    where: { organizationId: req.params.orgId, leaderId: req.userId! },
+    orderBy: { updatedAt: "desc" },
+  });
+  res.json({ items });
+});

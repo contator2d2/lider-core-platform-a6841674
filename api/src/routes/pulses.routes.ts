@@ -47,7 +47,7 @@ type Q =
 
 const SYSTEM_TEMPLATES: Array<{
   slug: string;
-  kind: "feedback" | "climate" | "disc" | "custom";
+  kind: "feedback" | "climate" | "disc" | "custom" | "sabotadores" | "cerebral";
   title: string;
   intro: string;
   questions: Q[];
@@ -88,6 +88,22 @@ const SYSTEM_TEMPLATES: Array<{
     questions: buildDiscPairs(),
   },
   {
+    slug: "sabotadores_10",
+    kind: "sabotadores",
+    title: "Sabotadores — 10 padrões internos",
+    intro:
+      "Para cada afirmação, escolha o quanto ela te descreve (1 = nada, 5 = totalmente). Sem resposta certa.",
+    questions: buildSabotageQuestions(),
+  },
+  {
+    slug: "cerebral_8",
+    kind: "cerebral",
+    title: "Predominância cerebral — Águia · Lobo · Gato · Tubarão",
+    intro:
+      "Escolha em cada bloco a frase que MAIS te representa hoje. Leva 3 minutos.",
+    questions: buildCerebralQuestions(),
+  },
+  {
     slug: "custom_blank",
     kind: "custom",
     title: "Pesquisa personalizada",
@@ -97,6 +113,118 @@ const SYSTEM_TEMPLATES: Array<{
     ],
   },
 ];
+
+const SABOTAGE_PILLARS = [
+  { id: "juiz", label: "Juiz interno", q: "Costumo julgar duramente a mim, aos outros ou às circunstâncias." },
+  { id: "agradador", label: "Agradador", q: "Foco em agradar e evito criar desconforto mesmo quando preciso." },
+  { id: "hiper_realizador", label: "Hiper-realizador", q: "Meu valor depende do quanto entrego. Difícil parar." },
+  { id: "hiper_racional", label: "Hiper-racional", q: "Racionalizo tudo. Emoção do outro me incomoda." },
+  { id: "vitima", label: "Vítima", q: "Percebo que sofro mais do que os outros nas mesmas situações." },
+  { id: "evasivo", label: "Evasivo", q: "Evito conflitos e conversas difíceis, mesmo caras." },
+  { id: "controlador", label: "Controlador", q: "Preciso ter tudo sob controle, custe o que custar." },
+  { id: "reservado", label: "Reservado", q: "Guardo o que sinto e mantenho distância emocional." },
+  { id: "inquieto", label: "Inquieto", q: "Fico entediado rápido. Preciso de estímulos novos." },
+  { id: "perfeccionista", label: "Perfeccionista", q: "Retenho entregas até que estejam impecáveis. Nada é bom suficiente." },
+] as const;
+
+function buildSabotageQuestions(): Q[] {
+  return SABOTAGE_PILLARS.map((p) => ({
+    id: p.id,
+    type: "scale",
+    label: p.q,
+    minLabel: "1 · nada",
+    maxLabel: "5 · totalmente",
+    required: true,
+  }));
+}
+
+function scoreSabotages(answers: Record<string, unknown>) {
+  const scores: Record<string, number> = {};
+  for (const p of SABOTAGE_PILLARS) {
+    const v = answers[p.id];
+    if (typeof v === "number") scores[p.label] = Math.max(0, Math.min(100, v * 20));
+  }
+  return scores;
+}
+
+const CEREBRAL_BLOCKS: Array<{ id: string; label: string; opts: Array<{ text: string; dim: "aguia" | "lobo" | "gato" | "tubarao" }> }> = [
+  { id: "b1", label: "Diante de um problema novo…", opts: [
+    { text: "Subo o zoom e vejo o todo antes de agir.", dim: "aguia" },
+    { text: "Assumo o comando e articulo o grupo.", dim: "lobo" },
+    { text: "Sinto o clima e busco uma saída criativa.", dim: "gato" },
+    { text: "Ataco agora, ajusto depois.", dim: "tubarao" },
+  ]},
+  { id: "b2", label: "O que mais me motiva no trabalho é…", opts: [
+    { text: "Descobrir padrões e estratégias.", dim: "aguia" },
+    { text: "Formar time forte e proteger o território.", dim: "lobo" },
+    { text: "Ter liberdade e adaptar rota.", dim: "gato" },
+    { text: "Vencer disputas e bater metas.", dim: "tubarao" },
+  ]},
+  { id: "b3", label: "Sob pressão eu tendo a…", opts: [
+    { text: "Isolar e analisar antes de decidir.", dim: "aguia" },
+    { text: "Chamar o time e coordenar frente.", dim: "lobo" },
+    { text: "Improvisar e mudar de tática.", dim: "gato" },
+    { text: "Acelerar e forçar resultado.", dim: "tubarao" },
+  ]},
+  { id: "b4", label: "Meu jeito de decidir…", opts: [
+    { text: "Dados, cenários, longo prazo.", dim: "aguia" },
+    { text: "Consenso do time, protejo os meus.", dim: "lobo" },
+    { text: "Intuição e leitura do momento.", dim: "gato" },
+    { text: "Rápido e direto, sem hesitar.", dim: "tubarao" },
+  ]},
+  { id: "b5", label: "Sou reconhecido(a) por…", opts: [
+    { text: "Visão de alto.", dim: "aguia" },
+    { text: "Liderança de grupo.", dim: "lobo" },
+    { text: "Criatividade e independência.", dim: "gato" },
+    { text: "Foco em resultado e velocidade.", dim: "tubarao" },
+  ]},
+  { id: "b6", label: "Minha maior fragilidade é…", opts: [
+    { text: "Ficar preso na análise.", dim: "aguia" },
+    { text: "Exigir demais do time.", dim: "lobo" },
+    { text: "Fugir quando prende demais.", dim: "gato" },
+    { text: "Passar por cima de gente.", dim: "tubarao" },
+  ]},
+  { id: "b7", label: "Prefiro trabalhar…", opts: [
+    { text: "Com espaço mental para pensar.", dim: "aguia" },
+    { text: "Comandando um grupo bem alinhado.", dim: "lobo" },
+    { text: "Sozinho(a) e no meu ritmo.", dim: "gato" },
+    { text: "Em ambiente competitivo com placar.", dim: "tubarao" },
+  ]},
+  { id: "b8", label: "Se pudesse mudar uma coisa em mim…", opts: [
+    { text: "Agir mais rápido.", dim: "aguia" },
+    { text: "Ser menos protetor(a).", dim: "lobo" },
+    { text: "Comprometer-me mais com o longo prazo.", dim: "gato" },
+    { text: "Escutar antes de reagir.", dim: "tubarao" },
+  ]},
+];
+
+function buildCerebralQuestions(): Q[] {
+  return CEREBRAL_BLOCKS.map((b) => ({
+    id: b.id,
+    type: "choice",
+    label: b.label,
+    options: b.opts.map((o) => o.text),
+    required: true,
+  }));
+}
+
+function scoreCerebral(answers: Record<string, unknown>) {
+  const counts = { aguia: 0, lobo: 0, gato: 0, tubarao: 0 };
+  for (const b of CEREBRAL_BLOCKS) {
+    const chosenText = answers[b.id];
+    const opt = b.opts.find((o) => o.text === chosenText);
+    if (opt) counts[opt.dim] += 1;
+  }
+  const total = counts.aguia + counts.lobo + counts.gato + counts.tubarao || 1;
+  const pct = {
+    aguia: Math.round((counts.aguia / total) * 100),
+    lobo: Math.round((counts.lobo / total) * 100),
+    gato: Math.round((counts.gato / total) * 100),
+    tubarao: Math.round((counts.tubarao / total) * 100),
+  };
+  const primary = (Object.keys(pct) as Array<keyof typeof pct>).sort((a, b) => pct[b] - pct[a])[0];
+  return { counts, pct, primary };
+}
 
 function buildDiscPairs(): Q[] {
   // 24 forced-choice pairs — 6 per DISC dimension across pairs
@@ -436,8 +564,112 @@ publicPulsesRouter.post("/pulse/:token", async (req, res) => {
       linkUrl: "/app/pulses",
     }).catch(() => null);
 
+    // Interpreter — grava snapshot no mapa comportamental do líder
+    void interpretPulseAnswer(s, answers, qs).catch((e) =>
+      console.error("[pulse-interpret]", e),
+    );
+
     res.json({ ok: true });
   } catch (err) {
     badReq(res, err);
   }
 });
+
+// ============================================================
+// INTERPRETER — cria/atualiza SubordinateAssessment a partir
+// da resposta ao pulse. Alimenta o mapa da equipe do líder.
+// ============================================================
+const DISC_READ = {
+  D: "Direto e orientado a resultado. Fale objetivo, evite rodeio.",
+  I: "Sociável e entusiasta. Reconheça publicamente, envolva em coisas novas.",
+  S: "Estável e cooperativo. Dê contexto e tempo, evite mudanças bruscas.",
+  C: "Analítico e preciso. Traga dados antes de pedir decisão.",
+} as const;
+const DISC_TRACK = {
+  D: "Foco de desenvolvimento: escuta ativa em decisões que exigem alinhamento.",
+  I: "Foco: disciplina de método e follow-up dos compromissos.",
+  S: "Foco: expor opinião mesmo quando gera desconforto.",
+  C: "Foco: agir com informação parcial. Progresso > perfeição.",
+} as const;
+
+async function interpretPulseAnswer(
+  s: {
+    id: string;
+    organizationId: string;
+    senderId: string;
+    subjectUserId: string | null;
+    subjectLabel: string | null;
+    subjectPhone: string | null;
+    template: { kind: string };
+  },
+  answers: Record<string, unknown>,
+  qs: Q[],
+) {
+  const kind = s.template.kind;
+  if (kind !== "disc" && kind !== "sabotadores" && kind !== "cerebral") return;
+  const label = s.subjectLabel ?? "Liderado";
+
+  const existing = await prisma.subordinateAssessment.findFirst({
+    where: {
+      organizationId: s.organizationId,
+      leaderId: s.senderId,
+      memberLabel: label,
+    },
+  });
+
+  const patch: Record<string, unknown> = { lastPulseSendId: s.id };
+  let reading = "";
+  let track = "";
+
+  if (kind === "disc") {
+    const disc = scoreDisc(answers, qs);
+    patch.discPrimary = disc.primary;
+    patch.discProfile = disc as unknown as object;
+    reading = `Perfil DISC ${disc.primary} (${disc.pct[disc.primary]}%). ${DISC_READ[disc.primary]}`;
+    track = DISC_TRACK[disc.primary];
+  } else if (kind === "sabotadores") {
+    const scores = scoreSabotages(answers);
+    patch.sabotageScores = scores as unknown as object;
+    const top = Object.entries(scores)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    reading = top.length
+      ? `Top 3 padrões: ${top.map(([n, v]) => `${n} (${v})`).join(", ")}.`
+      : "Sem padrões marcantes.";
+    track = top.length
+      ? `Trilha: 1 interceptação diária no padrão "${top[0][0]}" por 21 dias.`
+      : "Trilha: manter observação semanal em 1:1.";
+  } else if (kind === "cerebral") {
+    const c = scoreCerebral(answers);
+    patch.cerebralPrimary = c.primary;
+    patch.cerebralProfile = c as unknown as object;
+    reading = `Predominância ${c.primary.toUpperCase()} (${c.pct[c.primary]}%).`;
+    track = `Trilha: aproveitar a força de "${c.primary}" e balancear com prática oposta na próxima quinzena.`;
+  }
+
+  if (existing) {
+    await prisma.subordinateAssessment.update({
+      where: { id: existing.id },
+      data: {
+        ...patch,
+        aiReading: reading,
+        aiTrack: track,
+        memberPhone: s.subjectPhone ?? existing.memberPhone,
+        memberId: s.subjectUserId ?? existing.memberId,
+      },
+    });
+  } else {
+    await prisma.subordinateAssessment.create({
+      data: {
+        organizationId: s.organizationId,
+        leaderId: s.senderId,
+        memberLabel: label,
+        memberPhone: s.subjectPhone ?? null,
+        memberId: s.subjectUserId ?? null,
+        aiReading: reading,
+        aiTrack: track,
+        ...patch,
+      },
+    });
+  }
+}

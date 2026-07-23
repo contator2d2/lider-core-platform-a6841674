@@ -897,6 +897,19 @@ enum AssessmentType {
   other
 }
 
+enum CoachCadence {
+  weekly
+  biweekly
+  monthly
+}
+
+enum CerebralMode {
+  aguia
+  lobo
+  gato
+  tubarao
+}
+
 enum CommitmentStatus {
   active
   in_progress
@@ -938,12 +951,79 @@ model LeaderProfile {
   strengths          String[]        @default([])
   notes              String?
   assessmentAt       DateTime?       @map("assessment_at")
+  // Módulo C — spec v2 (Julho 2026)
+  activityDescription    String?       @map("activity_description")
+  activityDescriptionUrl String?       @map("activity_description_url")
+  coachCadence           CoachCadence  @default(weekly) @map("coach_cadence")
+  sabotageScores         Json?         @map("sabotage_scores")
+  cerebralProfile        Json?         @map("cerebral_profile")
+  cerebralPrimary        CerebralMode? @map("cerebral_primary")
+  qpScore                Int?          @map("qp_score")
+  hardAnswers            Json?         @map("hard_answers")
+  softAnswers            Json?         @map("soft_answers")
+  heartAnswers           Json?         @map("heart_answers")
+  discAnswers            Json?         @map("disc_answers")
+  discProfile            Json?         @map("disc_profile")
+  autoPdiId              String?       @map("auto_pdi_id") @db.Uuid
+  autoPdiGeneratedAt     DateTime?     @map("auto_pdi_generated_at")
+  coachTrackMarkdown     String?       @map("coach_track_markdown")
+  coachTrackGeneratedAt  DateTime?     @map("coach_track_generated_at")
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")
 
   @@unique([organizationId, userId])
   @@index([organizationId])
   @@map("leader_profiles")
+}
+
+// ============================================================
+// Módulo C — Agenda de liderança (voz → ação)
+// ============================================================
+model LeaderAgendaItem {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  title          String
+  detail         String?
+  kind           String    @default("acao")
+  memberId       String?   @map("member_id") @db.Uuid
+  memberLabel    String?   @map("member_label")
+  scheduledAt    DateTime? @map("scheduled_at")
+  done           Boolean   @default(false)
+  source         String    @default("manual")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([organizationId, userId, done])
+  @@map("leader_agenda_items")
+}
+
+// ============================================================
+// Módulo C — Snapshot do liderado (interpretação da IA sobre
+// respostas de pulse). Alimenta o mapa da equipe e a "trilha do
+// liderado" enviada de volta a ele.
+// ============================================================
+model SubordinateAssessment {
+  id              String    @id @default(uuid()) @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  leaderId        String    @map("leader_id") @db.Uuid
+  memberId        String?   @map("member_id") @db.Uuid
+  memberLabel     String    @map("member_label")
+  memberPhone     String?   @map("member_phone")
+  discPrimary     String?   @map("disc_primary")
+  discProfile     Json?     @map("disc_profile")
+  cerebralPrimary CerebralMode? @map("cerebral_primary")
+  cerebralProfile Json?     @map("cerebral_profile")
+  sabotageScores  Json?     @map("sabotage_scores")
+  aiReading       String?   @map("ai_reading")
+  aiTrack         String?   @map("ai_track")
+  lastPulseSendId String?   @map("last_pulse_send_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([organizationId, leaderId])
+  @@index([memberId])
+  @@map("subordinate_assessments")
 }
 
 model MentorshipCommitment {
@@ -1493,6 +1573,8 @@ enum PulseKind {
   climate
   disc
   custom
+  sabotadores
+  cerebral
 }
 
 enum PulseSendStatus {
