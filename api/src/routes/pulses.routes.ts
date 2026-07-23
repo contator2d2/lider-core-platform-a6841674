@@ -50,7 +50,7 @@ const SYSTEM_TEMPLATES: Array<{
   kind: "feedback" | "climate" | "disc" | "custom" | "sabotadores" | "cerebral";
   title: string;
   intro: string;
-  questions: Q[];
+  buildQuestions: () => Q[];
 }> = [
   {
     slug: "feedback_leader",
@@ -58,7 +58,7 @@ const SYSTEM_TEMPLATES: Array<{
     title: "Feedback pro seu líder",
     intro:
       "Sua resposta é confidencial e ajuda a melhorar a forma como somos liderados. Leva 2 minutos.",
-    questions: [
+    buildQuestions: () => [
       { id: "clarity", type: "scale", label: "Quão clara está a direção do time?", minLabel: "Nada clara", maxLabel: "Muito clara", required: true },
       { id: "autonomy", type: "scale", label: "Você sente que tem autonomia pra decidir?", minLabel: "Pouca", maxLabel: "Muita", required: true },
       { id: "feedback_quality", type: "scale", label: "Como está a qualidade dos feedbacks que recebe?", minLabel: "Baixa", maxLabel: "Excelente", required: true },
@@ -72,7 +72,7 @@ const SYSTEM_TEMPLATES: Array<{
     kind: "climate",
     title: "Pulse semanal — 30 segundos",
     intro: "Três perguntas rápidas pra gente saber como você tá essa semana.",
-    questions: [
+    buildQuestions: () => [
       { id: "mood", type: "scale", label: "Como você tá se sentindo essa semana?", minLabel: "Muito mal", maxLabel: "Muito bem", required: true },
       { id: "workload", type: "scale", label: "Como tá sua carga de trabalho?", minLabel: "Baixíssima", maxLabel: "Insustentável", required: true },
       { id: "clarity", type: "scale", label: "Quão claro tá o que se espera de você?", minLabel: "Confuso", maxLabel: "Cristalino", required: true },
@@ -85,7 +85,7 @@ const SYSTEM_TEMPLATES: Array<{
     title: "DISC leve — Perfil comportamental",
     intro:
       "Em cada par, escolha a frase que MAIS te descreve. Não existe resposta certa. Leva 5 minutos.",
-    questions: buildDiscPairs(),
+    buildQuestions: buildDiscPairs,
   },
   {
     slug: "sabotadores_10",
@@ -93,7 +93,7 @@ const SYSTEM_TEMPLATES: Array<{
     title: "Sabotadores — 10 padrões internos",
     intro:
       "Para cada afirmação, escolha o quanto ela te descreve (1 = nada, 5 = totalmente). Sem resposta certa.",
-    questions: buildSabotageQuestions(),
+    buildQuestions: buildSabotageQuestions,
   },
   {
     slug: "cerebral_8",
@@ -101,14 +101,14 @@ const SYSTEM_TEMPLATES: Array<{
     title: "Predominância cerebral — Águia · Lobo · Gato · Tubarão",
     intro:
       "Escolha em cada bloco a frase que MAIS te representa hoje. Leva 3 minutos.",
-    questions: buildCerebralQuestions(),
+    buildQuestions: buildCerebralQuestions,
   },
   {
     slug: "custom_blank",
     kind: "custom",
     title: "Pesquisa personalizada",
     intro: "Responda com sinceridade.",
-    questions: [
+    buildQuestions: () => [
       { id: "q1", type: "text", label: "Pergunta 1", required: true },
     ],
   },
@@ -314,7 +314,7 @@ async function ensureSystemTemplates() {
           kind: t.kind,
           title: t.title,
           intro: t.intro,
-          questions: t.questions as unknown as object,
+          questions: t.buildQuestions() as unknown as object,
           isSystem: true,
         },
       });
