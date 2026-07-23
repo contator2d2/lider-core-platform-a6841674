@@ -11,16 +11,26 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   fullName: z.string().min(1),
+  planSlug: z.string().min(1).optional(),
 });
 
 authRouter.post("/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const { password, fullName } = parsed.data;
+  const { password, fullName, planSlug } = parsed.data;
   const email = parsed.data.email.trim().toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return res.status(409).json({ error: "Email já cadastrado" });
+
+  // Resolve o plano selecionado (opcional)
+  let plan: { slug: string; targetRole: "super_admin" | "neo_admin" | "franchise_owner" | "hr_admin" | "leader" | "collaborator"; planTier: "essencial" | "profissional" | "enterprise" } | null = null;
+  if (planSlug) {
+    const found = await prisma.signupPlan.findUnique({ where: { slug: planSlug } });
+    if (found && found.active) {
+      plan = { slug: found.slug, targetRole: found.targetRole, planTier: found.planTier };
+    }
+  }
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
@@ -31,8 +41,20 @@ authRouter.post("/register", async (req, res) => {
     },
   });
 
+  // Aplica papel do plano selecionado (default = leader se nenhum plano foi passado)
+  const roleToApply = plan?.targetRole ?? "leader";
+  try {
+    await prisma.userRole.create({ data: { userId: user.id, role: roleToApply } });
+  } catch (err) {
+    console.error("[auth] falha ao aplicar role no registro", err);
+  }
+
   const token = signToken({ sub: user.id, email: user.email });
-  return res.status(201).json({ token, user: { id: user.id, email: user.email, fullName } });
+  return res.status(201).json({
+    token,
+    user: { id: user.id, email: user.email, fullName },
+    plan: plan ? { slug: plan.slug, role: plan.targetRole, tier: plan.planTier } : null,
+  });
 });
 
 const loginSchema = z.object({
