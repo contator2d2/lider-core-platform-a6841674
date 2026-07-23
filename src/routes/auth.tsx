@@ -1,13 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { ApiError } from "@/lib/api";
+import { ApiError, authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+type SignupPlan = { slug: string; name: string; description: string | null; targetRole: string; planTier: string };
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -31,6 +34,21 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [planSlug, setPlanSlug] = useState<string>("");
+
+  const { data: plansData } = useQuery({
+    queryKey: ["signup-plans"],
+    queryFn: () => authApi.listSignupPlans(),
+    enabled: mode === "signup",
+    staleTime: 60_000,
+  });
+  const plans: SignupPlan[] = plansData?.plans ?? [];
+
+  useEffect(() => {
+    if (mode === "signup" && plans.length > 0 && !planSlug) {
+      setPlanSlug(plans[0].slug);
+    }
+  }, [mode, plans, planSlug]);
 
   useEffect(() => {
     if (user) {
@@ -48,7 +66,7 @@ function AuthPage() {
         await signIn(email, password);
         toast.success("Bem-vindo de volta.");
       } else {
-        await signUp(email, password, fullName);
+        await signUp(email, password, fullName, planSlug || undefined);
         toast.success("Conta criada.");
       }
       // Redirect handled by the useEffect above once `user` populates.
@@ -118,6 +136,38 @@ function AuthPage() {
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
+              </div>
+            )}
+            {mode === "signup" && plans.length > 0 && (
+              <div className="space-y-2">
+                <Label>Plano de acesso</Label>
+                <div className="grid gap-2">
+                  {plans.map((p) => {
+                    const selected = planSlug === p.slug;
+                    return (
+                      <button
+                        type="button"
+                        key={p.slug}
+                        onClick={() => setPlanSlug(p.slug)}
+                        className={`text-left rounded-lg border px-3 py-2.5 transition ${
+                          selected
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border hover:border-primary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{p.name}</span>
+                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            {p.planTier}
+                          </span>
+                        </div>
+                        {p.description && (
+                          <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
             <div className="space-y-1.5">
