@@ -112,6 +112,8 @@ function ConscienciaPage() {
   const qc = useQueryClient();
   const [profileOpen, setProfileOpen] = useState(false);
   const [commitmentOpen, setCommitmentOpen] = useState(false);
+  const canEditProfile = useFeature("consciencia.profile", "edit");
+  const canEditCommitments = useFeature("consciencia.commitments", "edit");
 
   const { data, isLoading } = useQuery({
     queryKey: ["consciencia", "me", orgId],
@@ -153,6 +155,7 @@ function ConscienciaPage() {
             Este espaço é privado. Só você vê o conteúdo detalhado. A organização vê apenas se o perfil existe.
           </p>
         </div>
+        {canEditProfile && (
         <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -169,8 +172,10 @@ function ConscienciaPage() {
             }}
           />
         </Dialog>
+        )}
       </header>
 
+      <Feature featureKey="consciencia.assessment_wizard">
       <Link
         to="/app/consciencia/assessment"
         className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 p-5 transition-shadow hover:shadow-md"
@@ -186,6 +191,7 @@ function ConscienciaPage() {
           <Sparkles className="h-4 w-4" />
         </div>
       </Link>
+      </Feature>
 
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -205,7 +211,9 @@ function ConscienciaPage() {
       )}
 
       {profile && (
-        <HSHPanel profile={profile} />
+        <Feature featureKey="consciencia.hsh">
+          <HSHPanel profile={profile} />
+        </Feature>
       )}
 
       {profile && (
@@ -237,6 +245,7 @@ function ConscienciaPage() {
       )}
 
       {/* Alertas cruzados */}
+      <Feature featureKey="consciencia.cross_signals">
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-xl">Alertas cruzados</h2>
@@ -281,11 +290,14 @@ function ConscienciaPage() {
           ))}
         </ul>
       </section>
+      </Feature>
 
       {/* Compromissos */}
+      <Feature featureKey="consciencia.commitments">
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-xl">Compromissos de mentoria</h2>
+          {canEditCommitments && (
           <Dialog open={commitmentOpen} onOpenChange={setCommitmentOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -300,6 +312,7 @@ function ConscienciaPage() {
               }}
             />
           </Dialog>
+          )}
         </div>
         {commitments.length === 0 && (
           <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
@@ -340,6 +353,7 @@ function ConscienciaPage() {
           ))}
         </ul>
       </section>
+      </Feature>
     </div>
   );
 }
