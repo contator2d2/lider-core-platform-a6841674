@@ -193,6 +193,37 @@ function ConscienciaPage() {
       </Link>
       </Feature>
 
+      <section className="grid gap-3 md:grid-cols-2">
+        <Feature featureKey="consciencia.activity">
+          <Link to="/app/consciencia/activity" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Descrição de atividades</div>
+            <div className="mt-1 font-display text-lg">O que você faz de verdade</div>
+            <p className="mt-1 text-sm text-muted-foreground">Alimenta o PDI automático e a trilha do coach.</p>
+          </Link>
+        </Feature>
+        <Feature featureKey="consciencia.pdi_auto">
+          <Link to="/app/consciencia/pdi" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">PDI automático</div>
+            <div className="mt-1 font-display text-lg">Radar × sabotadores × atividades</div>
+            <p className="mt-1 text-sm text-muted-foreground">Cruza tudo e devolve um esqueleto de PDI pronto.</p>
+          </Link>
+        </Feature>
+        <Feature featureKey="consciencia.coach_track">
+          <Link to="/app/consciencia/coach" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Trilha do coach C.O.R.E.</div>
+            <div className="mt-1 font-display text-lg">Prática periódica travada na metodologia</div>
+            <p className="mt-1 text-sm text-muted-foreground">Semanal, quinzenal ou mensal — foco no que está mais frágil.</p>
+          </Link>
+        </Feature>
+        <Feature featureKey="consciencia.voice_agenda">
+          <Link to="/app/consciencia/agenda" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Agenda de liderança</div>
+            <div className="mt-1 font-display text-lg">Ações, 1:1s, feedbacks e delegações</div>
+            <p className="mt-1 text-sm text-muted-foreground">Registra manual ou por voz — não perde o combinado.</p>
+          </Link>
+        </Feature>
+      </section>
+
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
