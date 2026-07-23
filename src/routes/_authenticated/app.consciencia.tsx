@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
+import { Feature, useFeature } from "@/lib/features";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
