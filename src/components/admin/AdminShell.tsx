@@ -29,6 +29,7 @@ import {
   Bell,
   Database,
   HelpCircle,
+  ToggleRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -74,6 +75,7 @@ const navSections: NavSection[] = [
       { to: "/admin/branding", label: "Branding", icon: Palette },
       { to: "/admin/methodology", label: "Metodologia", icon: BookOpen },
       { to: "/admin/apps", label: "Apps & Versões", icon: Package },
+      { to: "/admin/feature-templates", label: "Templates de módulos", icon: ToggleRight },
       { to: "/admin/notifications", label: "Notificações", icon: Bell },
       { to: "/admin/data", label: "Dados (Import/Export)", icon: Database },
       { to: "/admin/settings", label: "Configurações", icon: Settings2 },
