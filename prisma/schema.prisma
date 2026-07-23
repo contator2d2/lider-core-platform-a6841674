@@ -360,6 +360,39 @@ model RolePermission {
   @@map("role_permissions")
 }
 
+// -----------------------------------------------------------
+// FEATURE TEMPLATES (modularização do app)
+// Super Admin define, por perfil (AppRole), quais funções de cada
+// módulo ficam ligadas/desligadas e em que nível (view/edit/export).
+// A UI consulta /auth/me/features e esconde/desabilita blocos.
+// -----------------------------------------------------------
+model FeatureTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  role        AppRole  @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items FeatureTemplateItem[]
+
+  @@map("feature_templates")
+}
+
+model FeatureTemplateItem {
+  id         String           @id @default(uuid()) @db.Uuid
+  templateId String           @map("template_id") @db.Uuid
+  featureKey String           @map("feature_key")
+  action     PermissionAction
+  enabled    Boolean          @default(true)
+
+  template FeatureTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, featureKey, action])
+  @@index([featureKey])
+  @@map("feature_template_items")
+}
+
 model License {
   id             String        @id @default(uuid()) @db.Uuid
   organizationId String        @map("organization_id") @db.Uuid
