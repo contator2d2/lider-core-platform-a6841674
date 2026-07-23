@@ -76,6 +76,7 @@ import { Route as AuthenticatedAppOrganizationCyclesRouteImport } from './routes
 import { Route as AuthenticatedAppOrganizationAreasRouteImport } from './routes/_authenticated/app.organization.areas'
 import { Route as AuthenticatedAppOrganizationAgendaRouteImport } from './routes/_authenticated/app.organization.agenda'
 import { Route as AuthenticatedAppConscienciaAssessmentRouteImport } from './routes/_authenticated/app.consciencia.assessment'
+import { Route as AuthenticatedAppConscienciaAgendaRouteImport } from './routes/_authenticated/app.consciencia.agenda'
 import { Route as AuthenticatedAppConscienciaActivityRouteImport } from './routes/_authenticated/app.consciencia.activity'
 
 const AuthRoute = AuthRouteImport.update({
@@ -454,6 +455,12 @@ const AuthenticatedAppConscienciaAssessmentRoute =
     path: '/assessment',
     getParentRoute: () => AuthenticatedAppConscienciaRoute,
   } as any)
+const AuthenticatedAppConscienciaAgendaRoute =
+  AuthenticatedAppConscienciaAgendaRouteImport.update({
+    id: '/agenda',
+    path: '/agenda',
+    getParentRoute: () => AuthenticatedAppConscienciaRoute,
+  } as any)
 const AuthenticatedAppConscienciaActivityRoute =
   AuthenticatedAppConscienciaActivityRouteImport.update({
     id: '/activity',
@@ -517,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/franchise/': typeof AuthenticatedFranchiseIndexRoute
   '/app/consciencia/activity': typeof AuthenticatedAppConscienciaActivityRoute
+  '/app/consciencia/agenda': typeof AuthenticatedAppConscienciaAgendaRoute
   '/app/consciencia/assessment': typeof AuthenticatedAppConscienciaAssessmentRoute
   '/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
@@ -581,6 +589,7 @@ export interface FileRoutesByTo {
   '/company': typeof AuthenticatedCompanyIndexRoute
   '/franchise': typeof AuthenticatedFranchiseIndexRoute
   '/app/consciencia/activity': typeof AuthenticatedAppConscienciaActivityRoute
+  '/app/consciencia/agenda': typeof AuthenticatedAppConscienciaAgendaRoute
   '/app/consciencia/assessment': typeof AuthenticatedAppConscienciaAssessmentRoute
   '/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
@@ -652,6 +661,7 @@ export interface FileRoutesById {
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/franchise/': typeof AuthenticatedFranchiseIndexRoute
   '/_authenticated/app/consciencia/activity': typeof AuthenticatedAppConscienciaActivityRoute
+  '/_authenticated/app/consciencia/agenda': typeof AuthenticatedAppConscienciaAgendaRoute
   '/_authenticated/app/consciencia/assessment': typeof AuthenticatedAppConscienciaAssessmentRoute
   '/_authenticated/app/organization/agenda': typeof AuthenticatedAppOrganizationAgendaRoute
   '/_authenticated/app/organization/areas': typeof AuthenticatedAppOrganizationAreasRoute
@@ -723,6 +733,7 @@ export interface FileRouteTypes {
     | '/company/'
     | '/franchise/'
     | '/app/consciencia/activity'
+    | '/app/consciencia/agenda'
     | '/app/consciencia/assessment'
     | '/app/organization/agenda'
     | '/app/organization/areas'
@@ -787,6 +798,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/franchise'
     | '/app/consciencia/activity'
+    | '/app/consciencia/agenda'
     | '/app/consciencia/assessment'
     | '/app/organization/agenda'
     | '/app/organization/areas'
@@ -857,6 +869,7 @@ export interface FileRouteTypes {
     | '/_authenticated/company/'
     | '/_authenticated/franchise/'
     | '/_authenticated/app/consciencia/activity'
+    | '/_authenticated/app/consciencia/agenda'
     | '/_authenticated/app/consciencia/assessment'
     | '/_authenticated/app/organization/agenda'
     | '/_authenticated/app/organization/areas'
@@ -1349,6 +1362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppConscienciaAssessmentRouteImport
       parentRoute: typeof AuthenticatedAppConscienciaRoute
     }
+    '/_authenticated/app/consciencia/agenda': {
+      id: '/_authenticated/app/consciencia/agenda'
+      path: '/agenda'
+      fullPath: '/app/consciencia/agenda'
+      preLoaderRoute: typeof AuthenticatedAppConscienciaAgendaRouteImport
+      parentRoute: typeof AuthenticatedAppConscienciaRoute
+    }
     '/_authenticated/app/consciencia/activity': {
       id: '/_authenticated/app/consciencia/activity'
       path: '/activity'
@@ -1417,6 +1437,7 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedAppConscienciaRouteChildren {
   AuthenticatedAppConscienciaActivityRoute: typeof AuthenticatedAppConscienciaActivityRoute
+  AuthenticatedAppConscienciaAgendaRoute: typeof AuthenticatedAppConscienciaAgendaRoute
   AuthenticatedAppConscienciaAssessmentRoute: typeof AuthenticatedAppConscienciaAssessmentRoute
 }
 
@@ -1424,6 +1445,8 @@ const AuthenticatedAppConscienciaRouteChildren: AuthenticatedAppConscienciaRoute
   {
     AuthenticatedAppConscienciaActivityRoute:
       AuthenticatedAppConscienciaActivityRoute,
+    AuthenticatedAppConscienciaAgendaRoute:
+      AuthenticatedAppConscienciaAgendaRoute,
     AuthenticatedAppConscienciaAssessmentRoute:
       AuthenticatedAppConscienciaAssessmentRoute,
   }
