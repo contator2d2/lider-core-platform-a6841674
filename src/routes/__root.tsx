@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  ClientOnly,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 // useRouter still used inside ErrorComponent below
@@ -17,6 +18,7 @@ import { AuthProvider } from "@/lib/auth-context";
 declare global {
   interface Window {
     __liderCoreDomMutationGuardInstalled?: boolean;
+    __liderCoreServiceWorkerCleanupDone?: boolean;
   }
 }
 
@@ -194,11 +196,30 @@ function RootShell({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/sw.js').catch(function () {});
-                });
-              }
+              (function () {
+                if (window.__liderCoreServiceWorkerCleanupDone) return;
+                window.__liderCoreServiceWorkerCleanupDone = true;
+                var cleanupKey = 'lidercore-sw-cleaned-v4';
+                var shouldReload = false;
+                function reloadOnce() {
+                  if (!shouldReload || sessionStorage.getItem(cleanupKey) === '1') return;
+                  sessionStorage.setItem(cleanupKey, '1');
+                  window.location.reload();
+                }
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function (regs) {
+                    shouldReload = shouldReload || regs.length > 0 || !!navigator.serviceWorker.controller;
+                    return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+                  }).then(reloadOnce).catch(function () {});
+                }
+                if ('caches' in window) {
+                  caches.keys().then(function (keys) {
+                    var liderCoreCaches = keys.filter(function (key) { return key.indexOf('lidercore-') === 0; });
+                    shouldReload = shouldReload || liderCoreCaches.length > 0;
+                    return Promise.all(liderCoreCaches.map(function (key) { return caches.delete(key); }));
+                  }).then(reloadOnce).catch(function () {});
+                }
+              })();
             `,
           }}
         />
@@ -218,10 +239,20 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </AuthProvider>
+      <ClientOnly fallback={<AppBootFallback />}>
+        <AuthProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </AuthProvider>
+      </ClientOnly>
     </QueryClientProvider>
+  );
+}
+
+function AppBootFallback() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background px-6 text-center text-sm text-muted-foreground">
+      Carregando Líder C.O.R.E.…
+    </div>
   );
 }
