@@ -224,6 +224,11 @@ function ConscienciaPage() {
             eyebrow="Descrição de atividades"
             title="O que você faz de verdade"
             description="Alimenta o PDI automático e a trilha do coach."
+            purpose={[
+              "Registrar as atividades reais do seu dia como líder (rituais, decisões, entregas).",
+              "Serve de insumo para o motor cruzar comportamento × rotina × resultado.",
+              "Sem isso, o PDI automático fica genérico e o coach não sabe onde atuar.",
+            ]}
           />
         </Feature>
         <Feature featureKey="consciencia.pdi_auto">
@@ -233,6 +238,11 @@ function ConscienciaPage() {
             eyebrow="PDI automático"
             title="Radar × sabotadores × atividades"
             description="Cruza tudo e devolve um esqueleto de PDI pronto."
+            purpose={[
+              "Gera um Plano de Desenvolvimento Individual a partir do seu Radar H·S·H, sabotadores e rotina.",
+              "Aponta 2–3 focos prioritários de evolução com ações concretas.",
+              "Você edita, aprova e acompanha a execução dentro do app.",
+            ]}
           />
         </Feature>
         <Feature featureKey="consciencia.coach_track">
@@ -242,6 +252,11 @@ function ConscienciaPage() {
             eyebrow="Trilha do coach C.O.R.E."
             title="Prática periódica travada na metodologia"
             description="Semanal, quinzenal ou mensal — foco no que está mais frágil."
+            purpose={[
+              "Trilha guiada de práticas curtas, ancorada nos pilares C.O.R.E.",
+              "Prioriza automaticamente a dimensão mais frágil do seu radar.",
+              "Cadência configurável (semanal, quinzenal ou mensal) para virar hábito.",
+            ]}
           />
         </Feature>
         <Feature featureKey="consciencia.voice_agenda">
@@ -251,6 +266,11 @@ function ConscienciaPage() {
             eyebrow="Agenda de liderança"
             title="Ações, 1:1s, feedbacks e delegações"
             description="Registra manual ou por voz — não perde o combinado."
+            purpose={[
+              "Centraliza tudo o que ficou combinado com o time em um só lugar.",
+              "Captura por voz (FAB do microfone) e roteamento automático para 1:1, feedback ou delegação.",
+              "Gera lembretes e sinaliza compromissos vencidos.",
+            ]}
           />
         </Feature>
       </section>
@@ -433,34 +453,44 @@ function ConscienciaPage() {
 }
 
 function FeatureRow({
-  to, icon: Icon, eyebrow, title, description,
+  to, icon: Icon, eyebrow, title, description, purpose,
 }: {
   to: string;
   icon: React.ComponentType<{ className?: string }>;
   eyebrow: string;
   title: string;
   description: string;
+  purpose?: string[];
 }) {
   return (
     <Link
       to={to}
-      className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
+      className="group flex items-start gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
     >
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+      <div className="mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
         <Icon className="h-4.5 w-4.5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {eyebrow}
         </div>
-        <div className="mt-0.5 truncate font-display text-sm font-bold md:text-base">
+        <div className="mt-0.5 font-display text-sm font-bold md:text-base">
           {title}
         </div>
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground md:text-[13px]">
+        <p className="mt-0.5 text-xs text-muted-foreground md:text-[13px]">
           {description}
         </p>
+        {purpose && purpose.length > 0 && (
+          <ul className="mt-2 space-y-1 border-l border-accent/30 pl-3">
+            {purpose.map((p, i) => (
+              <li key={i} className="text-[11px] leading-relaxed text-muted-foreground md:text-xs">
+                <span className="mr-1 text-accent">•</span>{p}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }
