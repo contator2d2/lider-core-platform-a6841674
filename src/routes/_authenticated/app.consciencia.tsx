@@ -262,13 +262,25 @@ function ConscienciaPage() {
       )}
 
       {!isLoading && !profile && (
-        <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-8 text-center">
-          <Brain className="mx-auto h-8 w-8 text-muted-foreground" />
-          <div className="mt-3 font-medium">Ainda não há perfil registrado</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Sem consciência não há sustentação. Registre papel, assessment e riscos de comportamento para o motor cruzar com os fatos operacionais.
-          </p>
-          <Button className="mt-4" onClick={() => setProfileOpen(true)}>Começar agora</Button>
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+            <Brain className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-base font-bold md:text-lg">Ainda não há perfil registrado</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
+              Sem consciência não há sustentação. Registre papel, assessment e riscos de comportamento para o motor cruzar com os fatos operacionais.
+            </p>
+          </div>
+          {canEditProfile && (
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background shadow-sm hover:opacity-90"
+            >
+              Começar agora <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 
