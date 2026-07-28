@@ -11,12 +11,34 @@ export const dashboardRouter = Router();
 dashboardRouter.use(requireAuth);
 
 async function assertOrgAccess(userId: string, orgId: string) {
-  const superRole = await prisma.userRole.findFirst({
-    where: { userId, role: { in: ["super_admin", "neo_admin"] } },
-  });
-  if (superRole) return true;
-  const m = await prisma.membership.findFirst({ where: { userId, organizationId: orgId } });
-  return !!m;
+  try {
+    const superRole = await prisma.userRole.findFirst({
+      where: { userId, role: { in: ["super_admin", "neo_admin"] } },
+    });
+    if (superRole) return true;
+    const m = await prisma.membership.findFirst({ where: { userId, organizationId: orgId } });
+    return !!m;
+  } catch (err) {
+    console.error("[dashboard] falha ao validar acesso", err);
+    return false;
+  }
+}
+
+function formatDatePt(date: Date | null | undefined) {
+  if (!date) return null;
+  try {
+    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
+function formatTimePt(date: Date) {
+  try {
+    return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  } catch {
+    return date.toISOString().slice(11, 16);
+  }
 }
 
 export type TodayItem = {
@@ -86,7 +108,7 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
           organizationId: orgId,
           userId,
           dismissedAt: null,
-          severity: { in: ["high", "critical"] as never },
+          severity: "high",
         },
         orderBy: { createdAt: "desc" },
         take: 8,
@@ -101,7 +123,7 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
       type: "delegation_overdue",
       priority: 1,
       title: d.title,
-      subtitle: `Atrasada${d.dueAt ? " desde " + d.dueAt.toLocaleDateString("pt-BR") : ""}`,
+      subtitle: `Atrasada${d.dueAt ? " desde " + formatDatePt(d.dueAt) : ""}`,
       cta: "Cobrar",
       href: "/app/organization/delegations",
     });
@@ -118,7 +140,7 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
     });
   }
   for (const o of upcoming1on1s) {
-    const when = o.scheduledAt.toLocaleString("pt-BR", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    const when = formatTimePt(o.scheduledAt);
     items.push({
       id: `oo-${o.id}`,
       type: "one_on_one",
@@ -135,7 +157,7 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
       type: "ritual_today",
       priority: 2,
       title: r.ritual.name,
-      subtitle: `Hoje às ${r.scheduledAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
+      subtitle: `Hoje às ${formatTimePt(r.scheduledAt)}`,
       cta: "Marcar feito",
       href: "/app/organization/rituals",
     });
@@ -146,7 +168,7 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
       type: "delegation_due_soon",
       priority: 3,
       title: d.title,
-      subtitle: d.dueAt ? `Vence em ${d.dueAt.toLocaleDateString("pt-BR")}` : "Sem prazo",
+      subtitle: d.dueAt ? `Vence em ${formatDatePt(d.dueAt)}` : "Sem prazo",
       cta: "Ver",
       href: "/app/organization/delegations",
     });
@@ -172,64 +194,69 @@ dashboardRouter.get("/:orgId/dashboard/today", async (req, res) => {
 });
 
 dashboardRouter.get("/:orgId/team/health-summary", async (req, res) => {
-  const orgId = req.params.orgId;
-  const userId = req.userId!;
-  if (!(await assertOrgAccess(userId, orgId))) return res.status(403).json({ error: "Forbidden" });
+  try {
+    const orgId = req.params.orgId;
+    const userId = req.userId!;
+    if (!(await assertOrgAccess(userId, orgId))) return res.status(403).json({ error: "Forbidden" });
 
-  const memberships = await prisma.membership.findMany({
-    where: { organizationId: orgId },
-    include: { user: { include: { profile: { select: { fullName: true, avatarUrl: true } } } } },
-    take: 100,
-  });
-  const userIds = memberships.map((m) => m.userId);
-  if (!userIds.length) {
-    return res.json({ score: null, delta: 0, membersAtRisk: 0, members: [] });
-  }
+    const memberships = await prisma.membership.findMany({
+      where: { organizationId: orgId },
+      include: { user: { include: { profile: { select: { fullName: true, avatarUrl: true } } } } },
+      take: 100,
+    });
+    const userIds = memberships.map((m) => m.userId);
+    if (!userIds.length) {
+      return res.json({ score: null, delta: 0, membersAtRisk: 0, members: [] });
+    }
 
-  const snapshots = await prisma.leadershipScoreSnapshot.findMany({
-    where: { organizationId: orgId, userId: { in: userIds } },
-    orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
-  }).catch(() => []);
+    const snapshots = await prisma.leadershipScoreSnapshot.findMany({
+      where: { organizationId: orgId, userId: { in: userIds } },
+      orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+    }).catch(() => []);
 
-  // pegar último snapshot de cada usuário e penúltimo pra delta
-  const byUser = new Map<string, typeof snapshots>();
-  for (const s of snapshots) {
-    const arr = byUser.get(s.userId) ?? [];
-    arr.push(s);
-    byUser.set(s.userId, arr);
-  }
+    // pegar último snapshot de cada usuário e penúltimo pra delta
+    const byUser = new Map<string, typeof snapshots>();
+    for (const s of snapshots) {
+      const arr = byUser.get(s.userId) ?? [];
+      arr.push(s);
+      byUser.set(s.userId, arr);
+    }
 
-  const members = memberships.map((m) => {
-    const list = byUser.get(m.userId) ?? [];
-    const current = list[0]?.score ?? null;
-    const previous = list[1]?.score ?? null;
-    const delta = current != null && previous != null ? current - previous : 0;
-    return {
-      membershipId: m.id,
-      userId: m.userId,
-      name: m.user.profile?.fullName ?? m.user.email,
-      avatarUrl: m.user.profile?.avatarUrl ?? null,
-      score: current,
-      delta,
-      atRisk: current != null && current < 60,
-    };
-  });
-
-  const scored = members.filter((x) => x.score != null);
-  const avg = scored.length ? Math.round(scored.reduce((s, x) => s + (x.score ?? 0), 0) / scored.length) : null;
-  const prevAvg = (() => {
-    const prev = members.map((m) => {
+    const members = memberships.map((m) => {
       const list = byUser.get(m.userId) ?? [];
-      return list[1]?.score;
-    }).filter((x): x is number => typeof x === "number");
-    return prev.length ? Math.round(prev.reduce((s, x) => s + x, 0) / prev.length) : null;
-  })();
-  const delta = avg != null && prevAvg != null ? avg - prevAvg : 0;
+      const current = list[0]?.score ?? null;
+      const previous = list[1]?.score ?? null;
+      const delta = current != null && previous != null ? current - previous : 0;
+      return {
+        membershipId: m.id,
+        userId: m.userId,
+        name: m.user.profile?.fullName ?? m.user.email,
+        avatarUrl: m.user.profile?.avatarUrl ?? null,
+        score: current,
+        delta,
+        atRisk: current != null && current < 60,
+      };
+    });
 
-  res.json({
-    score: avg,
-    delta,
-    membersAtRisk: members.filter((m) => m.atRisk).length,
-    members: members.sort((a, b) => (a.score ?? 999) - (b.score ?? 999)).slice(0, 12),
-  });
+    const scored = members.filter((x) => x.score != null);
+    const avg = scored.length ? Math.round(scored.reduce((s, x) => s + (x.score ?? 0), 0) / scored.length) : null;
+    const prevAvg = (() => {
+      const prev = members.map((m) => {
+        const list = byUser.get(m.userId) ?? [];
+        return list[1]?.score;
+      }).filter((x): x is number => typeof x === "number");
+      return prev.length ? Math.round(prev.reduce((s, x) => s + x, 0) / prev.length) : null;
+    })();
+    const delta = avg != null && prevAvg != null ? avg - prevAvg : 0;
+
+    res.json({
+      score: avg,
+      delta,
+      membersAtRisk: members.filter((m) => m.atRisk).length,
+      members: members.sort((a, b) => (a.score ?? 999) - (b.score ?? 999)).slice(0, 12),
+    });
+  } catch (err) {
+    console.error("[dashboard] falha ao carregar saúde do time", err);
+    res.status(500).json({ error: "Não foi possível carregar a saúde da equipe agora." });
+  }
 });
