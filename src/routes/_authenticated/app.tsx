@@ -80,6 +80,14 @@ const conscienciaOnlyMobileNav = [
   { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
 ] as const;
 
+type ShellNavItem = {
+  to: (typeof nav)[number]["to"] | (typeof conscienciaOnlyNav)[number]["to"];
+  label: string;
+  icon: (typeof nav)[number]["icon"];
+  section: string;
+  module: string;
+};
+
 function AppShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -175,7 +183,7 @@ function AppShell() {
     }
   };
 
-  const grouped = visibleNav.reduce<Record<string, typeof nav[number][]>>((acc, item) => {
+  const grouped = visibleNav.reduce<Record<string, ShellNavItem[]>>((acc, item) => {
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
