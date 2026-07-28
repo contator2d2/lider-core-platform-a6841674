@@ -30,6 +30,7 @@ import { TeamHealthPill } from "@/components/team/TeamHealthPill";
 import { useCurrentOrg } from "@/lib/use-current-org";
 
 export const Route = createFileRoute("/_authenticated/app")({
+  ssr: false,
   component: AppShell,
 });
 
