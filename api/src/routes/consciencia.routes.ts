@@ -62,15 +62,44 @@ conscienciaRouter.get("/:orgId/consciencia/me", asyncRoute(async (req, res) => {
   const [profile, commitments, signals] = await Promise.all([
     prisma.leaderProfile.findUnique({
       where: { organizationId_userId: { organizationId: orgId, userId } },
+      select: {
+        id: true,
+        declaredRole: true,
+        notMine: true,
+        assessmentType: true,
+        assessmentTraits: true,
+        sabotages: true,
+        communicationStyle: true,
+        mbtiType: true,
+        discPrimary: true,
+        egogramaTraits: true,
+        hardSelfScore: true,
+        softSelfScore: true,
+        heartSelfScore: true,
+        riskFlags: true,
+        strengths: true,
+        notes: true,
+        assessmentAt: true,
+        updatedAt: true,
+      },
+    }).catch((err) => {
+      console.error("[consciencia] falha ao carregar perfil", err);
+      return null;
     }),
     prisma.mentorshipCommitment.findMany({
       where: { organizationId: orgId, userId },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    }).catch((err) => {
+      console.error("[consciencia] falha ao carregar compromissos", err);
+      return [];
     }),
     prisma.crossSignal.findMany({
       where: { organizationId: orgId, userId, dismissedAt: null },
       orderBy: { createdAt: "desc" },
       take: 20,
+    }).catch((err) => {
+      console.error("[consciencia] falha ao carregar alertas", err);
+      return [];
     }),
   ]);
 
