@@ -33,6 +33,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { api } from "@/lib/api";
+import { useFeatures } from "@/lib/features";
 import { TodayList } from "@/components/dashboard/TodayList";
 import { ExplainButton } from "@/components/metrics/ExplainButton";
 import { VoiceCapture, type VoiceIntent } from "@/components/voice/VoiceCapture";
@@ -67,6 +68,20 @@ function LeadershipRoom() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { orgId, current } = useCurrentOrg();
+  const featuresQ = useFeatures();
+  useEffect(() => {
+    if (!featuresQ.data) return;
+    const roles = featuresQ.data.roles ?? [];
+    if (roles.includes("super_admin") || roles.includes("neo_admin")) return;
+    const mods = new Set<string>();
+    for (const [k, actions] of Object.entries(featuresQ.data.features ?? {})) {
+      if (Object.values(actions ?? {}).some(Boolean)) mods.add(k.split(".")[0]);
+    }
+    // Se só o módulo Consciência está liberado, joga direto no perfil.
+    if (mods.size === 1 && mods.has("consciencia")) {
+      navigate({ to: "/app/consciencia", replace: true });
+    }
+  }, [featuresQ.data, navigate]);
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
