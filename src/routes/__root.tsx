@@ -35,7 +35,7 @@ function installDomMutationGuard() {
   const originalInsertBefore = Node.prototype.insertBefore;
 
   Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
-    if (child.parentNode !== this) return child;
+    if (!child || child.parentNode !== this) return child;
     return originalRemoveChild.call(this, child) as T;
   };
 
@@ -115,6 +115,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  ssr: false,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
