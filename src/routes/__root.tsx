@@ -198,6 +198,34 @@ function RootShell({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
+                if (window.__liderCorePointerEventsGuardInstalled) return;
+                window.__liderCorePointerEventsGuardInstalled = true;
+                function clearIfStuck() {
+                  var body = document.body;
+                  if (!body) return;
+                  if (body.style.pointerEvents !== 'none') return;
+                  var anyOpen = document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]');
+                  if (!anyOpen) {
+                    body.style.pointerEvents = '';
+                  }
+                }
+                function watch() {
+                  if (!document.body) { setTimeout(watch, 50); return; }
+                  var mo = new MutationObserver(function () { clearIfStuck(); });
+                  mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+                  var mo2 = new MutationObserver(function () { clearIfStuck(); });
+                  mo2.observe(document.documentElement, { childList: true, subtree: true });
+                  setInterval(clearIfStuck, 500);
+                }
+                watch();
+              })();
+            `,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
                 if (window.__liderCoreServiceWorkerCleanupDone) return;
                 window.__liderCoreServiceWorkerCleanupDone = true;
                 var cleanupKey = 'lidercore-sw-cleaned-v5';
