@@ -42,6 +42,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/")({
+  ssr: false,
   component: LeadershipRoom,
 });
 
