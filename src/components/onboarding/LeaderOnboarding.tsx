@@ -7,13 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
+  ArrowLeft,
+  ArrowRight,
   Brain,
+  Briefcase,
   CheckCircle2,
   Compass,
   Gauge,
+  Lock,
   MessageSquare,
+  Phone,
+  ShieldCheck,
   Sparkles,
   Target,
+  User as UserIcon,
   Users,
   X,
 } from "lucide-react";
@@ -37,7 +44,8 @@ const TOUR_STEPS: Step[] = [
   {
     key: "profile",
     title: "Confirme seus dados",
-    description: "Isso ajuda o Coach de IA a personalizar suas orientações.",
+    description:
+      "Essas informações ajudam a IA Coach a personalizar suas orientações e recomendações.",
     icon: Brain,
   },
   {
@@ -110,6 +118,7 @@ export function LeaderOnboarding() {
   const Icon = step.icon;
 
   const percent = useMemo(() => Math.round(((idx + 1) / total) * 100), [idx, total]);
+  void percent;
 
   const persist = async (payload: {
     step?: string;
@@ -164,69 +173,106 @@ export function LeaderOnboarding() {
   if (!open || !user) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-        <button
-          onClick={skip}
-          aria-label="Pular"
-          className="absolute right-3 top-3 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="h-1 w-full bg-secondary">
-          <div
-            className="h-full bg-accent transition-all duration-500"
-            style={{ width: `${percent}%` }}
-          />
+    <div className="fixed inset-x-0 top-[60px] bottom-[68px] z-40 overflow-y-auto bg-background md:top-[68px] md:bottom-0">
+      <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col px-5 py-6 md:px-8 md:py-10">
+        {/* Stepper */}
+        <div className="mb-6 flex items-center justify-between gap-2">
+          <div className="flex flex-1 items-center">
+            {TOUR_STEPS.map((_, i) => {
+              const done = i < idx;
+              const active = i === idx;
+              return (
+                <div key={i} className="flex flex-1 items-center last:flex-none">
+                  <div
+                    className={
+                      "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold transition-colors " +
+                      (done
+                        ? "bg-accent text-accent-foreground"
+                        : active
+                        ? "bg-accent text-accent-foreground ring-4 ring-accent/20"
+                        : "bg-secondary text-muted-foreground")
+                    }
+                  >
+                    {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
+                  </div>
+                  {i < total - 1 && (
+                    <div
+                      className={
+                        "h-[2px] flex-1 " + (done ? "bg-accent" : "bg-secondary")
+                      }
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={skip}
+            aria-label="Fechar"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="px-8 pb-6 pt-8">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-accent/15 text-accent">
-              <Icon className="h-5 w-5" />
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+              Passo {idx + 1} de {total}
             </div>
-            <div>
-              <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Passo {idx + 1} de {total}
+            <h2 className="font-display text-4xl font-bold leading-[1.05] tracking-tight text-foreground md:text-5xl">
+              {step.title}
+            </h2>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+              {step.description}
+            </p>
+          </div>
+          <div className="relative hidden shrink-0 sm:block">
+            <div
+              aria-hidden
+              className="absolute -inset-4 rounded-3xl bg-[radial-gradient(circle_at_center,theme(colors.accent/25),transparent_70%)]"
+            />
+            <div className="relative grid h-24 w-24 place-items-center rounded-3xl border border-border bg-card shadow-lg">
+              <Icon className="h-11 w-11 text-accent" strokeWidth={1.6} />
+              <div className="absolute -bottom-2 -right-2 grid h-8 w-8 place-items-center rounded-full bg-accent text-accent-foreground shadow-md">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
-              <h2 className="font-display text-2xl">{step.title}</h2>
             </div>
           </div>
+        </div>
 
-          <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
-
+        {/* Body */}
+        <div className="flex-1">
           {step.key === "profile" && (
-            <div className="mt-5 grid gap-3">
-              <div className="space-y-1.5">
-                <Label>Nome completo</Label>
-                <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Seu nome"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Cargo / Função</Label>
-                <Input
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="Ex.: Líder de célula, Pastor, Gerente…"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>WhatsApp (com DDD)</Label>
-                <Input
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="5511999999999"
-                />
-              </div>
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+              <FieldRow
+                icon={UserIcon}
+                label="Nome completo"
+                value={fullName}
+                onChange={setFullName}
+                placeholder="Seu nome"
+              />
+              <FieldRow
+                icon={Briefcase}
+                label="Cargo / Função"
+                value={jobTitle}
+                onChange={setJobTitle}
+                placeholder="Ex.: Líder de célula, Pastor, Gerente…"
+              />
+              <FieldRow
+                icon={Phone}
+                label="WhatsApp (com DDD)"
+                value={whatsapp}
+                onChange={setWhatsapp}
+                placeholder="55 11 99999-9999"
+                hint="Usaremos esse número apenas para envio dos pulsos."
+              />
             </div>
           )}
 
           {step.key === "welcome" && (
-            <div className="mt-5 grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {[
                 { i: Brain, t: "Consciência" },
                 { i: Users, t: "Organização" },
@@ -237,34 +283,97 @@ export function LeaderOnboarding() {
               ].map(({ i: I, t }) => (
                 <div
                   key={t}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2"
+                  className="flex items-center gap-2.5 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm"
                 >
-                  <I className="h-3.5 w-3.5 text-accent" />
-                  <span>{t}</span>
+                  <div className="grid h-8 w-8 place-items-center rounded-full bg-accent/10">
+                    <I className="h-4 w-4 text-accent" />
+                  </div>
+                  <span className="text-sm font-medium">{t}</span>
                 </div>
               ))}
             </div>
           )}
-        </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border bg-background/40 px-8 py-4">
-          <button
-            onClick={skip}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            Pular tour
-          </button>
-          <div className="flex items-center gap-2">
-            {step.cta && (
-              <Button variant="outline" size="sm" onClick={goCta}>
+          {step.cta && step.key !== "welcome" && step.key !== "profile" && (
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Você pode abrir esta seção agora para explorar antes de continuar.
+              </p>
+              <Button variant="outline" onClick={goCta}>
                 {step.cta.label}
               </Button>
-            )}
-            <Button size="sm" onClick={next} disabled={saving}>
-              {saving ? "Salvando…" : isLast ? "Concluir" : "Próximo"}
-            </Button>
+            </div>
+          )}
+
+          {/* Privacy card */}
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-4">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/15">
+              <Lock className="h-4 w-4 text-accent" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-semibold">Seus dados estão protegidos</div>
+              <p className="text-xs text-muted-foreground">
+                Suas informações são seguras e não compartilhadas com terceiros.
+              </p>
+            </div>
+            <ShieldCheck className="h-5 w-5 shrink-0 text-accent/70" />
           </div>
         </div>
+
+        {/* Footer buttons */}
+        <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 bg-background pt-4">
+          <Button
+            variant="outline"
+            className="h-12 rounded-2xl px-5"
+            onClick={() => (idx === 0 ? skip() : setIdx((i) => i - 1))}
+            disabled={saving}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {idx === 0 ? "Pular" : "Voltar"}
+          </Button>
+          <Button
+            className="h-12 flex-1 rounded-2xl bg-foreground text-background hover:bg-foreground/90"
+            onClick={next}
+            disabled={saving}
+          >
+            {saving ? "Salvando…" : isLast ? "Concluir" : "Próximo"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldRow({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-6 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-12 rounded-xl border-border bg-background"
+        />
+        {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       </div>
     </div>
   );
