@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
@@ -12,6 +12,14 @@ import { requireAuth } from "../auth.js";
  */
 export const conscienciaRouter = Router();
 conscienciaRouter.use(requireAuth);
+
+function asyncRoute(
+  handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
+) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    void handler(req, res, next).catch(next);
+  };
+}
 
 async function isSuper(userId: string) {
   const r = await prisma.userRole.findFirst({
@@ -29,31 +37,69 @@ function badReq(res: Response, err: unknown) {
 }
 
 conscienciaRouter.param("orgId", async (req, res, next, orgId) => {
-  if (!(await assertOrgAccess(req.userId!, orgId))) {
-    return res.status(403).json({ error: "Forbidden" });
+  const userId = req.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    if (!(await assertOrgAccess(userId, orgId))) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    next();
+  } catch (err) {
+    console.error("[consciencia] falha ao validar acesso", err);
+    res.status(500).json({ error: "Não foi possível validar seu acesso agora." });
   }
-  next();
 });
 
 // ------------------------------------------------------------
 // GET /:orgId/consciencia/me — perfil + compromissos + alertas
 // ------------------------------------------------------------
-conscienciaRouter.get("/:orgId/consciencia/me", async (req, res) => {
-  const userId = req.userId!;
+conscienciaRouter.get("/:orgId/consciencia/me", asyncRoute(async (req, res) => {
+  const userId = req.userId;
   const orgId = req.params.orgId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
   const [profile, commitments, signals] = await Promise.all([
     prisma.leaderProfile.findUnique({
       where: { organizationId_userId: { organizationId: orgId, userId } },
+      select: {
+        id: true,
+        declaredRole: true,
+        notMine: true,
+        assessmentType: true,
+        assessmentTraits: true,
+        sabotages: true,
+        communicationStyle: true,
+        mbtiType: true,
+        discPrimary: true,
+        egogramaTraits: true,
+        hardSelfScore: true,
+        softSelfScore: true,
+        heartSelfScore: true,
+        riskFlags: true,
+        strengths: true,
+        notes: true,
+        assessmentAt: true,
+        updatedAt: true,
+      },
+    }).catch((err) => {
+      console.error("[consciencia] falha ao carregar perfil", err);
+      return null;
     }),
     prisma.mentorshipCommitment.findMany({
       where: { organizationId: orgId, userId },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    }).catch((err) => {
+      console.error("[consciencia] falha ao carregar compromissos", err);
+      return [];
     }),
     prisma.crossSignal.findMany({
       where: { organizationId: orgId, userId, dismissedAt: null },
       orderBy: { createdAt: "desc" },
       take: 20,
+    }).catch((err) => {
+      console.error("[consciencia] falha ao carregar alertas", err);
+      return [];
     }),
   ]);
 
@@ -62,7 +108,7 @@ conscienciaRouter.get("/:orgId/consciencia/me", async (req, res) => {
     : profile != null;
 
   res.json({ profile, commitments, signals, assessmentStale: stale });
-});
+}));
 
 // ------------------------------------------------------------
 // PUT /:orgId/consciencia/me — upsert do meu perfil
@@ -178,7 +224,7 @@ conscienciaRouter.put("/:orgId/consciencia/me", async (req, res) => {
 // ------------------------------------------------------------
 // COVERAGE — só quantitativo, jamais conteúdo
 // ------------------------------------------------------------
-conscienciaRouter.get("/:orgId/consciencia/coverage", async (req, res) => {
+conscienciaRouter.get("/:orgId/consciencia/coverage", asyncRoute(async (req, res) => {
   const orgId = req.params.orgId;
   const [totalMembers, profiled, assessed] = await Promise.all([
     prisma.membership.count({ where: { organizationId: orgId } }),
@@ -188,7 +234,7 @@ conscienciaRouter.get("/:orgId/consciencia/coverage", async (req, res) => {
     }),
   ]);
   res.json({ totalMembers, profiled, assessed });
-});
+}));
 
 // ------------------------------------------------------------
 // COMPROMISSOS de mentoria (CRUD do próprio usuário)
@@ -238,14 +284,14 @@ conscienciaRouter.patch("/:orgId/consciencia/commitments/:id", async (req, res) 
   }
 });
 
-conscienciaRouter.delete("/:orgId/consciencia/commitments/:id", async (req, res) => {
+conscienciaRouter.delete("/:orgId/consciencia/commitments/:id", asyncRoute(async (req, res) => {
   const existing = await prisma.mentorshipCommitment.findUnique({ where: { id: req.params.id } });
   if (!existing || existing.userId !== req.userId) return res.status(404).json({ error: "Not found" });
   await prisma.mentorshipCommitment.delete({ where: { id: req.params.id } });
   res.status(204).end();
-});
+}));
 
-conscienciaRouter.post("/:orgId/consciencia/signals/:id/dismiss", async (req, res) => {
+conscienciaRouter.post("/:orgId/consciencia/signals/:id/dismiss", asyncRoute(async (req, res) => {
   const s = await prisma.crossSignal.findUnique({ where: { id: req.params.id } });
   if (!s || (s.userId && s.userId !== req.userId)) return res.status(404).json({ error: "Not found" });
   await prisma.crossSignal.update({
@@ -253,7 +299,7 @@ conscienciaRouter.post("/:orgId/consciencia/signals/:id/dismiss", async (req, re
     data: { dismissedAt: new Date() },
   });
   res.status(204).end();
-});
+}));
 
 // ============================================================
 // MOTOR DE ALERTAS CRUZADOS
@@ -567,13 +613,13 @@ const agendaSchema = z.object({
   source: z.string().optional(),
 });
 
-conscienciaRouter.get("/:orgId/consciencia/agenda", async (req, res) => {
+conscienciaRouter.get("/:orgId/consciencia/agenda", asyncRoute(async (req, res) => {
   const items = await prisma.leaderAgendaItem.findMany({
     where: { organizationId: req.params.orgId, userId: req.userId! },
     orderBy: [{ done: "asc" }, { scheduledAt: "asc" }, { createdAt: "desc" }],
   });
   res.json({ items });
-});
+}));
 
 conscienciaRouter.post("/:orgId/consciencia/agenda", async (req, res) => {
   try {
@@ -626,7 +672,7 @@ conscienciaRouter.patch("/:orgId/consciencia/agenda/:id", async (req, res) => {
   }
 });
 
-conscienciaRouter.delete("/:orgId/consciencia/agenda/:id", async (req, res) => {
+conscienciaRouter.delete("/:orgId/consciencia/agenda/:id", asyncRoute(async (req, res) => {
   const existing = await prisma.leaderAgendaItem.findUnique({
     where: { id: req.params.id },
   });
@@ -634,13 +680,13 @@ conscienciaRouter.delete("/:orgId/consciencia/agenda/:id", async (req, res) => {
     return res.status(404).json({ error: "Not found" });
   await prisma.leaderAgendaItem.delete({ where: { id: req.params.id } });
   res.status(204).end();
-});
+}));
 
 // -------- Mapa comportamental dos liderados --------
-conscienciaRouter.get("/:orgId/consciencia/subordinate-map", async (req, res) => {
+conscienciaRouter.get("/:orgId/consciencia/subordinate-map", asyncRoute(async (req, res) => {
   const items = await prisma.subordinateAssessment.findMany({
     where: { organizationId: req.params.orgId, leaderId: req.userId! },
     orderBy: { updatedAt: "desc" },
   });
   res.json({ items });
-});
+}));

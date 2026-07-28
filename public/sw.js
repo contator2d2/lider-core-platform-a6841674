@@ -1,10 +1,9 @@
 // Fase 4 · Item 20 — Modo offline + fila de sincronização.
 // Cache-first para assets estáticos, network-first para navegação,
 // e Background Sync para POSTs feitos sem rede (rituais/kudos/pulsos/etc).
-const CACHE = "lidercore-v2";
+const CACHE = "lidercore-v3";
 const QUEUE_STORE = "lidercore-queue";
 const ASSETS = [
-  "/",
   "/manifest.webmanifest",
   "/favicon.png",
   "/icon-192.png",
@@ -55,15 +54,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML: network-first com fallback pro cache
+  // HTML autenticado/navegação: não cachear. HTML antigo + bundle novo causa
+  // hydration mismatch (#418) após deploy. Se estiver offline, deixa o browser
+  // falhar normalmente em vez de renderizar shell desatualizado.
   event.respondWith(
-    fetch(req)
-      .then((resp) => {
-        const copy = resp.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy).catch(() => undefined));
-        return resp;
-      })
-      .catch(() => caches.match(req).then((hit) => hit ?? caches.match("/"))),
+    fetch(req).catch(() =>
+      new Response("Você está offline. Recarregue quando a conexão voltar.", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }),
+    ),
   );
 });
 
