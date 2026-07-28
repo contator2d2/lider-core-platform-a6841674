@@ -20,6 +20,12 @@ import {
   Target,
   Trash2,
   X,
+  ArrowRight,
+  Pencil,
+  Quote,
+  TrendingUp,
+  User,
+  CalendarClock,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
