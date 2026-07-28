@@ -234,7 +234,7 @@ export function LeaderOnboarding() {
               className="absolute -inset-4 rounded-3xl bg-[radial-gradient(circle_at_center,theme(colors.accent/25),transparent_70%)]"
             />
             <div className="relative grid h-24 w-24 place-items-center rounded-3xl border border-border bg-card shadow-lg">
-              <Icon className="h-11 w-11 text-accent" strokeWidth={1.6} />
+              <Icon className="h-11 w-11 text-accent" />
               <div className="absolute -bottom-2 -right-2 grid h-8 w-8 place-items-center rounded-full bg-accent text-accent-foreground shadow-md">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
