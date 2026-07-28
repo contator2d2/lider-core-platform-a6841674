@@ -13,9 +13,6 @@ self.addEventListener("activate", (event) => {
     Promise.all([
       caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
       self.registration.unregister(),
-      self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
-        clients.forEach((client) => client.navigate(client.url));
-      }),
     ]),
   );
 });

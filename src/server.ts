@@ -21,17 +21,35 @@ async function getServerEntry(): Promise<ServerEntry> {
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
-  if (response.status < 500) return response;
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) return response;
+  const responseWithCacheHeaders = withDocumentCacheHeaders(response);
+  if (responseWithCacheHeaders.status < 500) return responseWithCacheHeaders;
+  const contentType = responseWithCacheHeaders.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return responseWithCacheHeaders;
 
-  const body = await response.clone().text();
-  if (!isH3SwallowedErrorBody(body)) return response;
+  const body = await responseWithCacheHeaders.clone().text();
+  if (!isH3SwallowedErrorBody(body)) return responseWithCacheHeaders;
 
   console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
+  });
+}
+
+function withDocumentCacheHeaders(response: Response): Response {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("cache-control", "no-store, max-age=0, must-revalidate");
+  headers.set("pragma", "no-cache");
+  headers.set("expires", "0");
+  headers.set("x-lidercore-html-version", "no-sw-v5");
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
   });
 }
 

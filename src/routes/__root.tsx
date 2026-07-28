@@ -199,25 +199,22 @@ function RootShell({ children }: { children: ReactNode }) {
               (function () {
                 if (window.__liderCoreServiceWorkerCleanupDone) return;
                 window.__liderCoreServiceWorkerCleanupDone = true;
-                var cleanupKey = 'lidercore-sw-cleaned-v4';
-                var shouldReload = false;
-                function reloadOnce() {
-                  if (!shouldReload || sessionStorage.getItem(cleanupKey) === '1') return;
+                var cleanupKey = 'lidercore-sw-cleaned-v5';
+                if (navigator.serviceWorker && navigator.serviceWorker.controller && sessionStorage.getItem(cleanupKey) !== '1') {
                   sessionStorage.setItem(cleanupKey, '1');
-                  window.location.reload();
+                  window.location.replace(window.location.href);
+                  return;
                 }
                 if ('serviceWorker' in navigator) {
                   navigator.serviceWorker.getRegistrations().then(function (regs) {
-                    shouldReload = shouldReload || regs.length > 0 || !!navigator.serviceWorker.controller;
                     return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
-                  }).then(reloadOnce).catch(function () {});
+                  }).catch(function () {});
                 }
                 if ('caches' in window) {
                   caches.keys().then(function (keys) {
                     var liderCoreCaches = keys.filter(function (key) { return key.indexOf('lidercore-') === 0; });
-                    shouldReload = shouldReload || liderCoreCaches.length > 0;
                     return Promise.all(liderCoreCaches.map(function (key) { return caches.delete(key); }));
-                  }).then(reloadOnce).catch(function () {});
+                  }).catch(function () {});
                 }
               })();
             `,
