@@ -265,7 +265,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ClientOnly fallback={<AppBootFallback />}>
+      <ClientOnly fallback={null}>
         <AuthProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
@@ -275,10 +275,3 @@ function RootComponent() {
   );
 }
 
-function AppBootFallback() {
-  return (
-    <div className="grid min-h-screen place-items-center bg-background px-6 text-center text-sm text-muted-foreground">
-      Carregando Líder C.O.R.E.…
-    </div>
-  );
-}
