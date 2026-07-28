@@ -157,19 +157,86 @@ function ConscienciaPage() {
   const commitments = data?.commitments ?? [];
   const signals = data?.signals ?? [];
 
+  // ---------- Trilha do perfil (steps) ----------
+  const behavioralDone = !!(profile?.discPrimary || profile?.mbtiType);
+  const roleDone = !!(profile?.declaredRole && profile.declaredRole.trim().length > 0);
+  const sabCount = profile?.sabotages?.length ?? 0;
+  const sabotagesState: "done" | "progress" | "pending" =
+    sabCount >= 3 ? "done" : sabCount > 0 ? "progress" : "pending";
+  const activeCommitments = commitments.filter((c) => c.status !== "done" && c.status !== "dropped").length;
+  const evolutionDone = activeCommitments > 0;
+
+  const trilha = [
+    {
+      key: "behavioral",
+      icon: Brain,
+      title: "Perfil Comportamental",
+      subtitle: profile?.discPrimary || profile?.mbtiType
+        ? `${profile?.discPrimary ? "DISC " + profile.discPrimary : "DISC —"} · ${profile?.mbtiType || "MBTI —"}`
+        : "DISC · MBTI",
+      state: behavioralDone ? "done" : "pending",
+      to: "/app/consciencia/assessment",
+    },
+    {
+      key: "role",
+      icon: User,
+      title: "Meu Papel",
+      subtitle: "Função e responsabilidades",
+      state: roleDone ? "done" : "pending",
+      to: "/app/consciencia",
+      openProfile: true,
+    },
+    {
+      key: "sabotages",
+      icon: Zap,
+      title: "Sabotadores",
+      subtitle: sabCount > 0 ? `${sabCount} identificado${sabCount > 1 ? "s" : ""}` : "Identifique os principais",
+      state: sabotagesState,
+      to: "/app/consciencia",
+      openProfile: true,
+    },
+    {
+      key: "evolution",
+      icon: TrendingUp,
+      title: "Plano de Evolução",
+      subtitle: activeCommitments > 0 ? `${activeCommitments} meta${activeCommitments > 1 ? "s" : ""} ativa${activeCommitments > 1 ? "s" : ""}` : "Defina suas próximas metas",
+      state: evolutionDone ? "done" : "pending",
+      to: "/app/consciencia/pdi",
+    },
+  ] as const;
+
+  const completedSteps = trilha.filter((s) => s.state === "done").length;
+  const progressPct = Math.round((completedSteps / trilha.length) * 100);
+  const missingSteps = trilha.length - completedSteps;
+  const nextStep = trilha.find((s) => s.state !== "done") ?? null;
+
+  // Evolução geral (média das autoavaliações H·S·H)
+  const hshValues = [profile?.hardSelfScore, profile?.softSelfScore, profile?.heartSelfScore].filter(
+    (v): v is number => typeof v === "number",
+  );
+  const evolutionAvg = hshValues.length ? Math.round(hshValues.reduce((a, b) => a + b, 0) / hshValues.length) : null;
+
+  // Histórico recente — deriva do que temos disponível
+  const history: Array<{ when: string; label: string; done: boolean }> = [];
+  if (profile?.updatedAt) history.push({ when: relativeDay(profile.updatedAt), label: "Você atualizou seu perfil", done: true });
+  if (profile?.discPrimary) history.push({ when: relativeDay(profile.assessmentAt ?? profile.updatedAt), label: `DISC ${profile.discPrimary} concluído`, done: true });
+  if (profile?.mbtiType) history.push({ when: relativeDay(profile.assessmentAt ?? profile.updatedAt), label: `MBTI ${profile.mbtiType} concluído`, done: true });
+
+  const primaryInsight = signals[0] ?? null;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-24">
+    <div className="mx-auto max-w-md space-y-5 pb-24 md:max-w-3xl">
       {/* Header */}
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-accent">
             Módulo C — Consciência
           </div>
-          <h1 className="mt-2 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-5xl">
-            Meu perfil<br/>de liderança
+          <h1 className="mt-1.5 font-display text-3xl font-bold leading-[1.05] tracking-tight md:text-4xl">
+            Meu Perfil
           </h1>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-            Este espaço é privado. Só você vê conteúdo detalhado. A organização vê apenas se o perfil existe.
+          <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">
+            Conheça melhor a si mesmo e lidere com consciência todos os dias.
           </p>
         </div>
         {canEditProfile && (
@@ -177,10 +244,10 @@ function ConscienciaPage() {
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background shadow-sm transition-transform hover:scale-[1.02] active:scale-100"
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-[11px] font-semibold text-background shadow-sm transition-transform hover:scale-[1.02] active:scale-100"
               >
-                <Brain className="h-3.5 w-3.5 text-accent" />
-                {profile ? "Atualizar perfil" : "Preencher perfil"}
+                <Pencil className="h-3.5 w-3.5" />
+                Atualizar perfil
               </button>
             </DialogTrigger>
             <ProfileDialog
@@ -195,267 +262,299 @@ function ConscienciaPage() {
         )}
       </header>
 
-      {/* Featured: assessment guiado (peach card) */}
-      <Feature featureKey="consciencia.assessment_wizard">
-        <Link
-          to="/app/consciencia/assessment"
-          className="group flex items-center gap-4 rounded-2xl border border-accent/30 bg-accent/10 p-4 transition-shadow hover:shadow-md md:p-5"
-        >
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/20 text-accent">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-              Assessment guiado
-            </div>
-            <div className="mt-0.5 font-display text-base font-bold leading-snug md:text-lg">
-              Fluxo passo a passo do módulo C
-            </div>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
-              Papel, DISC, MBTI, sabotadores, riscos e autoavaliação Hard · Soft · Heart em 5 minutos.
-            </p>
-          </div>
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-accent shadow-sm transition-transform group-hover:translate-x-0.5">
-            <ChevronRight className="h-4 w-4" />
-          </div>
-        </Link>
-      </Feature>
-
-      {/* Feature list (mockup style) */}
-      <section className="space-y-3">
-        <Feature featureKey="consciencia.activity">
-          <FeatureRow
-            to="/app/consciencia/activity"
-            icon={ClipboardList}
-            eyebrow="Descrição de atividades"
-            title="O que você faz de verdade"
-            description="Alimenta o PDI automático e a trilha do coach."
-            purpose={[
-              "Registrar as atividades reais do seu dia como líder (rituais, decisões, entregas).",
-              "Serve de insumo para o motor cruzar comportamento × rotina × resultado.",
-              "Sem isso, o PDI automático fica genérico e o coach não sabe onde atuar.",
-            ]}
-          />
-        </Feature>
-        <Feature featureKey="consciencia.pdi_auto">
-          <FeatureRow
-            to="/app/consciencia/pdi"
-            icon={Zap}
-            eyebrow="PDI automático"
-            title="Radar × sabotadores × atividades"
-            description="Cruza tudo e devolve um esqueleto de PDI pronto."
-            purpose={[
-              "Gera um Plano de Desenvolvimento Individual a partir do seu Radar H·S·H, sabotadores e rotina.",
-              "Aponta 2–3 focos prioritários de evolução com ações concretas.",
-              "Você edita, aprova e acompanha a execução dentro do app.",
-            ]}
-          />
-        </Feature>
-        <Feature featureKey="consciencia.coach_track">
-          <FeatureRow
-            to="/app/consciencia/coach"
-            icon={Target}
-            eyebrow="Trilha do coach C.O.R.E."
-            title="Prática periódica travada na metodologia"
-            description="Semanal, quinzenal ou mensal — foco no que está mais frágil."
-            purpose={[
-              "Trilha guiada de práticas curtas, ancorada nos pilares C.O.R.E.",
-              "Prioriza automaticamente a dimensão mais frágil do seu radar.",
-              "Cadência configurável (semanal, quinzenal ou mensal) para virar hábito.",
-            ]}
-          />
-        </Feature>
-        <Feature featureKey="consciencia.voice_agenda">
-          <FeatureRow
-            to="/app/consciencia/agenda"
-            icon={CalendarDays}
-            eyebrow="Agenda de liderança"
-            title="Ações, 1:1s, feedbacks e delegações"
-            description="Registra manual ou por voz — não perde o combinado."
-            purpose={[
-              "Centraliza tudo o que ficou combinado com o time em um só lugar.",
-              "Captura por voz (FAB do microfone) e roteamento automático para 1:1, feedback ou delegação.",
-              "Gera lembretes e sinaliza compromissos vencidos.",
-            ]}
-          />
-        </Feature>
-      </section>
-
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
         </div>
       )}
 
-      {!isLoading && !profile && (
-        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 md:p-5">
-          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
-            <Brain className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-base font-bold md:text-lg">Ainda não há perfil registrado</div>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
-              Sem consciência não há sustentação. Registre papel, assessment e riscos de comportamento para o motor cruzar com os fatos operacionais.
-            </p>
-          </div>
-          {canEditProfile && (
+      {/* Progresso */}
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="text-sm font-semibold">Seu progresso</div>
+        <div className="mt-4 flex items-center gap-5">
+          <ProgressGauge value={progressPct} />
+          <div className="min-w-0 flex-1 text-[13px] leading-relaxed text-muted-foreground">
+            {missingSteps > 0
+              ? <>Falta{missingSteps > 1 ? "m" : ""} <strong className="text-foreground">{missingSteps} etapa{missingSteps > 1 ? "s" : ""}</strong> para concluir seu perfil</>
+              : "Perfil completo. Continue evoluindo com a trilha."}
             <button
               type="button"
-              onClick={() => setProfileOpen(true)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background shadow-sm hover:opacity-90"
+              onClick={() => document.getElementById("trilha")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="mt-2 flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
             >
-              Começar agora <ChevronRight className="h-3.5 w-3.5" />
+              Ver trilha <ArrowRight className="h-3 w-3" />
             </button>
-          )}
-        </div>
-      )}
-
-      {profile && (
-        <Feature featureKey="consciencia.hsh">
-          <HSHPanel profile={profile} />
-        </Feature>
-      )}
-
-      {profile && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <SummaryCard
-            title="Força principal"
-            value={profile.strengths[0] ?? "—"}
-            icon={Sparkles}
-            hint={profile.strengths.slice(1).join(" · ")}
-          />
-          <SummaryCard
-            title="Risco declarado"
-            value={profile.riskFlags[0] ? labelRisk(profile.riskFlags[0]) : "—"}
-            icon={ShieldAlert}
-            hint={profile.riskFlags.slice(1).map(labelRisk).join(" · ")}
-          />
-          <SummaryCard
-            title="Assessment"
-            value={profile.assessmentType ? labelAssessment(profile.assessmentType) : "Não feito"}
-            icon={Target}
-            hint={
-              profile.assessmentAt
-                ? `Atualizado em ${new Date(profile.assessmentAt).toLocaleDateString("pt-BR")}`
-                : "Sem data"
-            }
-            warn={data?.assessmentStale}
-          />
-        </div>
-      )}
-
-      {/* Alertas cruzados */}
-      <Feature featureKey="consciencia.cross_signals">
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-xl">Alertas cruzados</h2>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">{signals.length}</span>
-        </div>
-        {signals.length === 0 && (
-          <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
-            Nenhum alerta ativo. O motor cruza seu perfil com rituais, delegações e indicadores em tempo real.
           </div>
-        )}
-        <ul className="space-y-3">
-          {signals.map((s) => (
-            <li key={s.id} className="rounded-xl border border-border bg-background p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div
-                    className={
-                      "mt-0.5 rounded-full p-1.5 " +
-                      (s.severity === "high"
-                        ? "bg-destructive/15 text-destructive"
-                        : s.severity === "medium"
-                        ? "bg-accent/20 text-accent"
-                        : "bg-secondary text-muted-foreground")
-                    }
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{s.title}</div>
-                    <p className="mt-1 text-sm text-muted-foreground">{s.detail}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => dismiss.mutate(s.id)}
-                  className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  aria-label="Descartar"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        </div>
       </section>
-      </Feature>
 
-      {/* Compromissos */}
-      <Feature featureKey="consciencia.commitments">
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-xl">Compromissos de mentoria</h2>
-          {canEditCommitments && (
-          <Dialog open={commitmentOpen} onOpenChange={setCommitmentOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Plus className="h-3.5 w-3.5" /> Novo compromisso
-              </Button>
-            </DialogTrigger>
-            <CommitmentDialog
-              orgId={orgId!}
-              onDone={() => {
-                setCommitmentOpen(false);
-                qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
+      {/* Trilha */}
+      <section id="trilha" className="space-y-3">
+        <div className="text-sm font-semibold">Sua trilha</div>
+        <ul className="space-y-2.5">
+          {trilha.map((step) => (
+            <TrilhaItem
+              key={step.key}
+              icon={step.icon}
+              title={step.title}
+              subtitle={step.subtitle}
+              state={step.state}
+              onClick={() => {
+                if (step.openProfile && canEditProfile) setProfileOpen(true);
+                else window.location.assign(step.to);
               }}
             />
-          </Dialog>
-          )}
-        </div>
-        {commitments.length === 0 && (
-          <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-muted-foreground">
-            Nenhum compromisso ativo. Registre uma frase-âncora vinda da sua última mentoria.
-          </div>
-        )}
-        <ul className="space-y-2">
-          {commitments.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-4">
-              <div className="flex-1">
-                <div className={"text-sm " + (c.status === "done" ? "text-muted-foreground line-through" : "font-medium")}>
-                  {c.phrase}
-                </div>
-                <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {labelCommitmentStatus(c.status)}
-                  {c.reviewAt && ` · rever em ${new Date(c.reviewAt).toLocaleDateString("pt-BR")}`}
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                {c.status !== "done" && (
-                  <button
-                    onClick={() => patchCommitment.mutate({ id: c.id, status: "done" })}
-                    className="rounded-full p-2 text-success hover:bg-success/10"
-                    aria-label="Marcar cumprido"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  onClick={() => delCommitment.mutate(c.id)}
-                  className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  aria-label="Remover"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </li>
           ))}
         </ul>
       </section>
+
+      {/* Próximo passo */}
+      {nextStep && (
+        <section className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background text-accent shadow-sm">
+              <CalendarClock className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-accent">
+                Próximo passo · Hoje
+              </div>
+              <div className="mt-0.5 truncate text-sm font-semibold">
+                Continue: {nextStep.title}
+              </div>
+              <div className="text-[11px] text-muted-foreground">5 minutos</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (nextStep.openProfile && canEditProfile) setProfileOpen(true);
+                else window.location.assign(nextStep.to);
+              }}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-[11px] font-semibold text-background shadow-sm transition-transform hover:scale-[1.02]"
+            >
+              Continuar <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Evolução + Insights */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Minha evolução
+          </div>
+          <div className="mt-2 flex items-baseline gap-1">
+            <span className="font-display text-3xl font-bold">{evolutionAvg ?? "—"}</span>
+            <span className="text-xs text-muted-foreground">%</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">Evolução geral</div>
+          <MiniSpark values={hshValues.length ? hshValues : [30, 45, 60]} />
+          <Link to="/app/evolution" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-accent">
+            Ver detalhes <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Insights de hoje
+          </div>
+          <div className="mt-2 flex items-start gap-2 text-[13px] leading-snug">
+            <Quote className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+            <p className="text-foreground">
+              {primaryInsight?.detail ?? "Você tende a decidir rápido e a assumir responsabilidades."}
+            </p>
+          </div>
+          <Link to="/app/coach" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-accent">
+            Ver insights <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Histórico */}
+      {history.length > 0 && (
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="text-sm font-semibold">Histórico recente</div>
+          <ul className="mt-3 space-y-3">
+            {history.slice(0, 4).map((h, i) => (
+              <li key={i} className="flex items-center gap-3 text-[13px]">
+                <div className="relative flex flex-col items-center">
+                  <div className={"h-2.5 w-2.5 rounded-full " + (i === 0 ? "bg-accent ring-4 ring-accent/20" : "border border-border bg-background")} />
+                </div>
+                <div className="w-16 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {h.when}
+                </div>
+                <div className="min-w-0 flex-1 truncate text-foreground/90">{h.label}</div>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* CTA final */}
+      {canEditProfile && (
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-semibold shadow-sm transition-colors hover:bg-secondary/60"
+        >
+          <Pencil className="h-4 w-4" /> Editar perfil
+        </button>
+      )}
+
+      {/* Alertas cruzados (mantido, discreto) */}
+      <Feature featureKey="consciencia.cross_signals">
+        {signals.length > 0 && (
+          <section>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Alertas cruzados</h2>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{signals.length}</span>
+            </div>
+            <ul className="space-y-2">
+              {signals.map((s) => (
+                <li key={s.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <div
+                        className={
+                          "mt-0.5 rounded-full p-1 " +
+                          (s.severity === "high"
+                            ? "bg-destructive/15 text-destructive"
+                            : s.severity === "medium"
+                            ? "bg-accent/20 text-accent"
+                            : "bg-secondary text-muted-foreground")
+                        }
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-medium">{s.title}</div>
+                        <p className="mt-0.5 text-[12px] text-muted-foreground">{s.detail}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => dismiss.mutate(s.id)}
+                      className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      aria-label="Descartar"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </Feature>
     </div>
   );
+}
+
+// ---------- helpers de UI ----------
+function ProgressGauge({ value }: { value: number }) {
+  // Semicircle SVG gauge
+  const radius = 46;
+  const stroke = 10;
+  const cx = 56;
+  const cy = 56;
+  const circ = Math.PI * radius;
+  const dash = (value / 100) * circ;
+  return (
+    <div className="relative h-[72px] w-[112px] shrink-0">
+      <svg viewBox="0 0 112 64" className="h-full w-full">
+        <path
+          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+          fill="none"
+          stroke="hsl(var(--border))"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+          fill="none"
+          stroke="hsl(var(--accent))"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+          className="transition-[stroke-dasharray] duration-700 ease-out"
+        />
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-end pb-1">
+        <div className="font-display text-2xl font-bold leading-none">{value}%</div>
+        <div className="mt-0.5 text-[9px] uppercase tracking-widest text-muted-foreground">Perfil concluído</div>
+      </div>
+    </div>
+  );
+}
+
+function TrilhaItem({
+  icon: Icon, title, subtitle, state, onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  state: "done" | "progress" | "pending";
+  onClick: () => void;
+}) {
+  const badge =
+    state === "done"
+      ? { label: "Concluído", cls: "bg-success/15 text-success" }
+      : state === "progress"
+      ? { label: "Em andamento", cls: "bg-accent/15 text-accent" }
+      : { label: "Pendente", cls: "bg-secondary text-muted-foreground" };
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left shadow-sm transition-shadow hover:shadow-md"
+      >
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary/60 text-foreground">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold leading-tight">{title}</div>
+          <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{subtitle}</div>
+        </div>
+        <span className={"rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide " + badge.cls}>
+          {badge.label}
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+    </li>
+  );
+}
+
+function MiniSpark({ values }: { values: number[] }) {
+  const w = 120;
+  const h = 32;
+  const max = Math.max(100, ...values);
+  const pts = values.length > 1
+    ? values.map((v, i) => `${(i / (values.length - 1)) * w},${h - (v / max) * (h - 4) - 2}`).join(" ")
+    : `0,${h - 4} ${w},${h - (values[0] ?? 0) / max * (h - 4) - 2}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-8 w-full">
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="hsl(var(--accent))"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function relativeDay(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diff <= 0) return "Hoje";
+  if (diff === 1) return "Ontem";
+  if (diff < 7) return `${diff} dias atrás`;
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
 function FeatureRow({
