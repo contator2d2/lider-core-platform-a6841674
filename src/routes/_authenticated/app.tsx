@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
+import { useFeatures } from "@/lib/features";
 import {
   Brain,
   Calendar,
@@ -32,29 +33,30 @@ export const Route = createFileRoute("/_authenticated/app")({
   component: AppShell,
 });
 
+// module = which feature module gates the item. "*" = always show.
 const nav = [
-  { to: "/app", label: "Hoje", icon: Home, section: "Consciência" },
-  { to: "/app/consciencia", label: "Meu perfil", icon: Brain, section: "Consciência" },
-  { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência" },
-  { to: "/app/organization", label: "Organização", icon: Building, section: "Organização" },
-  { to: "/app/one-on-ones", label: "1:1s", icon: MessageSquare, section: "Organização" },
-  { to: "/app/indicators", label: "Indicadores", icon: Target, section: "Resultado" },
-  { to: "/app/results", label: "Gestão à vista", icon: Activity, section: "Resultado" },
-  { to: "/app/evolution", label: "Evolução", icon: Gauge, section: "Evolução" },
-  { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução" },
-  { to: "/app/360", label: "360 leve", icon: UsersRound, section: "Evolução" },
-  { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução" },
-  { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução" },
-  { to: "/app/coach", label: "Coach preditivo", icon: Radar, section: "Evolução" },
-  { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda" },
+  { to: "/app", label: "Hoje", icon: Home, section: "Consciência", module: "consciencia" },
+  { to: "/app/consciencia", label: "Meu perfil", icon: Brain, section: "Consciência", module: "consciencia" },
+  { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência", module: "consciencia" },
+  { to: "/app/organization", label: "Organização", icon: Building, section: "Organização", module: "organizacao" },
+  { to: "/app/one-on-ones", label: "1:1s", icon: MessageSquare, section: "Organização", module: "organizacao" },
+  { to: "/app/indicators", label: "Indicadores", icon: Target, section: "Resultado", module: "resultado" },
+  { to: "/app/results", label: "Gestão à vista", icon: Activity, section: "Resultado", module: "resultado" },
+  { to: "/app/evolution", label: "Evolução", icon: Gauge, section: "Evolução", module: "evolucao" },
+  { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução", module: "evolucao" },
+  { to: "/app/360", label: "360 leve", icon: UsersRound, section: "Evolução", module: "evolucao" },
+  { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução", module: "evolucao" },
+  { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução", module: "evolucao" },
+  { to: "/app/coach", label: "Coach preditivo", icon: Radar, section: "Evolução", module: "evolucao" },
+  { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda", module: "*" },
 ] as const;
 
 const mobileNav = [
-  { to: "/app", label: "Início", icon: Home },
-  { to: "/app/organization/agenda", label: "Agenda", icon: Calendar },
-  { to: "/app/team", label: "Equipe", icon: Users },
-  { to: "/app/ai", label: "Ações", icon: Zap },
-  { to: "/app/help", label: "Mais", icon: MoreHorizontal },
+  { to: "/app", label: "Início", icon: Home, module: "consciencia" },
+  { to: "/app/organization/agenda", label: "Agenda", icon: Calendar, module: "organizacao" },
+  { to: "/app/team", label: "Equipe", icon: Users, module: "consciencia" },
+  { to: "/app/ai", label: "Ações", icon: Zap, module: "evolucao" },
+  { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
 ] as const;
 
 function AppShell() {
@@ -63,6 +65,24 @@ function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { signOut } = useAuth();
   const { orgId } = useCurrentOrg();
+  const featuresQ = useFeatures();
+  const roles = featuresQ.data?.roles ?? [];
+  const isAdmin = roles.includes("super_admin") || roles.includes("neo_admin");
+  const enabledModules = (() => {
+    if (isAdmin) return null; // null = show all
+    const set = new Set<string>();
+    const feats = featuresQ.data?.features ?? {};
+    for (const key of Object.keys(feats)) {
+      const anyOn = Object.values(feats[key] ?? {}).some(Boolean);
+      if (anyOn) set.add(key.split(".")[0]);
+    }
+    return set;
+  })();
+  const isModuleAllowed = (mod: string) =>
+    mod === "*" || !enabledModules || enabledModules.has(mod);
+
+  const visibleNav = nav.filter((n) => isModuleAllowed(n.module));
+  const visibleMobileNav = mobileNav.filter((n) => isModuleAllowed(n.module));
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -72,7 +92,7 @@ function AppShell() {
     navigate({ to: "/auth", replace: true });
   };
 
-  const grouped = nav.reduce<Record<string, typeof nav[number][]>>((acc, item) => {
+  const grouped = visibleNav.reduce<Record<string, typeof nav[number][]>>((acc, item) => {
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
@@ -149,7 +169,7 @@ function AppShell() {
         {/* Bottom navigation (mobile) */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
           <ul className="mx-auto grid max-w-3xl grid-cols-5">
-            {mobileNav.map(({ to, label, icon: Icon }) => {
+            {visibleMobileNav.map(({ to, label, icon: Icon }) => {
               const active = to === "/app" ? pathname === "/app" : pathname === to || pathname.startsWith(to + "/");
               return (
                 <li key={to}>
