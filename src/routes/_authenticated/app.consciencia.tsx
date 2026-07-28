@@ -7,6 +7,12 @@ import {
   AlertTriangle,
   Brain,
   CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  CalendarDays,
+  Bell,
+  Bookmark,
+  Zap,
   Loader2,
   Plus,
   ShieldAlert,
@@ -146,81 +152,106 @@ function ConscienciaPage() {
   const signals = data?.signals ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <header className="flex items-start justify-between gap-6">
-        <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Módulo C — Consciência</div>
-          <h1 className="mt-2 font-display text-4xl leading-tight">Meu perfil de liderança</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-            Este espaço é privado. Só você vê o conteúdo detalhado. A organização vê apenas se o perfil existe.
+    <div className="mx-auto max-w-3xl space-y-6 pb-24">
+      {/* Header */}
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
+            Módulo C — Consciência
+          </div>
+          <h1 className="mt-2 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-5xl">
+            Meu perfil<br/>de liderança
+          </h1>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Este espaço é privado. Só você vê conteúdo detalhado. A organização vê apenas se o perfil existe.
           </p>
         </div>
         {canEditProfile && (
-        <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Brain className="h-4 w-4" />
-              {profile ? "Atualizar perfil" : "Preencher perfil"}
-            </Button>
-          </DialogTrigger>
-          <ProfileDialog
-            orgId={orgId!}
-            initial={profile}
-            onDone={() => {
-              setProfileOpen(false);
-              qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
-            }}
-          />
-        </Dialog>
+          <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background shadow-sm transition-transform hover:scale-[1.02] active:scale-100"
+              >
+                <Brain className="h-3.5 w-3.5 text-accent" />
+                {profile ? "Atualizar perfil" : "Preencher perfil"}
+              </button>
+            </DialogTrigger>
+            <ProfileDialog
+              orgId={orgId!}
+              initial={profile}
+              onDone={() => {
+                setProfileOpen(false);
+                qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
+              }}
+            />
+          </Dialog>
         )}
       </header>
 
+      {/* Featured: assessment guiado (peach card) */}
       <Feature featureKey="consciencia.assessment_wizard">
-      <Link
-        to="/app/consciencia/assessment"
-        className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 p-5 transition-shadow hover:shadow-md"
-      >
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Assessment guiado</div>
-          <div className="mt-1 font-display text-xl">Fluxo passo a passo do módulo C</div>
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Papel, DISC, MBTI, sabotadores, riscos e autoavaliação Hard · Soft · Heart em 5 minutos.
-          </p>
-        </div>
-        <div className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background transition-transform group-hover:translate-x-0.5">
-          <Sparkles className="h-4 w-4" />
-        </div>
-      </Link>
+        <Link
+          to="/app/consciencia/assessment"
+          className="group flex items-center gap-4 rounded-2xl border border-accent/30 bg-accent/10 p-4 transition-shadow hover:shadow-md md:p-5"
+        >
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/20 text-accent">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+              Assessment guiado
+            </div>
+            <div className="mt-0.5 font-display text-base font-bold leading-snug md:text-lg">
+              Fluxo passo a passo do módulo C
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
+              Papel, DISC, MBTI, sabotadores, riscos e autoavaliação Hard · Soft · Heart em 5 minutos.
+            </p>
+          </div>
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-accent shadow-sm transition-transform group-hover:translate-x-0.5">
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        </Link>
       </Feature>
 
-      <section className="grid gap-3 md:grid-cols-2">
+      {/* Feature list (mockup style) */}
+      <section className="space-y-3">
         <Feature featureKey="consciencia.activity">
-          <Link to="/app/consciencia/activity" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Descrição de atividades</div>
-            <div className="mt-1 font-display text-lg">O que você faz de verdade</div>
-            <p className="mt-1 text-sm text-muted-foreground">Alimenta o PDI automático e a trilha do coach.</p>
-          </Link>
+          <FeatureRow
+            to="/app/consciencia/activity"
+            icon={ClipboardList}
+            eyebrow="Descrição de atividades"
+            title="O que você faz de verdade"
+            description="Alimenta o PDI automático e a trilha do coach."
+          />
         </Feature>
         <Feature featureKey="consciencia.pdi_auto">
-          <Link to="/app/consciencia/pdi" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">PDI automático</div>
-            <div className="mt-1 font-display text-lg">Radar × sabotadores × atividades</div>
-            <p className="mt-1 text-sm text-muted-foreground">Cruza tudo e devolve um esqueleto de PDI pronto.</p>
-          </Link>
+          <FeatureRow
+            to="/app/consciencia/pdi"
+            icon={Zap}
+            eyebrow="PDI automático"
+            title="Radar × sabotadores × atividades"
+            description="Cruza tudo e devolve um esqueleto de PDI pronto."
+          />
         </Feature>
         <Feature featureKey="consciencia.coach_track">
-          <Link to="/app/consciencia/coach" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Trilha do coach C.O.R.E.</div>
-            <div className="mt-1 font-display text-lg">Prática periódica travada na metodologia</div>
-            <p className="mt-1 text-sm text-muted-foreground">Semanal, quinzenal ou mensal — foco no que está mais frágil.</p>
-          </Link>
+          <FeatureRow
+            to="/app/consciencia/coach"
+            icon={Target}
+            eyebrow="Trilha do coach C.O.R.E."
+            title="Prática periódica travada na metodologia"
+            description="Semanal, quinzenal ou mensal — foco no que está mais frágil."
+          />
         </Feature>
         <Feature featureKey="consciencia.voice_agenda">
-          <Link to="/app/consciencia/agenda" className="group rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-md">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Agenda de liderança</div>
-            <div className="mt-1 font-display text-lg">Ações, 1:1s, feedbacks e delegações</div>
-            <p className="mt-1 text-sm text-muted-foreground">Registra manual ou por voz — não perde o combinado.</p>
-          </Link>
+          <FeatureRow
+            to="/app/consciencia/agenda"
+            icon={CalendarDays}
+            eyebrow="Agenda de liderança"
+            title="Ações, 1:1s, feedbacks e delegações"
+            description="Registra manual ou por voz — não perde o combinado."
+          />
         </Feature>
       </section>
 
@@ -231,13 +262,25 @@ function ConscienciaPage() {
       )}
 
       {!isLoading && !profile && (
-        <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-8 text-center">
-          <Brain className="mx-auto h-8 w-8 text-muted-foreground" />
-          <div className="mt-3 font-medium">Ainda não há perfil registrado</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Sem consciência não há sustentação. Registre papel, assessment e riscos de comportamento para o motor cruzar com os fatos operacionais.
-          </p>
-          <Button className="mt-4" onClick={() => setProfileOpen(true)}>Começar agora</Button>
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+            <Brain className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-base font-bold md:text-lg">Ainda não há perfil registrado</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
+              Sem consciência não há sustentação. Registre papel, assessment e riscos de comportamento para o motor cruzar com os fatos operacionais.
+            </p>
+          </div>
+          {canEditProfile && (
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background shadow-sm hover:opacity-90"
+            >
+              Começar agora <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 
@@ -386,6 +429,39 @@ function ConscienciaPage() {
       </section>
       </Feature>
     </div>
+  );
+}
+
+function FeatureRow({
+  to, icon: Icon, eyebrow, title, description,
+}: {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
+    >
+      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {eyebrow}
+        </div>
+        <div className="mt-0.5 truncate font-display text-sm font-bold md:text-base">
+          {title}
+        </div>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground md:text-[13px]">
+          {description}
+        </p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </Link>
   );
 }
 
