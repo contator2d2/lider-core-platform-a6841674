@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useFeatures } from "@/lib/features";
 import {
@@ -21,6 +22,8 @@ import {
   UsersRound,
   Activity,
   Radar,
+  Mic,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -28,6 +31,9 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LeaderOnboarding } from "@/components/onboarding/LeaderOnboarding";
 import { TeamHealthPill } from "@/components/team/TeamHealthPill";
 import { useCurrentOrg } from "@/lib/use-current-org";
+import { api } from "@/lib/api";
+import { VoiceCapture, type VoiceIntent } from "@/components/voice/VoiceCapture";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/app")({
   ssr: false,
@@ -60,12 +66,27 @@ const mobileNav = [
   { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
 ] as const;
 
+const conscienciaOnlyNav = [
+  { to: "/app/consciencia", label: "Início", icon: Home, section: "Consciência", module: "consciencia" },
+  { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência", module: "consciencia" },
+  { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda", module: "*" },
+] as const;
+
+const conscienciaOnlyMobileNav = [
+  { to: "/app/consciencia", label: "Início", icon: Home, module: "consciencia" },
+  { to: "/app/consciencia/agenda", label: "Agenda", icon: Calendar, module: "consciencia" },
+  { to: "/app/team", label: "Equipe", icon: Users, module: "consciencia" },
+  { to: "/app/consciencia/pdi", label: "PDI", icon: Zap, module: "consciencia" },
+  { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
+] as const;
+
 function AppShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { signOut } = useAuth();
   const { orgId } = useCurrentOrg();
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const featuresQ = useFeatures();
   const roles = featuresQ.data?.roles ?? [];
   const isAdmin = roles.includes("super_admin") || roles.includes("neo_admin");
@@ -85,8 +106,13 @@ function AppShell() {
   const isModuleAllowed = (mod: string) =>
     mod === "*" || !enabledModules || enabledModules.has(mod);
 
-  const visibleNav = nav.filter((n) => isModuleAllowed(n.module));
-  const visibleMobileNav = mobileNav.filter((n) => isModuleAllowed(n.module));
+  const conscienciaOnly = !!enabledModules && enabledModules.size === 1 && enabledModules.has("consciencia");
+  const baseNav = conscienciaOnly ? conscienciaOnlyNav : nav;
+  const baseMobileNav = conscienciaOnly ? conscienciaOnlyMobileNav : mobileNav;
+  const quickActionTo = conscienciaOnly ? "/app/consciencia/agenda" : "/app/organization/delegations";
+
+  const visibleNav = baseNav.filter((n) => isModuleAllowed(n.module));
+  const visibleMobileNav = baseMobileNav.filter((n) => isModuleAllowed(n.module));
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -96,10 +122,69 @@ function AppShell() {
     navigate({ to: "/auth", replace: true });
   };
 
+  const handleVoiceIntent = async (intent: VoiceIntent) => {
+    if (!orgId) return;
+    try {
+      if (conscienciaOnly) {
+        await api(`/organization/${orgId}/consciencia/agenda`, {
+          method: "POST",
+          body: {
+            title: intent.titulo || intent.resumo.slice(0, 90) || "Registro por voz",
+            detail: intent.resumo || intent.transcricao,
+            kind:
+              intent.tipo === "delegacao"
+                ? "delegacao"
+                : intent.tipo === "feedback"
+                  ? "feedback"
+                  : intent.tipo === "agenda"
+                    ? "acao"
+                    : "acao",
+            memberLabel: intent.membroSugerido ?? null,
+            scheduledAt: intent.prazoISO ?? null,
+            source: "voice",
+          },
+        });
+        await queryClient.invalidateQueries({ queryKey: ["agenda", orgId] });
+        setVoiceOpen(false);
+        toast.success("Voz registrada na agenda de liderança.");
+        navigate({ to: "/app/consciencia/agenda" });
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        const key =
+          intent.tipo === "feedback"
+            ? "voice-draft-feedback"
+            : intent.tipo === "delegacao"
+              ? "voice-draft-delegacao"
+              : "voice-draft-nota";
+        window.sessionStorage.setItem(key, JSON.stringify(intent));
+      }
+      setVoiceOpen(false);
+      if (intent.tipo === "feedback") {
+        toast.success("Feedback capturado", { description: "Abrindo Feedbacks…" });
+        navigate({ to: "/app/feedbacks" });
+      } else if (intent.tipo === "delegacao") {
+        toast.success("Delegação capturada", { description: "Abrindo Delegações…" });
+        navigate({ to: "/app/organization/delegations" });
+      } else {
+        toast.success("Nota salva", { description: intent.resumo.slice(0, 120) });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao processar áudio");
+    }
+  };
+
   const grouped = visibleNav.reduce<Record<string, typeof nav[number][]>>((acc, item) => {
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
+
+  const isActiveRoute = (to: string) => {
+    if (to === "/app") return pathname === "/app";
+    if (to === "/app/consciencia") return pathname === "/app/consciencia";
+    return pathname === to || pathname.startsWith(to + "/");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground md:grid md:grid-cols-[260px,1fr]">
@@ -119,8 +204,7 @@ function AppShell() {
               </div>
               <ul className="space-y-0.5">
                 {items.map(({ to, label, icon: Icon }) => {
-                  const active =
-                    to === "/app" ? pathname === "/app" : pathname.startsWith(to);
+                  const active = isActiveRoute(to);
                   return (
                     <li key={to}>
                       <Link
@@ -170,6 +254,51 @@ function AppShell() {
         </main>
         <LeaderOnboarding />
 
+        {/* Ações globais do líder: ficam acima do menu inferior em qualquer tela do app. */}
+        {orgId && (
+          <div
+            className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 md:hidden"
+            style={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
+          >
+            <button
+              type="button"
+              onClick={() => setVoiceOpen(true)}
+              aria-label="Ditar ação por voz"
+              className="grid h-12 w-12 place-items-center rounded-full border border-border bg-background text-foreground shadow-[0_10px_24px_-12px_rgba(0,0,0,0.35)] transition active:scale-95"
+            >
+              <Mic className="h-5 w-5" strokeWidth={2} />
+            </button>
+            <Link
+              to={quickActionTo}
+              aria-label={conscienciaOnly ? "Novo item na agenda" : "Nova ação"}
+              className="grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_16px_36px_-10px_color-mix(in_oklab,var(--accent)_60%,transparent)] transition active:scale-95"
+            >
+              <Plus className="h-6 w-6" strokeWidth={2.5} />
+            </Link>
+          </div>
+        )}
+
+        <Dialog open={voiceOpen} onOpenChange={setVoiceOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Captura por voz</DialogTitle>
+              <DialogDescription>
+                {conscienciaOnly
+                  ? "Fale uma ação, feedback, delegação ou lembrete. O registro entra na sua Agenda de liderança."
+                  : "Fale um feedback, delegação ou nota. A IA transcreve, classifica e leva você direto para o lugar certo."}
+              </DialogDescription>
+            </DialogHeader>
+            {orgId && (
+              <div className="pt-2">
+                <VoiceCapture orgId={orgId} onConfirm={handleVoiceIntent} label="Iniciar gravação" />
+                <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                  Exemplos: <em>"Dar feedback positivo à Ana"</em> · <em>"Delegar ao João o relatório até sexta"</em> · <em>"Lembrar de preparar a 1:1"</em>.
+                </p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Bottom navigation (mobile) */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
           <ul
@@ -177,7 +306,7 @@ function AppShell() {
             style={{ gridTemplateColumns: `repeat(${Math.max(1, visibleMobileNav.length)}, minmax(0, 1fr))` }}
           >
             {visibleMobileNav.map(({ to, label, icon: Icon }) => {
-              const active = to === "/app" ? pathname === "/app" : pathname === to || pathname.startsWith(to + "/");
+              const active = isActiveRoute(to);
               return (
                 <li key={to}>
                   <Link
