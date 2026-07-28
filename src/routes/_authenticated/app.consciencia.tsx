@@ -432,6 +432,39 @@ function ConscienciaPage() {
   );
 }
 
+function FeatureRow({
+  to, icon: Icon, eyebrow, title, description,
+}: {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
+    >
+      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {eyebrow}
+        </div>
+        <div className="mt-0.5 truncate font-display text-sm font-bold md:text-base">
+          {title}
+        </div>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground md:text-[13px]">
+          {description}
+        </p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
 function SummaryCard({
   title, value, icon: Icon, hint, warn,
 }: { title: string; value: string; icon: typeof Sparkles; hint?: string; warn?: boolean }) {
