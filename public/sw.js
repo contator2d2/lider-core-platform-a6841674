@@ -1,70 +1,27 @@
-// Fase 4 · Item 20 — Modo offline + fila de sincronização.
-// Cache-first para assets estáticos, network-first para navegação,
-// e Background Sync para POSTs feitos sem rede (rituais/kudos/pulsos/etc).
-const CACHE = "lidercore-v3";
-const QUEUE_STORE = "lidercore-queue";
-const ASSETS = [
-  "/manifest.webmanifest",
-  "/favicon.png",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/apple-touch-icon.png",
-];
+// Service worker desativado temporariamente.
+// Motivo: o cache anterior podia servir HTML antigo com bundle novo e quebrar
+// o login com React #418 (hydration mismatch). Mantemos este arquivo apenas
+// para remover workers/caches antigos nos navegadores já instalados.
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS).catch(() => undefined)));
   self.skipWaiting();
+  event.waitUntil(Promise.resolve());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+    Promise.all([
+      caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
+      self.registration.unregister(),
+      self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.navigate(client.url));
+      }),
+    ]),
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") {
-    // POST/PUT/PATCH/DELETE: se falhar por offline, enfileira e replaya depois.
-    if (isMutation(req)) {
-      event.respondWith(handleMutation(req.clone()));
-    }
-    return;
-  }
-  const url = new URL(req.url);
-  // Nunca cachear API nem endpoints autenticados
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/organization/")) return;
-
-  const isAsset = /\.(js|css|woff2?|png|jpg|svg|ico|webp|webmanifest)$/i.test(url.pathname);
-  if (isAsset) {
-    event.respondWith(
-      caches.open(CACHE).then(async (cache) => {
-        const hit = await cache.match(req);
-        if (hit) return hit;
-        try {
-          const resp = await fetch(req);
-          if (resp.ok) cache.put(req, resp.clone());
-          return resp;
-        } catch {
-          return hit ?? Response.error();
-        }
-      }),
-    );
-    return;
-  }
-
-  // HTML autenticado/navegação: não cachear. HTML antigo + bundle novo causa
-  // hydration mismatch (#418) após deploy. Se estiver offline, deixa o browser
-  // falhar normalmente em vez de renderizar shell desatualizado.
-  event.respondWith(
-    fetch(req).catch(() =>
-      new Response("Você está offline. Recarregue quando a conexão voltar.", {
-        status: 503,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      }),
-    ),
-  );
+self.addEventListener("fetch", () => {
+  // Sem interceptação: todas as respostas vêm direto da rede.
 });
 
 function isMutation(req) {
