@@ -49,6 +49,32 @@ authRouter.post("/register", async (req, res) => {
     console.error("[auth] falha ao aplicar role no registro", err);
   }
 
+  // Líderes independentes: cria organização pessoal para que o app tenha contexto.
+  const rolesWithPersonalOrg = new Set(["leader", "franchise_owner", "hr_admin", "collaborator"]);
+  if (rolesWithPersonalOrg.has(roleToApply)) {
+    try {
+      const base = (fullName || email.split("@")[0])
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        .slice(0, 40) || "lider";
+      const slug = `${base}-${Math.random().toString(36).slice(2, 7)}`;
+      const orgName = fullName ? `Espaço de ${fullName.split(" ")[0]}` : "Meu espaço de liderança";
+      await prisma.organization.create({
+        data: {
+          name: orgName,
+          slug,
+          plan: (plan?.planTier === "profissional" || plan?.planTier === "enterprise") ? "profissional" : "essencial",
+          memberships: { create: { userId: user.id, role: roleToApply as never } },
+        },
+      });
+    } catch (err) {
+      console.error("[auth] falha ao criar organização pessoal no registro", err);
+    }
+  }
+
   const token = signToken({ sub: user.id, email: user.email });
   return res.status(201).json({
     token,
