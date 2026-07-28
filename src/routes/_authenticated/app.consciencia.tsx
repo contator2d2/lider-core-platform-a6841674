@@ -166,7 +166,16 @@ function ConscienciaPage() {
   const activeCommitments = commitments.filter((c) => c.status !== "done" && c.status !== "dropped").length;
   const evolutionDone = activeCommitments > 0;
 
-  const trilha = [
+  type TrilhaStep = {
+    key: string;
+    icon: React.ComponentType<{ className?: string }>;
+    title: string;
+    subtitle: string;
+    state: "done" | "progress" | "pending";
+    to: string;
+    openProfile?: boolean;
+  };
+  const trilha: TrilhaStep[] = [
     {
       key: "behavioral",
       icon: Brain,
@@ -203,7 +212,7 @@ function ConscienciaPage() {
       state: evolutionDone ? "done" : "pending",
       to: "/app/consciencia/pdi",
     },
-  ] as const;
+  ];
 
   const completedSteps = trilha.filter((s) => s.state === "done").length;
   const progressPct = Math.round((completedSteps / trilha.length) * 100);
