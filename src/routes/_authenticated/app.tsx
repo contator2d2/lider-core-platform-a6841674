@@ -168,7 +168,10 @@ function AppShell() {
 
         {/* Bottom navigation (mobile) */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
-          <ul className="mx-auto grid max-w-3xl grid-cols-5">
+          <ul
+            className="mx-auto grid max-w-3xl"
+            style={{ gridTemplateColumns: `repeat(${Math.max(1, visibleMobileNav.length)}, minmax(0, 1fr))` }}
+          >
             {visibleMobileNav.map(({ to, label, icon: Icon }) => {
               const active = to === "/app" ? pathname === "/app" : pathname === to || pathname.startsWith(to + "/");
               return (
