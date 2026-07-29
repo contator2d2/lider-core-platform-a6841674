@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { NeoCrudPage } from "@/components/admin/NeoCrud";
 
 export const Route = createFileRoute("/_authenticated/admin/neo/journeys")({
@@ -31,7 +31,15 @@ function Page() {
         ] },
       ]}
       columns={[
-        { key: "name", label: "Nome" },
+        { key: "name", label: "Nome", render: (it) => (
+          <Link
+            to="/admin/neo/journeys/$id"
+            params={{ id: it.id }}
+            className="font-medium text-[color:var(--neo-ink)] underline decoration-transparent underline-offset-2 hover:decoration-current"
+          >
+            {String(it.name ?? "—")}
+          </Link>
+        ) },
         { key: "coreModule", label: "CORE" },
         { key: "audience", label: "Público" },
         { key: "status", label: "Status" },

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 import { recordAudit, shallowDiff } from "../lib/audit.js";
+import { completeChat } from "../lib/ai-gateway.js";
 
 export const neoRouter = Router();
 neoRouter.use(requireAuth, requireRoles("super_admin", "neo_admin"));
@@ -628,4 +629,165 @@ neoRouter.get("/ai-context", async (_req, res) => {
     prisma.journey.findMany({ where: { status: "active" }, take: 20 }),
   ]);
   res.json({ methodology, competencies, playbooks, templates, assessments: activeAssessments, journeys: activeJourneys });
+});
+
+// ============================================================
+// AI Generation — assist admin authoring
+// ============================================================
+function extractJson<T>(raw: string): T {
+  const trimmed = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  // Try to find the first { or [ if the model added prose
+  const start = Math.min(
+    ...[trimmed.indexOf("{"), trimmed.indexOf("[")].filter((i) => i >= 0),
+  );
+  const jsonSlice = Number.isFinite(start) && start >= 0 ? trimmed.slice(start) : trimmed;
+  return JSON.parse(jsonSlice) as T;
+}
+
+/** Gera blocos + perguntas para um assessment usando o provedor de IA global. */
+neoRouter.post("/assessments/:id/ai-generate", async (req, res) => {
+  const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
+  const brief = (req.body?.brief as string | undefined)?.trim() || "";
+  const numBlocks = Math.min(Math.max(Number(req.body?.blocks) || 3, 1), 6);
+  const perBlock = Math.min(Math.max(Number(req.body?.perBlock) || 4, 2), 10);
+  const system = [
+    "Você é uma consultora especialista da Neo Pessoas, ajudando a montar um assessment de liderança dentro da metodologia C.O.R.E.",
+    "Retorne SOMENTE JSON válido, sem comentários, sem markdown.",
+    "Escreva em pt-BR, tom profissional e humano, evitando jargão de IA.",
+    "Tipos de pergunta permitidos: unica, multipla, likert, slider, ranking, texto, cenario, autoavaliacao.",
+  ].join(" ");
+  const user = `Assessment: "${a.name}"
+Objetivo: ${a.objective ?? "—"}
+Público: ${a.audience ?? "—"}
+Competência: ${a.competency ?? "—"}
+Módulo C.O.R.E.: ${a.coreModule ?? "—"}
+Instrução extra: ${brief || "—"}
+
+Gere ${numBlocks} blocos com ${perBlock} perguntas cada.
+Formato exato:
+{
+  "blocks": [
+    {
+      "title": "string",
+      "description": "string",
+      "questions": [
+        {
+          "type": "unica|multipla|likert|slider|ranking|texto|cenario|autoavaliacao",
+          "prompt": "string",
+          "helpText": "string opcional",
+          "required": true,
+          "weight": 1,
+          "scaleMin": 1,
+          "scaleMax": 5,
+          "options": [{ "label": "string", "value": "string", "score": 0 }]
+        }
+      ]
+    }
+  ]
+}
+Regras: para likert/slider inclua scaleMin/scaleMax e deixe options vazio; para unica/multipla/ranking inclua 3-5 options com score; para texto/cenario/autoavaliacao deixe options vazio.`;
+
+  try {
+    const raw = await completeChat({
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+      temperature: 0.6,
+    });
+    const parsed = extractJson<{
+      blocks: Array<{
+        title: string; description?: string;
+        questions: Array<{
+          type: string; prompt: string; helpText?: string; required?: boolean; weight?: number;
+          scaleMin?: number | null; scaleMax?: number | null;
+          options?: Array<{ label: string; value: string; score?: number }>;
+        }>;
+      }>;
+    }>(raw);
+
+    const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
+    let bIdx = existingBlocks;
+    const created: unknown[] = [];
+    for (const block of parsed.blocks ?? []) {
+      const b = await prisma.assessmentBlock.create({
+        data: {
+          assessmentId: a.id,
+          title: block.title || "Bloco",
+          description: block.description ?? null,
+          orderIndex: bIdx++,
+        },
+      });
+      let qIdx = 0;
+      for (const q of block.questions ?? []) {
+        const type = (["unica","multipla","likert","slider","ranking","texto","cenario","autoavaliacao"] as const).includes(q.type as never)
+          ? (q.type as never) : ("texto" as never);
+        await prisma.assessmentQuestion.create({
+          data: {
+            blockId: b.id,
+            type,
+            prompt: q.prompt || "Pergunta",
+            helpText: q.helpText ?? null,
+            required: q.required ?? true,
+            weight: q.weight ?? 1,
+            scaleMin: q.scaleMin ?? null,
+            scaleMax: q.scaleMax ?? null,
+            orderIndex: qIdx++,
+            options: q.options?.length
+              ? { create: q.options.map((o, i) => ({ label: o.label, value: o.value || slugify(o.label), score: o.score ?? 0, orderIndex: i })) }
+              : undefined,
+          },
+        });
+      }
+      created.push(b.id);
+    }
+    await recordAudit({ entity: "assessment", entityId: a.id, action: "ai_generate", actorId: req.userId, note: `${created.length} blocos gerados` });
+    res.json({ created: created.length });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : "Falha na geração por IA" });
+  }
+});
+
+/** Gera etapas para uma jornada usando o provedor de IA global. */
+neoRouter.post("/journeys/:id/ai-generate", async (req, res) => {
+  const j = await prisma.journey.findUnique({ where: { id: req.params.id } });
+  if (!j) return res.status(404).json({ error: "Jornada não encontrada" });
+  const brief = (req.body?.brief as string | undefined)?.trim() || "";
+  const steps = Math.min(Math.max(Number(req.body?.steps) || 6, 3), 15);
+  const system = "Você é consultora Neo Pessoas montando uma jornada de desenvolvimento de líderes C.O.R.E. Retorne SOMENTE JSON válido, pt-BR, sem markdown.";
+  const user = `Jornada: "${j.name}"
+Descrição: ${j.description ?? "—"}
+Público: ${j.audience ?? "—"}
+Módulo C.O.R.E.: ${j.coreModule ?? "—"}
+Instrução extra: ${brief || "—"}
+
+Monte ${steps} etapas em sequência lógica. Tipos permitidos: assessment, video, texto, exercicio, quiz, documento, pdi, conteudo, aprovacao.
+Formato exato:
+{ "steps": [ { "kind": "texto", "title": "string", "description": "string" } ] }`;
+  try {
+    const raw = await completeChat({
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+      temperature: 0.6,
+    });
+    const parsed = extractJson<{ steps: Array<{ kind: string; title: string; description?: string }> }>(raw);
+    const existing = await prisma.journeyStep.count({ where: { journeyId: j.id } });
+    let idx = existing;
+    const created: string[] = [];
+    for (const s of parsed.steps ?? []) {
+      const kind = (["assessment","video","texto","exercicio","quiz","documento","pdi","conteudo","aprovacao"] as const).includes(s.kind as never)
+        ? (s.kind as never) : ("texto" as never);
+      const step = await prisma.journeyStep.create({
+        data: {
+          journeyId: j.id,
+          kind,
+          title: s.title || "Etapa",
+          description: s.description ?? null,
+          orderIndex: idx++,
+        },
+      });
+      created.push(step.id);
+    }
+    await recordAudit({ entity: "journey", entityId: j.id, action: "ai_generate", actorId: req.userId, note: `${created.length} etapas geradas` });
+    res.json({ created: created.length });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : "Falha na geração por IA" });
+  }
 });
