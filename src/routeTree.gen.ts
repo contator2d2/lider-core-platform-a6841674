@@ -29,6 +29,7 @@ import { Route as AuthenticatedCompanyLeadershipRouteImport } from './routes/_au
 import { Route as AuthenticatedCompanyLeadersRouteImport } from './routes/_authenticated/company.leaders'
 import { Route as AuthenticatedCompanyBillingRouteImport } from './routes/_authenticated/company.billing'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/app.team'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppResultsRouteImport } from './routes/_authenticated/app.results'
 import { Route as AuthenticatedAppPulsesRouteImport } from './routes/_authenticated/app.pulses'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app.profile'
@@ -200,6 +201,12 @@ const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppResultsRoute = AuthenticatedAppResultsRouteImport.update({
   id: '/results',
   path: '/results',
@@ -603,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/results': typeof AuthenticatedAppResultsRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -681,6 +689,7 @@ export interface FileRoutesByTo {
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/results': typeof AuthenticatedAppResultsRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -766,6 +775,7 @@ export interface FileRoutesById {
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/_authenticated/app/results': typeof AuthenticatedAppResultsRoute
+  '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/_authenticated/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/_authenticated/company/leaders': typeof AuthenticatedCompanyLeadersRoute
@@ -851,6 +861,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/pulses'
     | '/app/results'
+    | '/app/settings'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/pulses'
     | '/app/results'
+    | '/app/settings'
     | '/app/team'
     | '/company/billing'
     | '/company/leaders'
@@ -1013,6 +1025,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/profile'
     | '/_authenticated/app/pulses'
     | '/_authenticated/app/results'
+    | '/_authenticated/app/settings'
     | '/_authenticated/app/team'
     | '/_authenticated/company/billing'
     | '/_authenticated/company/leaders'
@@ -1198,6 +1211,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/app/team'
       preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/settings': {
+      id: '/_authenticated/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/results': {
@@ -1832,6 +1852,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppPulsesRoute: typeof AuthenticatedAppPulsesRoute
   AuthenticatedAppResultsRoute: typeof AuthenticatedAppResultsRoute
+  AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRouteWithChildren
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
@@ -1854,6 +1875,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppPulsesRoute: AuthenticatedAppPulsesRoute,
   AuthenticatedAppResultsRoute: AuthenticatedAppResultsRoute,
+  AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRouteWithChildren,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
