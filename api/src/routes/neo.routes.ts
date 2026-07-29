@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { randomBytes } from "node:crypto";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 import { recordAudit, shallowDiff } from "../lib/audit.js";
