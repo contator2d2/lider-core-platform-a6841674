@@ -209,6 +209,15 @@ function AssessmentWizard() {
     setStep(requestedStep);
   }, [requestedStep]);
 
+  useEffect(() => {
+    if (step <= requestedStep) return;
+    navigate({
+      to: "/app/consciencia/assessment",
+      search: {},
+      replace: true,
+    });
+  }, [navigate, requestedStep, step]);
+
   // hidrata quando dados chegam
   useEffect(() => {
     if (!initial) return;
@@ -379,7 +388,9 @@ function AssessmentWizard() {
                   <div className="text-sm">{p.q}</div>
                   <div className="mt-2 flex gap-1.5">
                     {[1,2,3,4,5].map((v) => (
-                      <button key={v}
+                    <button
+                        type="button"
+                        key={v}
                         onClick={() => setSabAns((prev) => ({ ...prev, [p.id]: v }))}
                         className={
                           "h-9 flex-1 rounded-lg border text-sm transition-colors " +
@@ -409,7 +420,9 @@ function AssessmentWizard() {
                   <div className="text-sm font-medium">{b.label}</div>
                   <div className="mt-2 grid gap-2 md:grid-cols-2">
                     {b.opts.map((o) => (
-                      <button key={o.dim}
+                      <button
+                        type="button"
+                        key={o.dim}
                         onClick={() => setCerAns((prev) => ({ ...prev, [b.id]: o.dim }))}
                         className={
                           "rounded-lg border p-2.5 text-left text-sm transition-colors " +
@@ -450,6 +463,7 @@ function AssessmentWizard() {
                 const on = riskFlags.includes(r.value);
                 return (
                   <button
+                    type="button"
                     key={r.value}
                     onClick={() => toggle(riskFlags, r.value, setRiskFlags)}
                     className={
@@ -520,7 +534,8 @@ function HshBlock({
             <div className="text-sm">{q}</div>
             <div className="mt-1.5 flex gap-1.5">
               {[1, 2, 3, 4, 5].map((v) => (
-                <button
+                  <button
+                    type="button"
                   key={v}
                   onClick={() => setValues(values.map((x, j) => (j === i ? v : x)))}
                   className={
