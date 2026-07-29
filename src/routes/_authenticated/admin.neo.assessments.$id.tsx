@@ -355,7 +355,7 @@ function SharePanel({ assessmentId }: { assessmentId: string }) {
         ) : (
           links.data.map((l) => {
             const url = publicUrl(l.token);
-            const expired = l.expiresAt && new Date(l.expiresAt) < new Date();
+            const expired = !!(l.expiresAt && new Date(l.expiresAt) < new Date());
             const disabled = !!l.revokedAt || expired;
             return (
               <div
