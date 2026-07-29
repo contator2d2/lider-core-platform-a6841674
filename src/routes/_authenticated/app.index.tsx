@@ -71,7 +71,7 @@ function HomeBriefing() {
         </p>
       </header>
 
-      {data?.initialJourney && !data.profile.didNeoMentorship && (
+      {data?.initialJourney && (
         <Link
           to="/app/journey"
           className="group flex items-center justify-between gap-4 rounded-2xl border border-accent/40 bg-accent/5 p-5 shadow-sm transition hover:bg-accent/10"
