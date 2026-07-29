@@ -31,6 +31,7 @@ import { coachRouter } from "./routes/coach.routes.js";
 import { calendarRouter, calendarPublicRouter } from "./routes/calendar.routes.js";
 import { featureTemplatesRouter, bootstrapFeatureTemplates, resolveUserFeatures } from "./routes/feature-templates.routes.js";
 import { signupPlansRouter, publicSignupPlansRouter, bootstrapSignupPlans } from "./routes/signup-plans.routes.js";
+import { neoRouter } from "./routes/neo.routes.js";
 import { requireAuth } from "./auth.js";
 import { prisma } from "./prisma.js";
 
@@ -142,6 +143,7 @@ app.use("/organization", calendarRouter);
 // Templates modulares
 app.use("/admin/feature-templates", featureTemplatesRouter);
 app.use("/admin/signup-plans", signupPlansRouter);
+app.use("/admin/neo", neoRouter);
 
 // Resolvedor de features para o usuário logado (consumido pela UI)
 app.get("/auth/me/features", requireAuth, async (req, res) => {

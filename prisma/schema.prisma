@@ -947,44 +947,44 @@ enum CrossSignalSeverity {
 }
 
 model LeaderProfile {
-  id                 String          @id @default(uuid()) @db.Uuid
-  organizationId     String          @map("organization_id") @db.Uuid
-  userId             String          @map("user_id") @db.Uuid
-  declaredRole       String?         @map("declared_role")
-  notMine            String?         @map("not_mine")
-  assessmentType     AssessmentType? @map("assessment_type")
-  assessmentTraits   Json?           @map("assessment_traits")
-  sabotages          String[]        @default([])
-  communicationStyle String?         @map("communication_style")
-  mbtiType           String?         @map("mbti_type")
-  discPrimary        String?         @map("disc_primary")
-  egogramaTraits     Json?           @map("egograma_traits")
-  hardSelfScore      Int?            @map("hard_self_score")
-  softSelfScore      Int?            @map("soft_self_score")
-  heartSelfScore     Int?            @map("heart_self_score")
-  riskFlags          String[]        @default([]) @map("risk_flags")
-  strengths          String[]        @default([])
-  notes              String?
-  assessmentAt       DateTime?       @map("assessment_at")
+  id                     String          @id @default(uuid()) @db.Uuid
+  organizationId         String          @map("organization_id") @db.Uuid
+  userId                 String          @map("user_id") @db.Uuid
+  declaredRole           String?         @map("declared_role")
+  notMine                String?         @map("not_mine")
+  assessmentType         AssessmentType? @map("assessment_type")
+  assessmentTraits       Json?           @map("assessment_traits")
+  sabotages              String[]        @default([])
+  communicationStyle     String?         @map("communication_style")
+  mbtiType               String?         @map("mbti_type")
+  discPrimary            String?         @map("disc_primary")
+  egogramaTraits         Json?           @map("egograma_traits")
+  hardSelfScore          Int?            @map("hard_self_score")
+  softSelfScore          Int?            @map("soft_self_score")
+  heartSelfScore         Int?            @map("heart_self_score")
+  riskFlags              String[]        @default([]) @map("risk_flags")
+  strengths              String[]        @default([])
+  notes                  String?
+  assessmentAt           DateTime?       @map("assessment_at")
   // Módulo C — spec v2 (Julho 2026)
-  activityDescription    String?       @map("activity_description")
-  activityDescriptionUrl String?       @map("activity_description_url")
-  coachCadence           CoachCadence  @default(weekly) @map("coach_cadence")
-  sabotageScores         Json?         @map("sabotage_scores")
-  cerebralProfile        Json?         @map("cerebral_profile")
-  cerebralPrimary        CerebralMode? @map("cerebral_primary")
-  qpScore                Int?          @map("qp_score")
-  hardAnswers            Json?         @map("hard_answers")
-  softAnswers            Json?         @map("soft_answers")
-  heartAnswers           Json?         @map("heart_answers")
-  discAnswers            Json?         @map("disc_answers")
-  discProfile            Json?         @map("disc_profile")
-  autoPdiId              String?       @map("auto_pdi_id") @db.Uuid
-  autoPdiGeneratedAt     DateTime?     @map("auto_pdi_generated_at")
-  coachTrackMarkdown     String?       @map("coach_track_markdown")
-  coachTrackGeneratedAt  DateTime?     @map("coach_track_generated_at")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  activityDescription    String?         @map("activity_description")
+  activityDescriptionUrl String?         @map("activity_description_url")
+  coachCadence           CoachCadence    @default(weekly) @map("coach_cadence")
+  sabotageScores         Json?           @map("sabotage_scores")
+  cerebralProfile        Json?           @map("cerebral_profile")
+  cerebralPrimary        CerebralMode?   @map("cerebral_primary")
+  qpScore                Int?            @map("qp_score")
+  hardAnswers            Json?           @map("hard_answers")
+  softAnswers            Json?           @map("soft_answers")
+  heartAnswers           Json?           @map("heart_answers")
+  discAnswers            Json?           @map("disc_answers")
+  discProfile            Json?           @map("disc_profile")
+  autoPdiId              String?         @map("auto_pdi_id") @db.Uuid
+  autoPdiGeneratedAt     DateTime?       @map("auto_pdi_generated_at")
+  coachTrackMarkdown     String?         @map("coach_track_markdown")
+  coachTrackGeneratedAt  DateTime?       @map("coach_track_generated_at")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -1019,22 +1019,22 @@ model LeaderAgendaItem {
 // liderado" enviada de volta a ele.
 // ============================================================
 model SubordinateAssessment {
-  id              String    @id @default(uuid()) @db.Uuid
-  organizationId  String    @map("organization_id") @db.Uuid
-  leaderId        String    @map("leader_id") @db.Uuid
-  memberId        String?   @map("member_id") @db.Uuid
-  memberLabel     String    @map("member_label")
-  memberPhone     String?   @map("member_phone")
-  discPrimary     String?   @map("disc_primary")
-  discProfile     Json?     @map("disc_profile")
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @map("organization_id") @db.Uuid
+  leaderId        String        @map("leader_id") @db.Uuid
+  memberId        String?       @map("member_id") @db.Uuid
+  memberLabel     String        @map("member_label")
+  memberPhone     String?       @map("member_phone")
+  discPrimary     String?       @map("disc_primary")
+  discProfile     Json?         @map("disc_profile")
   cerebralPrimary CerebralMode? @map("cerebral_primary")
-  cerebralProfile Json?     @map("cerebral_profile")
-  sabotageScores  Json?     @map("sabotage_scores")
-  aiReading       String?   @map("ai_reading")
-  aiTrack         String?   @map("ai_track")
-  lastPulseSendId String?   @map("last_pulse_send_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  cerebralProfile Json?         @map("cerebral_profile")
+  sabotageScores  Json?         @map("sabotage_scores")
+  aiReading       String?       @map("ai_reading")
+  aiTrack         String?       @map("ai_track")
+  lastPulseSendId String?       @map("last_pulse_send_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
   @@index([organizationId, leaderId])
   @@index([memberId])
@@ -1697,21 +1697,21 @@ model Cycle {
 }
 
 model CycleGoal {
-  id           String          @id @default(uuid()) @db.Uuid
-  cycleId      String          @map("cycle_id") @db.Uuid
-  title        String
-  specific     String?
-  measurable   String?
-  achievable   String?
-  relevant     String?
-  timeBound    String?         @map("time_bound")
-  ownerUserId  String?         @map("owner_user_id") @db.Uuid
-  areaId       String?         @map("area_id") @db.Uuid
-  indicatorId  String?         @map("indicator_id") @db.Uuid
-  targetValue  Float?          @map("target_value")
-  status       CycleGoalStatus @default(on_track)
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
+  id          String          @id @default(uuid()) @db.Uuid
+  cycleId     String          @map("cycle_id") @db.Uuid
+  title       String
+  specific    String?
+  measurable  String?
+  achievable  String?
+  relevant    String?
+  timeBound   String?         @map("time_bound")
+  ownerUserId String?         @map("owner_user_id") @db.Uuid
+  areaId      String?         @map("area_id") @db.Uuid
+  indicatorId String?         @map("indicator_id") @db.Uuid
+  targetValue Float?          @map("target_value")
+  status      CycleGoalStatus @default(on_track)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
 
   cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
@@ -1770,4 +1770,378 @@ model CycleRetrospective {
   @@index([cycleId])
   @@index([organizationId, createdAt])
   @@map("cycle_retrospectives")
+}
+
+// ============================================================
+// Neo Admin — Metodologia, Knowledge, Assessments, Jornadas, DNA
+// ============================================================
+
+enum MethodologyItemType {
+  competencia
+  valor
+  pilar
+  modulo_core
+  ritual
+  ferramenta
+  modelo_lideranca
+  comp_tecnica
+  comp_comportamental
+  comp_emocional
+}
+
+enum ItemStatus {
+  draft
+  active
+  archived
+}
+
+enum DifficultyLevel {
+  iniciante
+  intermediario
+  avancado
+}
+
+enum KnowledgeKind {
+  conceito
+  playbook
+  boa_pratica
+  caso
+  recomendacao
+  tecnica
+  exercicio
+  leitura
+  video
+  ferramenta
+  template
+  modelo_feedback
+  modelo_pdi
+  ritual
+}
+
+enum TemplateKind {
+  feedback
+  pdi
+  exercicio
+  one_on_one
+  plano
+  checklist
+  avaliacao
+}
+
+enum AssessmentQuestionType {
+  unica
+  multipla
+  likert
+  slider
+  ranking
+  texto
+  cenario
+  autoavaliacao
+}
+
+enum JourneyStepKind {
+  assessment
+  video
+  texto
+  exercicio
+  quiz
+  documento
+  pdi
+  conteudo
+  aprovacao
+}
+
+enum RecommendationSource {
+  regra
+  ia
+}
+
+model MethodologyItem {
+  id          String                   @id @default(uuid()) @db.Uuid
+  type        MethodologyItemType
+  slug        String                   @unique
+  name        String
+  category    String?
+  description String?                  @db.Text
+  objective   String?                  @db.Text
+  content     Json?
+  tags        String[]                 @default([])
+  orderIndex  Int                      @default(0) @map("order_index")
+  status      ItemStatus               @default(active)
+  version     Int                      @default(1)
+  createdById String?                  @map("created_by") @db.Uuid
+  updatedById String?                  @map("updated_by") @db.Uuid
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
+  versions    MethodologyItemVersion[]
+
+  @@index([type, status])
+  @@map("methodology_items")
+}
+
+model MethodologyItemVersion {
+  id        String          @id @default(uuid()) @db.Uuid
+  itemId    String          @map("item_id") @db.Uuid
+  version   Int
+  snapshot  Json
+  authorId  String?         @map("author_id") @db.Uuid
+  note      String?
+  createdAt DateTime        @default(now()) @map("created_at")
+  item      MethodologyItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, version])
+  @@map("methodology_item_versions")
+}
+
+model KnowledgeItem {
+  id            String                 @id @default(uuid()) @db.Uuid
+  kind          KnowledgeKind
+  slug          String                 @unique
+  title         String
+  summary       String?                @db.Text
+  body          Json?
+  category      String?
+  tags          String[]               @default([])
+  competencyIds String[]               @default([]) @map("competency_ids")
+  coreModule    String?                @map("core_module")
+  difficulty    DifficultyLevel?
+  audience      String?
+  author        String?
+  version       Int                    @default(1)
+  reviewedAt    DateTime?              @map("reviewed_at")
+  status        ItemStatus             @default(active)
+  createdById   String?                @map("created_by") @db.Uuid
+  updatedById   String?                @map("updated_by") @db.Uuid
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+  versions      KnowledgeItemVersion[]
+
+  @@index([kind, status])
+  @@map("knowledge_items")
+}
+
+model KnowledgeItemVersion {
+  id        String        @id @default(uuid()) @db.Uuid
+  itemId    String        @map("item_id") @db.Uuid
+  version   Int
+  snapshot  Json
+  authorId  String?       @map("author_id") @db.Uuid
+  note      String?
+  createdAt DateTime      @default(now()) @map("created_at")
+  item      KnowledgeItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, version])
+  @@map("knowledge_item_versions")
+}
+
+model Template {
+  id          String            @id @default(uuid()) @db.Uuid
+  kind        TemplateKind
+  slug        String            @unique
+  name        String
+  description String?           @db.Text
+  body        Json
+  tags        String[]          @default([])
+  status      ItemStatus        @default(active)
+  version     Int               @default(1)
+  createdById String?           @map("created_by") @db.Uuid
+  updatedById String?           @map("updated_by") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  versions    TemplateVersion[]
+
+  @@index([kind, status])
+  @@map("templates")
+}
+
+model TemplateVersion {
+  id         String   @id @default(uuid()) @db.Uuid
+  templateId String   @map("template_id") @db.Uuid
+  version    Int
+  snapshot   Json
+  authorId   String?  @map("author_id") @db.Uuid
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@map("template_versions")
+}
+
+model Assessment {
+  id            String              @id @default(uuid()) @db.Uuid
+  slug          String              @unique
+  name          String
+  objective     String?             @db.Text
+  audience      String?
+  competency    String?
+  category      String?
+  estimatedTime Int?                @map("estimated_time")
+  frequency     String?
+  weight        Int                 @default(1)
+  coreModule    String?             @map("core_module")
+  status        ItemStatus          @default(draft)
+  version       Int                 @default(1)
+  randomize     Boolean             @default(false)
+  createdById   String?             @map("created_by") @db.Uuid
+  updatedById   String?             @map("updated_by") @db.Uuid
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  blocks        AssessmentBlock[]
+  versions      AssessmentVersion[]
+
+  @@map("assessments_lib")
+}
+
+model AssessmentVersion {
+  id           String     @id @default(uuid()) @db.Uuid
+  assessmentId String     @map("assessment_id") @db.Uuid
+  version      Int
+  snapshot     Json
+  authorId     String?    @map("author_id") @db.Uuid
+  note         String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, version])
+  @@map("assessment_versions")
+}
+
+model AssessmentBlock {
+  id           String               @id @default(uuid()) @db.Uuid
+  assessmentId String               @map("assessment_id") @db.Uuid
+  title        String
+  description  String?
+  orderIndex   Int                  @default(0) @map("order_index")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  assessment   Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  questions    AssessmentQuestion[]
+
+  @@map("assessment_blocks")
+}
+
+model AssessmentQuestion {
+  id         String                 @id @default(uuid()) @db.Uuid
+  blockId    String                 @map("block_id") @db.Uuid
+  type       AssessmentQuestionType
+  prompt     String                 @db.Text
+  helpText   String?                @map("help_text")
+  required   Boolean                @default(true)
+  weight     Int                    @default(1)
+  scaleMin   Int?                   @map("scale_min")
+  scaleMax   Int?                   @map("scale_max")
+  showIf     Json?                  @map("show_if")
+  orderIndex Int                    @default(0) @map("order_index")
+  createdAt  DateTime               @default(now()) @map("created_at")
+  block      AssessmentBlock        @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  options    AssessmentOption[]
+
+  @@map("assessment_questions")
+}
+
+model AssessmentOption {
+  id         String             @id @default(uuid()) @db.Uuid
+  questionId String             @map("question_id") @db.Uuid
+  label      String
+  value      String
+  score      Int                @default(0)
+  orderIndex Int                @default(0) @map("order_index")
+  question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_options")
+}
+
+model Journey {
+  id          String        @id @default(uuid()) @db.Uuid
+  slug        String        @unique
+  name        String
+  description String?       @db.Text
+  audience    String?
+  coreModule  String?       @map("core_module")
+  status      ItemStatus    @default(draft)
+  version     Int           @default(1)
+  createdById String?       @map("created_by") @db.Uuid
+  updatedById String?       @map("updated_by") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  steps       JourneyStep[]
+
+  @@map("journeys")
+}
+
+model JourneyStep {
+  id          String          @id @default(uuid()) @db.Uuid
+  journeyId   String          @map("journey_id") @db.Uuid
+  kind        JourneyStepKind
+  title       String
+  description String?         @db.Text
+  refId       String?         @map("ref_id")
+  content     Json?
+  requires    String[]        @default([])
+  orderIndex  Int             @default(0) @map("order_index")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  journey     Journey         @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  @@map("journey_steps")
+}
+
+model LeaderDNA {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @unique @map("user_id") @db.Uuid
+  scores        Json?
+  strengths     String[]         @default([])
+  improvements  String[]         @default([])
+  behavioral    Json?
+  emotional     Json?
+  technical     Json?
+  communication Json?
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  events        LeaderDNAEvent[]
+
+  @@map("leader_dna")
+}
+
+model LeaderDNAEvent {
+  id        String    @id @default(uuid()) @db.Uuid
+  dnaId     String    @map("dna_id") @db.Uuid
+  kind      String
+  payload   Json
+  source    String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  dna       LeaderDNA @relation(fields: [dnaId], references: [id], onDelete: Cascade)
+
+  @@index([dnaId, createdAt])
+  @@map("leader_dna_events")
+}
+
+model Recommendation {
+  id           String               @id @default(uuid()) @db.Uuid
+  userId       String               @map("user_id") @db.Uuid
+  source       RecommendationSource @default(regra)
+  reason       String
+  competencyId String?              @map("competency_id")
+  knowledgeId  String?              @map("knowledge_id") @db.Uuid
+  journeyId    String?              @map("journey_id") @db.Uuid
+  score        Int                  @default(0)
+  meta         Json?
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("recommendations")
+}
+
+model AuditEntry {
+  id        String   @id @default(uuid()) @db.Uuid
+  entity    String
+  entityId  String   @map("entity_id")
+  action    String
+  actorId   String?  @map("actor_id") @db.Uuid
+  diff      Json?
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([entity, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_entries")
 }

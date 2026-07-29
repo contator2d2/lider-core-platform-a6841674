@@ -58,6 +58,8 @@
   --color-success-foreground: var(--success-foreground);
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: "Fraunces", ui-serif, Georgia, serif;
+  --font-neo: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -245,4 +247,43 @@
 }
 .recharts-tooltip-wrapper {
   outline: none !important;
+}
+
+/* ============================================================
+ * Neo Admin — identidade editorial
+ * ============================================================ */
+@utility font-editorial {
+  font-family: var(--font-editorial);
+  font-feature-settings: "ss01", "ss02";
+  letter-spacing: -0.01em;
+}
+@utility font-neo {
+  font-family: var(--font-neo);
+}
+
+.neo-admin {
+  --neo-ink: oklch(0.15 0.01 260);
+  --neo-paper: oklch(0.995 0.002 90);
+  --neo-cream: oklch(0.975 0.01 85);
+  --neo-line: oklch(0.88 0.008 90);
+  --neo-muted: oklch(0.45 0.01 260);
+  --neo-accent: oklch(0.55 0.14 45);
+  background: var(--neo-paper);
+  color: var(--neo-ink);
+  font-family: var(--font-neo);
+}
+.neo-admin h1, .neo-admin h2, .neo-admin h3, .neo-admin .neo-title {
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+.neo-admin .neo-hairline {
+  border-color: var(--neo-line);
+}
+.neo-admin .neo-eyebrow {
+  font-family: var(--font-neo);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neo-muted);
 }

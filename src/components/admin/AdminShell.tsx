@@ -30,6 +30,10 @@ import {
   Database,
   HelpCircle,
   ToggleRight,
+  Library,
+  Route as RouteIcon,
+  GitBranch,
+  History,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,23 +43,27 @@ type NavSection = { title: string; items: NavItem[] };
 const navSections: NavSection[] = [
   {
     title: "Visão",
-    items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard }],
+    items: [{ to: "/admin", label: "Briefing", icon: LayoutDashboard }],
   },
   {
-    title: "Tenants",
+    title: "Neo — Inteligência",
+    items: [
+      { to: "/admin/neo/methodology", label: "Metodologia", icon: BookOpen },
+      { to: "/admin/neo/knowledge", label: "Base de Conhecimento", icon: Library },
+      { to: "/admin/neo/assessments", label: "Assessments", icon: ClipboardCheck },
+      { to: "/admin/neo/journeys", label: "Jornadas", icon: RouteIcon },
+      { to: "/admin/neo/templates", label: "Templates", icon: FileText },
+    ],
+  },
+  {
+    title: "Clientes",
     items: [
       { to: "/admin/franchises", label: "Franquias", icon: Store },
       { to: "/admin/organizations", label: "Empresas", icon: Building2 },
       { to: "/admin/hierarchy", label: "Filiais / Áreas / Equipes", icon: Network },
       { to: "/admin/users", label: "Usuários", icon: Users },
       { to: "/admin/permissions", label: "Permissões (RBAC)", icon: ShieldCheck },
-    ],
-  },
-  {
-    title: "Comercial",
-    items: [
       { to: "/admin/plans", label: "Planos", icon: Package },
-      { to: "/admin/modules", label: "Módulos do produto", icon: Boxes },
       { to: "/admin/licenses", label: "Licenças", icon: KeyRound },
       { to: "/admin/subscriptions", label: "Assinaturas", icon: CreditCard },
       { to: "/admin/invoices", label: "Faturas", icon: Receipt },
@@ -63,24 +71,26 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Implantação",
-    items: [
-      { to: "/admin/onboarding", label: "Onboarding", icon: ClipboardCheck },
-    ],
-  },
-  {
-    title: "Plataforma",
+    title: "Sistema",
     items: [
       { to: "/admin/ai", label: "Provedor IA", icon: Brain },
       { to: "/admin/branding", label: "Branding", icon: Palette },
-      { to: "/admin/methodology", label: "Metodologia", icon: BookOpen },
-      { to: "/admin/apps", label: "Apps & Versões", icon: Package },
+      { to: "/admin/modules", label: "Módulos do produto", icon: Boxes },
       { to: "/admin/feature-templates", label: "Templates de módulos", icon: ToggleRight },
       { to: "/admin/signup-plans", label: "Planos de cadastro", icon: ToggleRight },
+      { to: "/admin/apps", label: "Apps & Versões", icon: Package },
       { to: "/admin/notifications", label: "Notificações", icon: Bell },
       { to: "/admin/data", label: "Dados (Import/Export)", icon: Database },
+      { to: "/admin/onboarding", label: "Onboarding", icon: ClipboardCheck },
       { to: "/admin/settings", label: "Configurações", icon: Settings2 },
-      { to: "/admin/logs", label: "Logs de auditoria", icon: FileText },
+    ],
+  },
+  {
+    title: "Auditoria",
+    items: [
+      { to: "/admin/neo/audit", label: "Trilha de mudanças", icon: History },
+      { to: "/admin/logs", label: "Logs do sistema", icon: FileText },
+      { to: "/admin/methodology", label: "Metodologia (legado)", icon: GitBranch },
       { to: "/admin/help", label: "Documentação", icon: HelpCircle },
     ],
   },
@@ -113,30 +123,26 @@ export function AdminShell() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="neo-admin min-h-screen">
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
-          <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-            <Logo className="h-6 w-auto max-w-[140px]" />
-            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-accent">
-              Super Admin
-            </span>
+        <aside className="hidden w-72 shrink-0 flex-col border-r neo-hairline md:flex" style={{ background: "var(--neo-cream)" }}>
+          <div className="flex items-center gap-3 border-b neo-hairline px-6 py-5">
+            <Logo className="h-6 w-auto max-w-[130px]" />
+            <span className="neo-eyebrow">Neo · Admin</span>
           </div>
           <button
             onClick={() => setSearchOpen(true)}
-            className="mx-3 mt-3 flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="mx-4 mt-4 flex items-center gap-2 rounded-full border neo-hairline bg-white/60 px-4 py-2 text-xs text-[color:var(--neo-muted)] transition-colors hover:bg-white"
           >
-            <Search className="h-3.5 w-3.5" />
-            <span className="flex-1 text-left">Buscar em tudo…</span>
-            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+            <Search className="h-3.5 w-3.5" strokeWidth={1.4} />
+            <span className="flex-1 text-left">Buscar em tudo</span>
+            <kbd className="rounded border neo-hairline bg-white px-1.5 py-0.5 text-[10px]">⌘K</kbd>
           </button>
-          <nav className="flex-1 space-y-4 overflow-y-auto p-3">
+          <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-5">
             {navSections.map((section) => (
-              <div key={section.title} className="space-y-0.5">
-                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                  {section.title}
-                </div>
+              <div key={section.title} className="space-y-1">
+                <div className="neo-eyebrow px-2 pb-2">{section.title}</div>
                 {section.items.map((item) => {
                   const active =
                     item.to === "/admin"
@@ -146,35 +152,35 @@ export function AdminShell() {
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                      className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors ${
                         active
-                          ? "bg-secondary text-foreground"
-                          : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                          ? "bg-white text-[color:var(--neo-ink)] shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                          : "text-[color:var(--neo-muted)] hover:bg-white/60 hover:text-[color:var(--neo-ink)]"
                       }`}
                     >
-                      <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                      {item.label}
+                      <item.icon className={`h-4 w-4 ${active ? "text-[color:var(--neo-accent)]" : ""}`} strokeWidth={1.4} />
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   );
                 })}
               </div>
             ))}
           </nav>
-          <div className="border-t border-border p-3">
-            <div className="mb-2 truncate px-3 text-xs text-muted-foreground">
+          <div className="border-t neo-hairline p-4">
+            <div className="mb-2 truncate px-2 text-xs text-[color:var(--neo-muted)]">
               {user?.email}
             </div>
             <div className="grid gap-1">
               <Link
                 to="/app"
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[color:var(--neo-muted)] hover:bg-white hover:text-[color:var(--neo-ink)]"
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
                 Ver como líder
               </Link>
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[color:var(--neo-muted)] hover:bg-white hover:text-[color:var(--neo-ink)]"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Sair
@@ -184,16 +190,16 @@ export function AdminShell() {
         </aside>
 
         <main className="flex-1 overflow-x-hidden">
-          <header className="flex items-center justify-between border-b border-border bg-background/80 px-6 py-3 backdrop-blur md:hidden">
+          <header className="flex items-center justify-between border-b neo-hairline bg-white/70 px-6 py-3 backdrop-blur md:hidden">
             <Logo className="h-6 w-auto max-w-[120px]" />
             <button
               onClick={handleSignOut}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground"
+              className="inline-flex items-center gap-2 rounded-full border neo-hairline px-3 py-1.5 text-xs text-[color:var(--neo-muted)]"
             >
               <LogOut className="h-3.5 w-3.5" /> Sair
             </button>
           </header>
-          <div className="mx-auto max-w-6xl px-6 py-8 md:px-10 md:py-10">
+          <div className="mx-auto max-w-6xl px-6 py-10 md:px-12 md:py-14">
             <Outlet />
           </div>
         </main>
@@ -204,22 +210,22 @@ export function AdminShell() {
 
 export function AdminPageHeader({
   title,
+  eyebrow,
   description,
   action,
 }: {
   title: string;
+  eyebrow?: string;
   description?: string;
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b neo-hairline pb-6">
       <div>
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">
-          Painel Super Admin
-        </div>
-        <h1 className="mt-1 font-display text-3xl md:text-4xl">{title}</h1>
+        <div className="neo-eyebrow">{eyebrow ?? "Painel Neo"}</div>
+        <h1 className="mt-2 text-4xl md:text-5xl">{title}</h1>
         {description && (
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">{description}</p>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[color:var(--neo-muted)]">{description}</p>
         )}
       </div>
       {action}
