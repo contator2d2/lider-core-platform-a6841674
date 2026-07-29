@@ -193,7 +193,7 @@ function AssessmentWizard() {
   });
 
   const initial = data?.profile ?? null;
-  const [step, setStep] = useState(requestedStep);
+  const [step, setStep] = useState<number>(() => requestedStep);
   const [declaredRole, setDeclaredRole] = useState("");
   const [notMine, setNotMine] = useState("");
   const [discPrimary, setDiscPrimary] = useState<DiscPrimary | null>(null);
@@ -204,19 +204,6 @@ function AssessmentWizard() {
   const [hard, setHard] = useState<number[]>(Array(10).fill(3));
   const [soft, setSoft] = useState<number[]>(Array(10).fill(3));
   const [heart, setHeart] = useState<number[]>(Array(10).fill(3));
-
-  useEffect(() => {
-    setStep(requestedStep);
-  }, [requestedStep]);
-
-  useEffect(() => {
-    if (step <= requestedStep) return;
-    navigate({
-      to: "/app/consciencia/assessment",
-      search: {},
-      replace: true,
-    });
-  }, [navigate, requestedStep, step]);
 
   // hidrata quando dados chegam
   useEffect(() => {
