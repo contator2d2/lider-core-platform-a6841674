@@ -730,14 +730,14 @@ async function createLikertQuestionBlocks({
   questions: string[];
   existingBlocks: number;
 }) {
-  const blocks = [];
+  const blocks: string[] = [];
   const chunkSize = questions.length > 12 ? 12 : questions.length;
   const helpText = "Escala: 1 Nem um pouco · 2 Um pouco · 3 Moderadamente · 4 Muito · 5 Extremamente";
 
   for (let start = 0; start < questions.length; start += chunkSize) {
     const chunk = questions.slice(start, start + chunkSize);
     const end = start + chunk.length;
-    const block = await prisma.assessmentBlock.create({
+    const block: AssessmentBlock = await prisma.assessmentBlock.create({
       data: {
         assessmentId,
         title: questions.length > chunkSize
