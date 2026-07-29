@@ -2052,6 +2052,38 @@ model AssessmentOption {
   @@map("assessment_options")
 }
 
+model AssessmentShareLink {
+  id           String                        @id @default(uuid()) @db.Uuid
+  assessmentId String                        @map("assessment_id") @db.Uuid
+  token        String                        @unique
+  label        String?
+  expiresAt    DateTime?                     @map("expires_at")
+  maxResponses Int?                          @map("max_responses")
+  revokedAt    DateTime?                     @map("revoked_at")
+  createdById  String?                       @map("created_by") @db.Uuid
+  createdAt    DateTime                      @default(now()) @map("created_at")
+  responses    AssessmentPublicResponse[]
+
+  @@index([assessmentId])
+  @@map("assessment_share_links")
+}
+
+model AssessmentPublicResponse {
+  id              String              @id @default(uuid()) @db.Uuid
+  shareId         String              @map("share_id") @db.Uuid
+  assessmentId    String              @map("assessment_id") @db.Uuid
+  respondentName  String?             @map("respondent_name")
+  respondentEmail String?             @map("respondent_email")
+  answers         Json
+  score           Json?
+  submittedAt     DateTime            @default(now()) @map("submitted_at")
+  share           AssessmentShareLink @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@index([shareId])
+  @@map("assessment_public_responses")
+}
+
 model Journey {
   id          String        @id @default(uuid()) @db.Uuid
   slug        String        @unique
