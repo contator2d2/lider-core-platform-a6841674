@@ -592,65 +592,6 @@ function ProgressGauge({ value }: { value: number }) {
   );
 }
 
-function TrilhaItem({
-  icon: Icon, title, subtitle, state, onClick,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  subtitle: string;
-  state: "done" | "progress" | "pending";
-  onClick: () => void;
-}) {
-  const badge =
-    state === "done"
-      ? { label: "Concluído", cls: "bg-success/15 text-success" }
-      : state === "progress"
-      ? { label: "Em andamento", cls: "bg-accent/15 text-accent" }
-      : { label: "Pendente", cls: "bg-secondary text-muted-foreground" };
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left shadow-sm transition-shadow hover:shadow-md"
-      >
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary/60 text-foreground">
-          <Icon className="h-4.5 w-4.5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold leading-tight">{title}</div>
-          <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{subtitle}</div>
-        </div>
-        <span className={"rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide " + badge.cls}>
-          {badge.label}
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-      </button>
-    </li>
-  );
-}
-
-function MiniSpark({ values }: { values: number[] }) {
-  const w = 120;
-  const h = 32;
-  const max = Math.max(100, ...values);
-  const pts = values.length > 1
-    ? values.map((v, i) => `${(i / (values.length - 1)) * w},${h - (v / max) * (h - 4) - 2}`).join(" ")
-    : `0,${h - 4} ${w},${h - (values[0] ?? 0) / max * (h - 4) - 2}`;
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-8 w-full">
-      <polyline
-        points={pts}
-        fill="none"
-        stroke="hsl(var(--accent))"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function relativeDay(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -662,62 +603,7 @@ function relativeDay(iso: string | null | undefined) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-function FeatureRow({
-  to, icon: Icon, eyebrow, title, description, purpose,
-}: {
-  to: string;
-  icon: React.ComponentType<{ className?: string }>;
-  eyebrow: string;
-  title: string;
-  description: string;
-  purpose?: string[];
-}) {
-  return (
-    <Link
-      to={to}
-      className="group flex items-start gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
-    >
-      <div className="mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
-        <Icon className="h-4.5 w-4.5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {eyebrow}
-        </div>
-        <div className="mt-0.5 font-display text-sm font-bold md:text-base">
-          {title}
-        </div>
-        <p className="mt-0.5 text-xs text-muted-foreground md:text-[13px]">
-          {description}
-        </p>
-        {purpose && purpose.length > 0 && (
-          <ul className="mt-2 space-y-1 border-l border-accent/30 pl-3">
-            {purpose.map((p, i) => (
-              <li key={i} className="text-[11px] leading-relaxed text-muted-foreground md:text-xs">
-                <span className="mr-1 text-accent">•</span>{p}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </Link>
-  );
-}
-
-function SummaryCard({
-  title, value, icon: Icon, hint, warn,
-}: { title: string; value: string; icon: typeof Sparkles; hint?: string; warn?: boolean }) {
-  return (
-    <div className={"rounded-2xl border p-5 " + (warn ? "border-accent/40 bg-accent/5" : "border-border bg-background")}>
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" /> {title}
-      </div>
-      <div className="mt-2 text-lg font-medium">{value}</div>
-      {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
-    </div>
-  );
-}
+// (helpers TrilhaItem / MiniSpark / FeatureRow / SummaryCard removidos com o redesign)
 
 function HSHPanel({ profile }: { profile: Profile }) {
   const dims: Array<{ key: "hard" | "soft" | "heart"; label: string; sub: string; value: number | null; tone: string }> = [
