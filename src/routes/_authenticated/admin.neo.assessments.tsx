@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin/neo/assessments")({
 function Page() {
   const [aiOpen, setAiOpen] = useState(false);
   return (
+    <>
     <NeoCrudPage
       eyebrow="Neo · Inteligência"
       title="Biblioteca de Assessments"
@@ -79,6 +80,7 @@ function Page() {
       ]}
     />
     {aiOpen && <QuickAiDialog onClose={() => setAiOpen(false)} />}
+    </>
   );
 }
 
