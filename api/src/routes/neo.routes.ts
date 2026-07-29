@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { randomBytes } from "node:crypto";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 import { recordAudit, shallowDiff } from "../lib/audit.js";
@@ -505,6 +506,67 @@ neoRouter.patch("/questions/:questionId", async (req, res) => {
 neoRouter.delete("/questions/:questionId", async (req, res) => {
   await prisma.assessmentQuestion.delete({ where: { id: req.params.questionId } }).catch(() => null);
   res.status(204).end();
+});
+
+// ============================================================
+// Assessment — Share Links (para teste externo, sem login)
+// ============================================================
+function genShareToken() {
+  return randomBytes(24).toString("base64url");
+}
+
+neoRouter.get("/assessments/:id/share-links", async (req, res) => {
+  const links = await prisma.assessmentShareLink.findMany({
+    where: { assessmentId: req.params.id },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { responses: true } } },
+  });
+  res.json(links);
+});
+
+neoRouter.post("/assessments/:id/share-links", async (req, res) => {
+  const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
+  const schema = z.object({
+    label: z.string().optional().nullable(),
+    expiresInDays: z.number().int().min(1).max(365).optional().nullable(),
+    maxResponses: z.number().int().min(1).optional().nullable(),
+  });
+  const parsed = schema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const expiresAt = parsed.data.expiresInDays
+    ? new Date(Date.now() + parsed.data.expiresInDays * 86400_000)
+    : null;
+  const link = await prisma.assessmentShareLink.create({
+    data: {
+      assessmentId: a.id,
+      token: genShareToken(),
+      label: parsed.data.label ?? null,
+      expiresAt,
+      maxResponses: parsed.data.maxResponses ?? null,
+      createdById: req.userId ?? null,
+    },
+  });
+  await recordAudit({ entity: "assessment", entityId: a.id, action: "create", actorId: req.userId, note: `share-link ${link.id}` });
+  res.status(201).json(link);
+});
+
+neoRouter.delete("/assessments/share-links/:linkId", async (req, res) => {
+  await prisma.assessmentShareLink.update({
+    where: { id: req.params.linkId },
+    data: { revokedAt: new Date() },
+  }).catch(() => null);
+  res.status(204).end();
+});
+
+neoRouter.get("/assessments/:id/responses", async (req, res) => {
+  const rows = await prisma.assessmentPublicResponse.findMany({
+    where: { assessmentId: req.params.id },
+    orderBy: { submittedAt: "desc" },
+    take: 500,
+    include: { share: { select: { id: true, label: true, token: true } } },
+  });
+  res.json(rows);
 });
 
 // ============================================================

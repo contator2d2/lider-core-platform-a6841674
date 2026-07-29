@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PaTokenRouteImport } from './routes/pa.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as AuthenticatedFranchiseRouteImport } from './routes/_authenticated/franchise'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
@@ -106,6 +107,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaTokenRoute = PaTokenRouteImport.update({
+  id: '/pa/$token',
+  path: '/pa/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
@@ -579,6 +585,7 @@ export interface FileRoutesByFullPath {
   '/company': typeof AuthenticatedCompanyRouteWithChildren
   '/franchise': typeof AuthenticatedFranchiseRouteWithChildren
   '/p/$token': typeof PTokenRoute
+  '/pa/$token': typeof PaTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -660,6 +667,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/p/$token': typeof PTokenRoute
+  '/pa/$token': typeof PaTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -746,6 +754,7 @@ export interface FileRoutesById {
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
   '/_authenticated/franchise': typeof AuthenticatedFranchiseRouteWithChildren
   '/p/$token': typeof PTokenRoute
+  '/pa/$token': typeof PaTokenRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRoute
   '/_authenticated/admin/apps': typeof AuthenticatedAdminAppsRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
@@ -833,6 +842,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/franchise'
     | '/p/$token'
+    | '/pa/$token'
     | '/admin/ai'
     | '/admin/apps'
     | '/admin/billing'
@@ -914,6 +924,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/p/$token'
+    | '/pa/$token'
     | '/admin/ai'
     | '/admin/apps'
     | '/admin/billing'
@@ -999,6 +1010,7 @@ export interface FileRouteTypes {
     | '/_authenticated/company'
     | '/_authenticated/franchise'
     | '/p/$token'
+    | '/pa/$token'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/apps'
     | '/_authenticated/admin/billing'
@@ -1082,6 +1094,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   PTokenRoute: typeof PTokenRoute
+  PaTokenRoute: typeof PaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1105,6 +1118,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pa/$token': {
+      id: '/pa/$token'
+      path: '/pa/$token'
+      fullPath: '/pa/$token'
+      preLoaderRoute: typeof PaTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
@@ -1966,17 +1986,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   PTokenRoute: PTokenRoute,
+  PaTokenRoute: PaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

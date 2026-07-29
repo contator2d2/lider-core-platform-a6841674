@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink } from "lucide-react";
 
 type Option = { id?: string; label: string; value: string; score?: number };
 type Question = {
@@ -226,7 +226,205 @@ function Page() {
           onDone={invalidate}
         />
       )}
+      {a && <SharePanel assessmentId={a.id} />}
     </>
+  );
+}
+
+// ============================================================
+// Share links (teste externo, sem login)
+// ============================================================
+type ShareLink = {
+  id: string;
+  token: string;
+  label: string | null;
+  expiresAt: string | null;
+  maxResponses: number | null;
+  revokedAt: string | null;
+  createdAt: string;
+  _count: { responses: number };
+};
+
+function SharePanel({ assessmentId }: { assessmentId: string }) {
+  const qc = useQueryClient();
+  const [label, setLabel] = useState("");
+  const [expiresInDays, setExpiresInDays] = useState<string>("30");
+  const [maxResponses, setMaxResponses] = useState<string>("");
+
+  const links = useQuery<ShareLink[]>({
+    queryKey: ["/admin/neo/assessments", assessmentId, "share-links"],
+    queryFn: () => api<ShareLink[]>(`/admin/neo/assessments/${assessmentId}/share-links`),
+  });
+
+  const create = useMutation({
+    mutationFn: () =>
+      api<ShareLink>(`/admin/neo/assessments/${assessmentId}/share-links`, {
+        method: "POST",
+        body: {
+          label: label || null,
+          expiresInDays: expiresInDays ? Number(expiresInDays) : null,
+          maxResponses: maxResponses ? Number(maxResponses) : null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Link gerado");
+      setLabel("");
+      qc.invalidateQueries({ queryKey: ["/admin/neo/assessments", assessmentId, "share-links"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const revoke = useMutation({
+    mutationFn: (linkId: string) =>
+      api(`/admin/neo/assessments/share-links/${linkId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success("Link revogado");
+      qc.invalidateQueries({ queryKey: ["/admin/neo/assessments", assessmentId, "share-links"] });
+    },
+  });
+
+  const publicUrl = (token: string) => `${window.location.origin}/pa/${token}`;
+
+  return (
+    <section className="mt-12 rounded-2xl border neo-hairline bg-white p-6">
+      <div className="flex items-start gap-3 border-b neo-hairline pb-4">
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--neo-cream)]">
+          <Link2 className="h-4 w-4 text-[color:var(--neo-ink)]" />
+        </div>
+        <div>
+          <div className="neo-eyebrow">Teste externo</div>
+          <h2 className="text-2xl">Links públicos</h2>
+          <p className="mt-1 text-sm text-[color:var(--neo-muted)]">
+            Gere um link que qualquer pessoa possa abrir sem login para responder este assessment.
+            Ótimo para testar como o convidado vê e para validar as perguntas.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_140px_140px_auto]">
+        <div>
+          <Label className="text-xs text-[color:var(--neo-muted)]">Identificação (opcional)</Label>
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Ex.: Teste beta — jul/26"
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-[color:var(--neo-muted)]">Expira em (dias)</Label>
+          <Input
+            type="number"
+            min={1}
+            max={365}
+            value={expiresInDays}
+            onChange={(e) => setExpiresInDays(e.target.value)}
+            placeholder="30"
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-[color:var(--neo-muted)]">Máx. respostas</Label>
+          <Input
+            type="number"
+            min={1}
+            value={maxResponses}
+            onChange={(e) => setMaxResponses(e.target.value)}
+            placeholder="ilimitado"
+            className="mt-1"
+          />
+        </div>
+        <div className="flex items-end">
+          <Button
+            onClick={() => create.mutate()}
+            disabled={create.isPending}
+            className="w-full rounded-full bg-[color:var(--neo-ink)] text-white hover:bg-[color:var(--neo-ink)]/90"
+          >
+            <Plus className="mr-1.5 h-4 w-4" /> Gerar link
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-2">
+        {links.isLoading ? (
+          <div className="text-sm text-[color:var(--neo-muted)]">Carregando…</div>
+        ) : !links.data?.length ? (
+          <div className="rounded-xl border neo-hairline bg-[color:var(--neo-cream)]/40 p-4 text-sm text-[color:var(--neo-muted)]">
+            Nenhum link gerado ainda.
+          </div>
+        ) : (
+          links.data.map((l) => {
+            const url = publicUrl(l.token);
+            const expired = !!(l.expiresAt && new Date(l.expiresAt) < new Date());
+            const disabled = !!l.revokedAt || expired;
+            return (
+              <div
+                key={l.id}
+                className={
+                  "flex flex-wrap items-center gap-3 rounded-xl border neo-hairline p-3 " +
+                  (disabled ? "bg-neutral-50 opacity-70" : "bg-white")
+                }
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    {l.label || "Link sem rótulo"}
+                    {l.revokedAt && (
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                        revogado
+                      </span>
+                    )}
+                    {!l.revokedAt && expired && (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        expirado
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs text-[color:var(--neo-muted)]">
+                    {url}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[color:var(--neo-muted)]">
+                    <span>{l._count.responses} resposta{l._count.responses === 1 ? "" : "s"}</span>
+                    {l.expiresAt && <span>expira em {new Date(l.expiresAt).toLocaleDateString("pt-BR")}</span>}
+                    {l.maxResponses && <span>limite {l.maxResponses}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(url);
+                      toast.success("Link copiado");
+                    }}
+                    disabled={disabled}
+                    className="inline-flex items-center gap-1 rounded-full border neo-hairline bg-white px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--neo-cream)] disabled:opacity-40"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </button>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={
+                      "inline-flex items-center gap-1 rounded-full border neo-hairline bg-white px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--neo-cream)] " +
+                      (disabled ? "pointer-events-none opacity-40" : "")
+                    }
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Abrir
+                  </a>
+                  {!l.revokedAt && (
+                    <button
+                      onClick={() => confirm("Revogar este link?") && revoke.mutate(l.id)}
+                      className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                    >
+                      <Ban className="h-3.5 w-3.5" /> Revogar
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
   );
 }
 
