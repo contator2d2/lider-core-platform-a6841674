@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -123,6 +122,7 @@ function ConscienciaPage() {
   const { orgId } = useCurrentOrg();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const canEditProfile = useFeature("consciencia.profile", "edit");
 
@@ -152,7 +152,8 @@ function ConscienciaPage() {
     subtitle: string;
     minutes: number;
     done: boolean;
-    to: string;
+    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach";
+    search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
   const steps: Step[] = [
     {
@@ -165,7 +166,8 @@ function ConscienciaPage() {
           : "DISC · MBTI",
       minutes: 8,
       done: !!(profile?.discPrimary || profile?.mbtiType),
-      to: "/app/consciencia/assessment?step=behavioral",
+      to: "/app/consciencia/assessment",
+      search: { step: "behavioral" },
     },
     {
       key: "hsh",
@@ -174,7 +176,8 @@ function ConscienciaPage() {
       subtitle: "Autoavaliação nas 3 dimensões",
       minutes: 4,
       done: !!hshFilled,
-      to: "/app/consciencia/assessment?step=hsh",
+      to: "/app/consciencia/assessment",
+      search: { step: "hsh" },
     },
     {
       key: "sabotages",
@@ -186,7 +189,8 @@ function ConscienciaPage() {
           : "Identifique os principais",
       minutes: 6,
       done: (profile?.sabotages?.length ?? 0) >= 3,
-      to: "/app/consciencia/assessment?step=sabotages",
+      to: "/app/consciencia/assessment",
+      search: { step: "sabotages" },
     },
     {
       key: "activity",
@@ -245,7 +249,8 @@ function ConscienciaPage() {
   if (profile?.updatedAt) timeline.push({ when: relativeDay(profile.updatedAt), label: "Perfil atualizado" });
 
   const goToCurrent = () => {
-    if (current) window.location.assign(current.to);
+    if (!current) return;
+    navigate({ to: current.to, search: current.search });
   };
 
   return (
@@ -469,7 +474,8 @@ function JourneyRow({
     title: string;
     subtitle: string;
     state: "done" | "current" | "next";
-    to: string;
+    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach";
+    search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
 }) {
   const Icon = step.icon;
@@ -525,13 +531,9 @@ function JourneyRow({
   if (isNext) return <li>{inner}</li>;
   return (
     <li>
-      <button
-        type="button"
-        onClick={() => window.location.assign(step.to)}
-        className="block w-full text-left"
-      >
+      <Link to={step.to} search={step.search} className="block w-full text-left">
         {inner}
-      </button>
+      </Link>
     </li>
   );
 }
