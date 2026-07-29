@@ -44,7 +44,7 @@ function Page() {
       columns={[
         { key: "name", label: "Nome", render: (it) => (
           <Link
-            to="/_authenticated/admin/neo/assessments/$id"
+            to="/admin/neo/assessments/$id"
             params={{ id: it.id }}
             className="font-medium text-[color:var(--neo-ink)] underline decoration-transparent underline-offset-2 hover:decoration-current"
           >

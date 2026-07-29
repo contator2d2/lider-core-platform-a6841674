@@ -99,7 +99,7 @@ function Page() {
     <>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b neo-hairline pb-6">
         <div>
-          <Link to="/_authenticated/admin/neo/assessments" className="mb-3 inline-flex items-center gap-1 text-xs text-[color:var(--neo-muted)] hover:text-[color:var(--neo-ink)]">
+          <Link to="/admin/neo/assessments" className="mb-3 inline-flex items-center gap-1 text-xs text-[color:var(--neo-muted)] hover:text-[color:var(--neo-ink)]">
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar à biblioteca
           </Link>
           <div className="neo-eyebrow">Assessment · v{a?.version ?? "—"}</div>
