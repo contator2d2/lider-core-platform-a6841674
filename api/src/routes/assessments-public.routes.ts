@@ -1,0 +1,102 @@
+import { Router } from "express";
+import { z } from "zod";
+import { prisma } from "../prisma.js";
+
+/**
+ * Endpoints públicos (sem login) para responder assessments via link.
+ * Montados em /api/public.
+ */
+export const publicAssessmentsRouter = Router();
+
+publicAssessmentsRouter.get("/assessment/:token", async (req, res) => {
+  const link = await prisma.assessmentShareLink.findUnique({
+    where: { token: req.params.token },
+  });
+  if (!link) return res.status(404).json({ error: "Link inválido." });
+  if (link.revokedAt) return res.status(410).json({ error: "Este link foi revogado." });
+  if (link.expiresAt && link.expiresAt < new Date())
+    return res.status(410).json({ error: "Este link expirou." });
+  if (link.maxResponses) {
+    const count = await prisma.assessmentPublicResponse.count({ where: { shareId: link.id } });
+    if (count >= link.maxResponses)
+      return res.status(410).json({ error: "Este link atingiu o limite de respostas." });
+  }
+
+  const a = await prisma.assessment.findUnique({
+    where: { id: link.assessmentId },
+    include: {
+      blocks: {
+        orderBy: { orderIndex: "asc" },
+        include: {
+          questions: {
+            orderBy: { orderIndex: "asc" },
+            include: { options: { orderBy: { orderIndex: "asc" } } },
+          },
+        },
+      },
+    },
+  });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado." });
+
+  // sanitiza — não expõe pesos, scores nem showIf
+  res.json({
+    id: a.id,
+    name: a.name,
+    objective: a.objective,
+    audience: a.audience,
+    coreModule: a.coreModule,
+    estimatedTime: a.estimatedTime,
+    label: link.label,
+    blocks: a.blocks.map((b) => ({
+      id: b.id,
+      title: b.title,
+      description: b.description,
+      questions: b.questions.map((q) => ({
+        id: q.id,
+        type: q.type,
+        prompt: q.prompt,
+        helpText: q.helpText,
+        required: q.required,
+        scaleMin: q.scaleMin,
+        scaleMax: q.scaleMax,
+        options: q.options.map((o) => ({ id: o.id, label: o.label, value: o.value })),
+      })),
+    })),
+  });
+});
+
+const submitSchema = z.object({
+  respondentName: z.string().max(120).optional().nullable(),
+  respondentEmail: z.string().email().max(180).optional().nullable(),
+  answers: z.record(z.string(), z.any()),
+});
+
+publicAssessmentsRouter.post("/assessment/:token", async (req, res) => {
+  const parsed = submitSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const link = await prisma.assessmentShareLink.findUnique({
+    where: { token: req.params.token },
+  });
+  if (!link) return res.status(404).json({ error: "Link inválido." });
+  if (link.revokedAt) return res.status(410).json({ error: "Este link foi revogado." });
+  if (link.expiresAt && link.expiresAt < new Date())
+    return res.status(410).json({ error: "Este link expirou." });
+  if (link.maxResponses) {
+    const count = await prisma.assessmentPublicResponse.count({ where: { shareId: link.id } });
+    if (count >= link.maxResponses)
+      return res.status(410).json({ error: "Este link atingiu o limite de respostas." });
+  }
+
+  const saved = await prisma.assessmentPublicResponse.create({
+    data: {
+      shareId: link.id,
+      assessmentId: link.assessmentId,
+      respondentName: parsed.data.respondentName ?? null,
+      respondentEmail: parsed.data.respondentEmail ?? null,
+      answers: parsed.data.answers as never,
+    },
+  });
+
+  res.status(201).json({ ok: true, id: saved.id });
+});
