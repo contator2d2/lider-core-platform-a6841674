@@ -186,8 +186,8 @@ export function NeoCrudPage<T extends Item>({
       </div>
 
       <Dialog open={!!dialog} onOpenChange={(o) => !o && setDialog(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden p-0">
+          <DialogHeader className="border-b neo-hairline px-6 py-4">
             <DialogTitle className="font-editorial text-2xl">
               {dialog?.mode === "edit" ? `Editar ${entityLabel}` : `Novo ${entityLabel}`}
             </DialogTitle>
@@ -198,8 +198,9 @@ export function NeoCrudPage<T extends Item>({
                 e.preventDefault();
                 save.mutate(dialog.data);
               }}
-              className="space-y-4"
+              className="flex min-h-0 flex-1 flex-col"
             >
+              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
               {fields.map((f) => (
                 <div key={f.name} className="space-y-1.5">
                   <Label className="text-xs">{f.label}</Label>
@@ -244,7 +245,8 @@ export function NeoCrudPage<T extends Item>({
                   )}
                 </div>
               ))}
-              <DialogFooter>
+              </div>
+              <DialogFooter className="border-t neo-hairline px-6 py-4">
                 <Button type="button" variant="ghost" onClick={() => setDialog(null)}>Cancelar</Button>
                 <Button type="submit" disabled={save.isPending} className="bg-[color:var(--neo-ink)] text-white hover:bg-[color:var(--neo-ink)]/90">
                   Salvar
