@@ -32,6 +32,7 @@ export function NeoCrudPage<T extends Item>({
   filterOptions,
   entityLabel,
   defaultValues,
+  headerExtra,
 }: {
   title: string;
   eyebrow?: string;
