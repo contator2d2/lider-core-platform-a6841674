@@ -205,6 +205,10 @@ function AssessmentWizard() {
   const [soft, setSoft] = useState<number[]>(Array(10).fill(3));
   const [heart, setHeart] = useState<number[]>(Array(10).fill(3));
 
+  useEffect(() => {
+    setStep(requestedStep);
+  }, [requestedStep]);
+
   // hidrata quando dados chegam
   useEffect(() => {
     if (!initial) return;
@@ -299,6 +303,22 @@ function AssessmentWizard() {
     if (step === 3) return Object.keys(cerAns).length >= 6;
     return true;
   };
+  const sabAnswered = Object.keys(sabAns).length;
+  const cerAnswered = Object.keys(cerAns).length;
+  const nextBlockedMessage = () => {
+    if (step === 0) return "Escreva seu papel declarado para continuar.";
+    if (step === 1) return "Selecione seu estilo DISC predominante para continuar.";
+    if (step === 2) return `Responda pelo menos 8 sabotadores. Faltam ${Math.max(0, 8 - sabAnswered)}.`;
+    if (step === 3) return `Responda pelo menos 6 blocos de predominância cerebral. Faltam ${Math.max(0, 6 - cerAnswered)}.`;
+    return "Complete esta etapa para continuar.";
+  };
+  const goNext = () => {
+    if (!canNext()) {
+      toast.warning(nextBlockedMessage());
+      return;
+    }
+    setStep((s: number) => Math.min(steps.length - 1, s + 1));
+  };
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
@@ -337,6 +357,7 @@ function AssessmentWizard() {
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 {DISC.map((d) => (
                   <button
+                    type="button"
                     key={d.key}
                     onClick={() => setDiscPrimary(d.key)}
                     className={
@@ -368,6 +389,9 @@ function AssessmentWizard() {
             <p className="text-sm text-muted-foreground">
               Para cada afirmação, escolha o quanto ela te descreve (1 = nada · 5 = totalmente).
             </p>
+            <div className="rounded-xl border border-accent/25 bg-accent/5 px-3 py-2 text-xs font-medium text-foreground">
+              Respondidas: {sabAnswered}/10 · o botão Próximo libera com 8 respostas.
+            </div>
             <ul className="space-y-4">
               {SABOTAGE_PILLARS.map((p) => (
                 <li key={p.id} className="rounded-xl border border-border/60 p-3">
@@ -401,6 +425,9 @@ function AssessmentWizard() {
         {step === 3 && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Em cada bloco, escolha a frase que MAIS te representa hoje.</p>
+            <div className="rounded-xl border border-accent/25 bg-accent/5 px-3 py-2 text-xs font-medium text-foreground">
+              Respondidas: {cerAnswered}/8 · o botão Próximo libera com 6 respostas.
+            </div>
             <ul className="space-y-4">
               {CEREBRAL.map((b) => (
                 <li key={b.id} className="rounded-xl border border-border/60 p-3">
@@ -488,15 +515,15 @@ function AssessmentWizard() {
       </section>
 
       <footer className="flex items-center justify-between">
-        <Button variant="ghost" disabled={step === 0} onClick={() => setStep((s: number) => Math.max(0, s - 1))} className="gap-1.5">
+        <Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep((s: number) => Math.max(0, s - 1))} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         {step < steps.length - 1 ? (
-          <Button disabled={!canNext()} onClick={() => setStep((s: number) => s + 1)} className="gap-1.5">
+          <Button type="button" onClick={goNext} className="gap-1.5">
             Próximo <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button disabled={save.isPending} onClick={() => save.mutate()} className="gap-2">
+          <Button type="button" disabled={save.isPending} onClick={() => save.mutate()} className="gap-2">
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             Concluir
           </Button>

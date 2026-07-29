@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -122,7 +122,6 @@ function ConscienciaPage() {
   const { orgId } = useCurrentOrg();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const canEditProfile = useFeature("consciencia.profile", "edit");
 
@@ -248,11 +247,6 @@ function ConscienciaPage() {
   if (profile?.sabotages && profile.sabotages.length > 0) timeline.push({ when: relativeDay(profile.updatedAt), label: "Sabotadores mapeados" });
   if (profile?.updatedAt) timeline.push({ when: relativeDay(profile.updatedAt), label: "Perfil atualizado" });
 
-  const goToCurrent = () => {
-    if (!current) return;
-    navigate({ to: current.to, search: current.search });
-  };
-
   return (
     <div className="mx-auto max-w-md space-y-6 pb-28">
       {/* 1 · Header */}
@@ -306,13 +300,13 @@ function ConscienciaPage() {
             </div>
           </div>
           {current && (
-            <button
-              type="button"
-              onClick={goToCurrent}
+            <Link
+              to={current.to}
+              search={current.search}
               className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-[12px] font-semibold text-background transition-transform hover:scale-[1.02] active:scale-100"
             >
               Continuar <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+            </Link>
           )}
         </div>
         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -348,13 +342,13 @@ function ConscienciaPage() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={goToCurrent}
+              <Link
+                to={current.to}
+                search={current.search}
                 className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-[13px] font-semibold text-accent-foreground transition-transform hover:scale-[1.01] active:scale-100"
               >
                 <Play className="h-4 w-4" fill="currentColor" /> Continuar
-              </button>
+              </Link>
             </div>
           </div>
         </section>
@@ -407,13 +401,13 @@ function ConscienciaPage() {
           <div className="mt-1 text-[12px] text-muted-foreground">
             Tempo · {current.minutes} min
           </div>
-          <button
-            type="button"
-            onClick={goToCurrent}
+          <Link
+            to={current.to}
+            search={current.search}
             className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-foreground px-4 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
           >
             Começar <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+          </Link>
         </section>
       )}
 

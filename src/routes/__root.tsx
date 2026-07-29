@@ -19,6 +19,7 @@ declare global {
   interface Window {
     __liderCoreDomMutationGuardInstalled?: boolean;
     __liderCoreServiceWorkerCleanupDone?: boolean;
+    __liderCorePointerEventsGuardInstalled?: boolean;
   }
 }
 
@@ -200,13 +201,25 @@ function RootShell({ children }: { children: ReactNode }) {
               (function () {
                 if (window.__liderCorePointerEventsGuardInstalled) return;
                 window.__liderCorePointerEventsGuardInstalled = true;
+                function isVisible(el) {
+                  if (!el || !el.getBoundingClientRect) return false;
+                  var rect = el.getBoundingClientRect();
+                  var cs = window.getComputedStyle(el);
+                  return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity || '1') > 0.01 && rect.width > 0 && rect.height > 0;
+                }
                 function clearIfStuck() {
                   var body = document.body;
                   if (!body) return;
-                  if (body.style.pointerEvents !== 'none') return;
-                  var anyOpen = document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]');
-                  if (!anyOpen) {
+                  var openDialogs = Array.prototype.filter.call(
+                    document.querySelectorAll('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]'),
+                    isVisible
+                  );
+                  if (openDialogs.length === 0) {
                     body.style.pointerEvents = '';
+                    body.removeAttribute('data-scroll-locked');
+                    document.querySelectorAll('[data-state="closed"][role="dialog"], [data-state="closed"][role="alertdialog"], [data-state="closed"][data-radix-dialog-overlay]').forEach(function (el) {
+                      el.style.pointerEvents = 'none';
+                    });
                   }
                 }
                 function watch() {
