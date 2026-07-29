@@ -1,35 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Brain,
   CheckCircle2,
-  ChevronRight,
   ClipboardList,
-  CalendarDays,
   Bell,
-  Bookmark,
   Zap,
   Loader2,
-  Plus,
-  ShieldAlert,
   Sparkles,
   Target,
-  Trash2,
-  X,
   ArrowRight,
   Pencil,
-  Quote,
-  TrendingUp,
-  User,
-  CalendarClock,
+  Activity,
+  Lock,
+  Play,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
-import { Feature, useFeature } from "@/lib/features";
+import { useFeature } from "@/lib/features";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +44,12 @@ import {
 
 export const Route = createFileRoute("/_authenticated/app/consciencia")({
   component: ConscienciaPage,
+  head: () => ({
+    meta: [
+      { title: "Meu Perfil · Consciência · LíderCore" },
+      { name: "description", content: "Sua jornada de autoconhecimento no Módulo C." },
+    ],
+  }),
 });
 
 type Profile = {
@@ -71,6 +69,8 @@ type Profile = {
   strengths: string[];
   notes: string | null;
   assessmentAt: string | null;
+  activityDescription?: string | null;
+  coachTrackGeneratedAt?: string | null;
   updatedAt: string;
 };
 
