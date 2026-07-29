@@ -155,6 +155,7 @@ model Profile {
   status                String    @default("active")
   onboardingCompletedAt DateTime? @map("onboarding_completed_at")
   onboardingSteps       Json?     @map("onboarding_steps")
+  didNeoMentorship      Boolean   @default(false) @map("did_neo_mentorship")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
@@ -2060,6 +2061,7 @@ model Journey {
   coreModule  String?       @map("core_module")
   status      ItemStatus    @default(draft)
   version     Int           @default(1)
+  isInitial   Boolean       @default(false) @map("is_initial")
   createdById String?       @map("created_by") @db.Uuid
   updatedById String?       @map("updated_by") @db.Uuid
   createdAt   DateTime      @default(now()) @map("created_at")
