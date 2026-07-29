@@ -1,6 +1,6 @@
 import { prisma } from "../prisma.js";
 
-export type AuditAction = "create" | "update" | "delete" | "restore" | "publish" | "archive";
+export type AuditAction = "create" | "update" | "delete" | "restore" | "publish" | "archive" | "ai_generate";
 
 export async function recordAudit(params: {
   entity: string;
