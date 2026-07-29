@@ -32,6 +32,7 @@ import { calendarRouter, calendarPublicRouter } from "./routes/calendar.routes.j
 import { featureTemplatesRouter, bootstrapFeatureTemplates, resolveUserFeatures } from "./routes/feature-templates.routes.js";
 import { signupPlansRouter, publicSignupPlansRouter, bootstrapSignupPlans } from "./routes/signup-plans.routes.js";
 import { neoRouter } from "./routes/neo.routes.js";
+import { meRouter } from "./routes/me.routes.js";
 import { requireAuth } from "./auth.js";
 import { prisma } from "./prisma.js";
 
@@ -144,6 +145,9 @@ app.use("/organization", calendarRouter);
 app.use("/admin/feature-templates", featureTemplatesRouter);
 app.use("/admin/signup-plans", signupPlansRouter);
 app.use("/admin/neo", neoRouter);
+
+// Endpoints do "eu logado" (Home Briefing, DNA, jornada inicial)
+app.use("/me", meRouter);
 
 // Resolvedor de features para o usuário logado (consumido pela UI)
 app.get("/auth/me/features", requireAuth, async (req, res) => {
