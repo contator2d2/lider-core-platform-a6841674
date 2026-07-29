@@ -32,6 +32,7 @@ export function NeoCrudPage<T extends Item>({
   filterOptions,
   entityLabel,
   defaultValues,
+  headerExtra,
 }: {
   title: string;
   eyebrow?: string;
@@ -43,6 +44,7 @@ export function NeoCrudPage<T extends Item>({
   filterOptions?: { value: string; label: string }[];
   entityLabel: string;
   defaultValues?: Record<string, unknown>;
+  headerExtra?: React.ReactNode;
 }) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
@@ -102,12 +104,15 @@ export function NeoCrudPage<T extends Item>({
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[color:var(--neo-muted)]">{description}</p>
           )}
         </div>
-        <Button
-          onClick={() => setDialog({ mode: "create", data: defaultValues ?? {} })}
-          className="rounded-full bg-[color:var(--neo-ink)] px-5 text-white hover:bg-[color:var(--neo-ink)]/90"
-        >
-          <Plus className="mr-1.5 h-4 w-4" /> Novo
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {headerExtra}
+          <Button
+            onClick={() => setDialog({ mode: "create", data: defaultValues ?? {} })}
+            className="rounded-full bg-[color:var(--neo-ink)] px-5 text-white hover:bg-[color:var(--neo-ink)]/90"
+          >
+            <Plus className="mr-1.5 h-4 w-4" /> Novo
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-3">
