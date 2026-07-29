@@ -317,6 +317,33 @@ export function LeaderOnboarding() {
             </div>
           )}
 
+          {step.key === "neo" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { v: true, t: "Sim, já fiz a mentoria Neo", d: "Vamos importar seu CORE DNA." },
+                { v: false, t: "Ainda não fiz", d: "Você começa pela Jornada Inicial no app." },
+              ].map((opt) => {
+                const selected = didNeo === opt.v;
+                return (
+                  <button
+                    key={String(opt.v)}
+                    type="button"
+                    onClick={() => setDidNeo(opt.v)}
+                    className={
+                      "rounded-2xl border p-4 text-left transition " +
+                      (selected
+                        ? "border-accent bg-accent/5 shadow-sm"
+                        : "border-border bg-card hover:bg-secondary/40")
+                    }
+                  >
+                    <div className="text-sm font-semibold">{opt.t}</div>
+                    <p className="mt-1 text-xs text-muted-foreground">{opt.d}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {step.cta && step.key !== "welcome" && step.key !== "profile" && (
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6">
               <p className="mb-4 text-sm text-muted-foreground">
