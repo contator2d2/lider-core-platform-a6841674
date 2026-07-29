@@ -160,6 +160,17 @@
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
   }
+
+  body:not(:has([data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"])) {
+    pointer-events: auto !important;
+  }
+
+  [data-state="closed"][role="dialog"],
+  [data-state="closed"][role="alertdialog"],
+  [data-state="closed"][data-radix-dialog-overlay] {
+    pointer-events: none !important;
+  }
+
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
     font-weight: 700;
