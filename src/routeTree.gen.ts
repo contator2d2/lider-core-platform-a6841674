@@ -19,6 +19,7 @@ import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedFranchiseIndexRouteImport } from './routes/_authenticated/franchise.index'
 import { Route as AuthenticatedCompanyIndexRouteImport } from './routes/_authenticated/company.index'
+import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedFranchiseMembersRouteImport } from './routes/_authenticated/franchise.members'
 import { Route as AuthenticatedFranchiseCompaniesRouteImport } from './routes/_authenticated/franchise.companies'
@@ -144,6 +145,11 @@ const AuthenticatedCompanyIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedCompanyRoute,
   } as any)
+const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -622,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/franchise/companies': typeof AuthenticatedFranchiseCompaniesRoute
   '/franchise/members': typeof AuthenticatedFranchiseMembersRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/app/': typeof AuthenticatedAppIndexRoute
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/franchise/': typeof AuthenticatedFranchiseIndexRoute
   '/admin/neo/assessments': typeof AuthenticatedAdminNeoAssessmentsRouteWithChildren
@@ -652,7 +659,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/app': typeof AuthenticatedAppRouteWithChildren
   '/p/$token': typeof PTokenRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/apps': typeof AuthenticatedAdminAppsRoute
@@ -702,6 +708,7 @@ export interface FileRoutesByTo {
   '/franchise/companies': typeof AuthenticatedFranchiseCompaniesRoute
   '/franchise/members': typeof AuthenticatedFranchiseMembersRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/app': typeof AuthenticatedAppIndexRoute
   '/company': typeof AuthenticatedCompanyIndexRoute
   '/franchise': typeof AuthenticatedFranchiseIndexRoute
   '/admin/neo/assessments': typeof AuthenticatedAdminNeoAssessmentsRouteWithChildren
@@ -788,6 +795,7 @@ export interface FileRoutesById {
   '/_authenticated/franchise/companies': typeof AuthenticatedFranchiseCompaniesRoute
   '/_authenticated/franchise/members': typeof AuthenticatedFranchiseMembersRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/franchise/': typeof AuthenticatedFranchiseIndexRoute
   '/_authenticated/admin/neo/assessments': typeof AuthenticatedAdminNeoAssessmentsRouteWithChildren
@@ -874,6 +882,7 @@ export interface FileRouteTypes {
     | '/franchise/companies'
     | '/franchise/members'
     | '/admin/'
+    | '/app/'
     | '/company/'
     | '/franchise/'
     | '/admin/neo/assessments'
@@ -904,7 +913,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/app'
     | '/p/$token'
     | '/admin/ai'
     | '/admin/apps'
@@ -954,6 +962,7 @@ export interface FileRouteTypes {
     | '/franchise/companies'
     | '/franchise/members'
     | '/admin'
+    | '/app'
     | '/company'
     | '/franchise'
     | '/admin/neo/assessments'
@@ -1039,6 +1048,7 @@ export interface FileRouteTypes {
     | '/_authenticated/franchise/companies'
     | '/_authenticated/franchise/members'
     | '/_authenticated/admin/'
+    | '/_authenticated/app/'
     | '/_authenticated/company/'
     | '/_authenticated/franchise/'
     | '/_authenticated/admin/neo/assessments'
@@ -1145,6 +1155,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/company/'
       preLoaderRoute: typeof AuthenticatedCompanyIndexRouteImport
       parentRoute: typeof AuthenticatedCompanyRoute
+    }
+    '/_authenticated/app/': {
+      id: '/_authenticated/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -1858,6 +1875,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppResultsRoute: typeof AuthenticatedAppResultsRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRouteWithChildren
+  AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
@@ -1881,6 +1899,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppResultsRoute: AuthenticatedAppResultsRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRouteWithChildren,
+  AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
 
 const AuthenticatedAppRouteWithChildren =

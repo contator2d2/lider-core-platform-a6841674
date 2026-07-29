@@ -24,6 +24,9 @@ import {
   Radar,
   Mic,
   Plus,
+  UserCircle2,
+  Settings2,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -43,6 +46,7 @@ export const Route = createFileRoute("/_authenticated/app")({
 // module = which feature module gates the item. "*" = always show.
 const nav = [
   { to: "/app", label: "Hoje", icon: Home, section: "Consciência", module: "consciencia" },
+  { to: "/app/journey", label: "Jornada", icon: Compass, section: "Consciência", module: "consciencia" },
   { to: "/app/consciencia", label: "Meu perfil", icon: Brain, section: "Consciência", module: "consciencia" },
   { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência", module: "consciencia" },
   { to: "/app/organization", label: "Organização", icon: Building, section: "Organização", module: "organizacao" },
@@ -55,6 +59,9 @@ const nav = [
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução", module: "evolucao" },
   { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução", module: "evolucao" },
   { to: "/app/coach", label: "Coach preditivo", icon: Radar, section: "Evolução", module: "evolucao" },
+  { to: "/app/profile", label: "Perfil", icon: UserCircle2, section: "Conta", module: "*" },
+  { to: "/app/notifications", label: "Notificações", icon: Bell, section: "Conta", module: "*" },
+  { to: "/app/settings", label: "Configurações", icon: Settings2, section: "Conta", module: "*" },
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda", module: "*" },
 ] as const;
 
@@ -68,7 +75,11 @@ const mobileNav = [
 
 const conscienciaOnlyNav = [
   { to: "/app/consciencia", label: "Início", icon: Home, section: "Consciência", module: "consciencia" },
+  { to: "/app/journey", label: "Jornada", icon: Compass, section: "Consciência", module: "consciencia" },
   { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência", module: "consciencia" },
+  { to: "/app/profile", label: "Perfil", icon: UserCircle2, section: "Conta", module: "*" },
+  { to: "/app/notifications", label: "Notificações", icon: Bell, section: "Conta", module: "*" },
+  { to: "/app/settings", label: "Configurações", icon: Settings2, section: "Conta", module: "*" },
   { to: "/app/help", label: "Ajuda", icon: HelpCircle, section: "Ajuda", module: "*" },
 ] as const;
 
