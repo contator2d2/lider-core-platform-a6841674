@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Save, FileText } from "lucide-react";
+import { Loader2, Save, FileText, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ type Me = {
 function ActivityPage() {
   const { orgId } = useCurrentOrg();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
 
@@ -46,7 +48,7 @@ function ActivityPage() {
   }, [data?.profile?.activityDescription, data?.profile?.activityDescriptionUrl]);
 
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: (_opts?: { next?: boolean }) =>
       api(`/organization/${orgId}/consciencia/me/activity`, {
         method: "PUT",
         body: {
@@ -54,9 +56,10 @@ function ActivityPage() {
           activityDescriptionUrl: url.trim() || null,
         },
       }),
-    onSuccess: () => {
+    onSuccess: (_r, vars) => {
       toast.success("Descrição de atividades salva.");
       qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
+      if (vars?.next) navigate({ to: "/app/consciencia/pdi" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar"),
   });
@@ -105,12 +108,30 @@ function ActivityPage() {
               inputMode="url"
             />
           </div>
-          <div className="flex justify-end">
-            <Button disabled={save.isPending} onClick={() => save.mutate()} className="gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={save.isPending}
+              onClick={() => save.mutate(undefined)}
+              className="gap-2"
+            >
               {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvar
             </Button>
+            <Button
+              disabled={save.isPending || text.trim().length < 20}
+              onClick={() => save.mutate({ next: true })}
+              className="gap-2"
+            >
+              Salvar e avançar
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
+          {text.trim().length < 20 && (
+            <p className="text-right text-xs text-muted-foreground">
+              Escreva pelo menos 20 caracteres para avançar.
+            </p>
+          )}
         </section>
       )}
     </div>
