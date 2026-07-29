@@ -165,7 +165,7 @@ function ConscienciaPage() {
           : "DISC · MBTI",
       minutes: 8,
       done: !!(profile?.discPrimary || profile?.mbtiType),
-      to: "/app/consciencia/assessment",
+      to: "/app/consciencia/assessment?step=behavioral",
     },
     {
       key: "hsh",
@@ -174,7 +174,7 @@ function ConscienciaPage() {
       subtitle: "Autoavaliação nas 3 dimensões",
       minutes: 4,
       done: !!hshFilled,
-      to: "/app/consciencia/assessment",
+      to: "/app/consciencia/assessment?step=hsh",
     },
     {
       key: "sabotages",
@@ -186,7 +186,7 @@ function ConscienciaPage() {
           : "Identifique os principais",
       minutes: 6,
       done: (profile?.sabotages?.length ?? 0) >= 3,
-      to: "/app/consciencia/assessment",
+      to: "/app/consciencia/assessment?step=sabotages",
     },
     {
       key: "activity",
