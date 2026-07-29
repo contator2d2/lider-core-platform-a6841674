@@ -644,13 +644,74 @@ function extractJson<T>(raw: string): T {
   return JSON.parse(jsonSlice) as T;
 }
 
+function extractNumberedLikertQuestions(input: string): string[] {
+  const questions: string[] = [];
+  const seen = new Set<string>();
+  const pattern = /(?:^|\n)\s*\d{1,3}\s*[.)]\s*(?:\n|\s)+([^\n]+\?)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(input)) !== null) {
+    const prompt = match[1]?.replace(/\s+/g, " ").trim();
+    if (prompt && /^em que grau/i.test(prompt) && !seen.has(prompt.toLowerCase())) {
+      seen.add(prompt.toLowerCase());
+      questions.push(prompt);
+    }
+  }
+  return questions;
+}
+
+async function createLikertQuestionBlocks({
+  assessmentId,
+  questions,
+  existingBlocks,
+}: {
+  assessmentId: string;
+  questions: string[];
+  existingBlocks: number;
+}) {
+  const blocks = [];
+  const chunkSize = questions.length > 12 ? 12 : questions.length;
+  const helpText = "Escala: 1 Nem um pouco · 2 Um pouco · 3 Moderadamente · 4 Muito · 5 Extremamente";
+
+  for (let start = 0; start < questions.length; start += chunkSize) {
+    const chunk = questions.slice(start, start + chunkSize);
+    const end = start + chunk.length;
+    const block = await prisma.assessmentBlock.create({
+      data: {
+        assessmentId,
+        title: questions.length > chunkSize
+          ? `Sentimentos — últimas 24h (${start + 1}–${end})`
+          : "Sentimentos — últimas 24h",
+        description: "Deste mesmo horário ontem até agora, marque o maior grau em que viveu cada sentimento.",
+        orderIndex: existingBlocks + blocks.length,
+      },
+    });
+
+    await prisma.assessmentQuestion.createMany({
+      data: chunk.map((prompt, index) => ({
+        blockId: block.id,
+        type: "likert",
+        prompt,
+        helpText,
+        required: true,
+        weight: 1,
+        scaleMin: 1,
+        scaleMax: 5,
+        orderIndex: index,
+      })),
+    });
+    blocks.push(block.id);
+  }
+
+  return { blockIds: blocks, questionCount: questions.length };
+}
+
 /** Gera blocos + perguntas para um assessment usando o provedor de IA global. */
 neoRouter.post("/assessments/:id/ai-generate", async (req, res) => {
   const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
   if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
   const brief = (req.body?.brief as string | undefined)?.trim() || "";
-  const numBlocks = Math.min(Math.max(Number(req.body?.blocks) || 3, 1), 6);
-  const perBlock = Math.min(Math.max(Number(req.body?.perBlock) || 4, 2), 10);
+  const numBlocks = Math.min(Math.max(Number(req.body?.blocks) || 3, 1), 12);
+  const perBlock = Math.min(Math.max(Number(req.body?.perBlock) || 4, 2), 25);
   const system = [
     "Você é uma consultora especialista da Neo Pessoas, ajudando a montar um assessment de liderança dentro da metodologia C.O.R.E.",
     "Retorne SOMENTE JSON válido, sem comentários, sem markdown.",
@@ -689,6 +750,24 @@ Formato exato:
 Regras: para likert/slider inclua scaleMin/scaleMax e deixe options vazio; para unica/multipla/ranking inclua 3-5 options com score; para texto/cenario/autoavaliacao deixe options vazio.`;
 
   try {
+    const directQuestions = extractNumberedLikertQuestions(brief);
+    if (directQuestions.length >= 3) {
+      const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
+      const imported = await createLikertQuestionBlocks({
+        assessmentId: a.id,
+        questions: directQuestions,
+        existingBlocks,
+      });
+      await recordAudit({
+        entity: "assessment",
+        entityId: a.id,
+        action: "ai_generate",
+        actorId: req.userId,
+        note: `${imported.blockIds.length} blocos e ${imported.questionCount} perguntas importadas do briefing`,
+      });
+      return res.json({ created: imported.blockIds.length, questions: imported.questionCount, mode: "imported" });
+    }
+
     const raw = await completeChat({
       messages: [{ role: "system", content: system }, { role: "user", content: user }],
       temperature: 0.6,
@@ -707,6 +786,7 @@ Regras: para likert/slider inclua scaleMin/scaleMax e deixe options vazio; para 
     const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
     let bIdx = existingBlocks;
     const created: unknown[] = [];
+    let questionCount = 0;
     for (const block of parsed.blocks ?? []) {
       const b = await prisma.assessmentBlock.create({
         data: {
@@ -736,11 +816,15 @@ Regras: para likert/slider inclua scaleMin/scaleMax e deixe options vazio; para 
               : undefined,
           },
         });
+        questionCount += 1;
       }
       created.push(b.id);
     }
-    await recordAudit({ entity: "assessment", entityId: a.id, action: "ai_generate", actorId: req.userId, note: `${created.length} blocos gerados` });
-    res.json({ created: created.length });
+    if (created.length === 0 || questionCount === 0) {
+      throw new Error("A IA não retornou blocos/perguntas válidos. Tente colar as perguntas numeradas no campo de instruções.");
+    }
+    await recordAudit({ entity: "assessment", entityId: a.id, action: "ai_generate", actorId: req.userId, note: `${created.length} blocos e ${questionCount} perguntas gerados` });
+    res.json({ created: created.length, questions: questionCount, mode: "ai" });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Falha na geração por IA" });
   }
