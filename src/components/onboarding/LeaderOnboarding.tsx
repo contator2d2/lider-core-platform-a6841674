@@ -42,13 +42,6 @@ const TOUR_STEPS: Step[] = [
     icon: Sparkles,
   },
   {
-    key: "neo",
-    title: "Você já participou da mentoria Neo?",
-    description:
-      "Se sim, importamos seu CORE DNA e você vai direto para a Home. Se ainda não, sua Jornada Inicial aparece no topo da Home para gerar seu perfil.",
-    icon: Compass,
-  },
-  {
     key: "profile",
     title: "Confirme seus dados",
     description:
@@ -107,7 +100,6 @@ export function LeaderOnboarding() {
   const [fullName, setFullName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [didNeo, setDidNeo] = useState<null | boolean>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -154,21 +146,6 @@ export function LeaderOnboarding() {
             whatsapp: whatsapp.trim(),
           },
         });
-      } else if (step.key === "neo") {
-        if (didNeo === null) {
-          toast.error("Selecione uma opção para continuar.");
-          setSaving(false);
-          return;
-        }
-        try {
-          await api("/me/onboarding/neo-mentorship", {
-            method: "POST",
-            body: { did: didNeo },
-          });
-        } catch {
-          // não bloqueia o onboarding se a rota falhar
-        }
-        await persist({ step: step.key });
       } else {
         await persist({ step: step.key });
       }
@@ -314,33 +291,6 @@ export function LeaderOnboarding() {
                   <span className="text-sm font-medium">{t}</span>
                 </div>
               ))}
-            </div>
-          )}
-
-          {step.key === "neo" && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { v: true, t: "Sim, já fiz a mentoria Neo", d: "Vamos importar seu CORE DNA." },
-                { v: false, t: "Ainda não fiz", d: "Você começa pela Jornada Inicial no app." },
-              ].map((opt) => {
-                const selected = didNeo === opt.v;
-                return (
-                  <button
-                    key={String(opt.v)}
-                    type="button"
-                    onClick={() => setDidNeo(opt.v)}
-                    className={
-                      "rounded-2xl border p-4 text-left transition " +
-                      (selected
-                        ? "border-accent bg-accent/5 shadow-sm"
-                        : "border-border bg-card hover:bg-secondary/40")
-                    }
-                  >
-                    <div className="text-sm font-semibold">{opt.t}</div>
-                    <p className="mt-1 text-xs text-muted-foreground">{opt.d}</p>
-                  </button>
-                );
-              })}
             </div>
           )}
 
