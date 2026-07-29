@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
@@ -10,8 +10,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+type AssessmentStepKey = "behavioral" | "sabotages" | "hsh";
+
+const STEP_INDEX: Record<AssessmentStepKey, number> = {
+  behavioral: 1,
+  sabotages: 2,
+  hsh: 5,
+};
+
+function isAssessmentStepKey(value: unknown): value is AssessmentStepKey {
+  return value === "behavioral" || value === "sabotages" || value === "hsh";
+}
+
 export const Route = createFileRoute("/_authenticated/app/consciencia/assessment")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    step: isAssessmentStepKey(search.step) ? search.step : undefined,
+  }),
   component: AssessmentWizard,
+  head: () => ({
+    meta: [
+      { title: "Assessment guiado · Consciência · LíderCore" },
+      { name: "description", content: "Complete seu perfil comportamental, sabotadores e radar Hard Soft Heart." },
+      { property: "og:title", content: "Assessment guiado · Consciência · LíderCore" },
+      { property: "og:description", content: "Complete seu perfil comportamental, sabotadores e radar Hard Soft Heart." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 type DiscPrimary = "D" | "I" | "S" | "C";
@@ -158,6 +183,8 @@ const CEREBRAL_LABEL: Record<CerebralMode, string> = {
 function AssessmentWizard() {
   const { orgId } = useCurrentOrg();
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const requestedStep = search.step ? STEP_INDEX[search.step] : 0;
   const { data, isLoading } = useQuery({
     queryKey: ["consciencia", "me", orgId],
     enabled: !!orgId,
@@ -165,7 +192,7 @@ function AssessmentWizard() {
   });
 
   const initial = data?.profile ?? null;
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(requestedStep);
   const [declaredRole, setDeclaredRole] = useState("");
   const [notMine, setNotMine] = useState("");
   const [discPrimary, setDiscPrimary] = useState<DiscPrimary | null>(null);
@@ -177,8 +204,12 @@ function AssessmentWizard() {
   const [soft, setSoft] = useState<number[]>(Array(10).fill(3));
   const [heart, setHeart] = useState<number[]>(Array(10).fill(3));
 
+  useEffect(() => {
+    setStep(requestedStep);
+  }, [requestedStep]);
+
   // hidrata quando dados chegam
-  useMemo(() => {
+  useEffect(() => {
     if (!initial) return;
     setDeclaredRole(initial.declaredRole ?? "");
     setNotMine(initial.notMine ?? "");
