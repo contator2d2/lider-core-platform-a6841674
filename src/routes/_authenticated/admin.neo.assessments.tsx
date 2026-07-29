@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,15 +13,34 @@ import {
 import { api } from "@/lib/api";
 import { NeoCrudPage } from "@/components/admin/NeoCrud";
 
+type AssessmentRow = Record<string, unknown> & {
+  id: string;
+  name?: string;
+  coreModule?: string;
+  frequency?: string;
+  status?: string;
+  _count?: { blocks?: number };
+};
+
 export const Route = createFileRoute("/_authenticated/admin/neo/assessments")({
   component: Page,
+  head: () => ({
+    meta: [
+      { title: "Biblioteca de Assessments · Neo Admin · LíderCore" },
+      { name: "description", content: "Administre assessments, blocos e perguntas da metodologia C.O.R.E. no LíderCore." },
+      { property: "og:title", content: "Biblioteca de Assessments · Neo Admin · LíderCore" },
+      { property: "og:description", content: "Administre assessments, blocos e perguntas da metodologia C.O.R.E. no LíderCore." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 function Page() {
   const [aiOpen, setAiOpen] = useState(false);
   return (
     <>
-    <NeoCrudPage
+    <NeoCrudPage<AssessmentRow>
       eyebrow="Neo · Inteligência"
       title="Biblioteca de Assessments"
       description="Catálogo dos assessments disponíveis. O construtor de perguntas fica em cada assessment aberto."
@@ -74,6 +93,19 @@ function Page() {
             {String(it.name ?? "—")}
           </Link>
         ) },
+        { key: "_count", label: "Conteúdo", render: (it) => {
+          const blocks = it._count?.blocks ?? 0;
+          return (
+            <Link
+              to="/admin/neo/assessments/$id"
+              params={{ id: it.id }}
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--neo-line)] bg-white px-3 py-1 text-xs font-medium text-[color:var(--neo-ink)] hover:bg-[color:var(--neo-cream)]"
+            >
+              {blocks > 0 ? `${blocks} bloco${blocks === 1 ? "" : "s"}` : "Sem perguntas"}
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          );
+        } },
         { key: "coreModule", label: "CORE" },
         { key: "frequency", label: "Frequência" },
         { key: "status", label: "Status" },
@@ -91,8 +123,8 @@ function QuickAiDialog({ onClose }: { onClose: () => void }) {
   const [objective, setObjective] = useState("");
   const [coreModule, setCoreModule] = useState("C");
   const [brief, setBrief] = useState("");
-  const [blocks, setBlocks] = useState(3);
-  const [perBlock, setPerBlock] = useState(5);
+  const [blocks, setBlocks] = useState(2);
+  const [perBlock, setPerBlock] = useState(12);
 
   const run = useMutation({
     mutationFn: async () => {
@@ -149,11 +181,11 @@ function QuickAiDialog({ onClose }: { onClose: () => void }) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Blocos</Label>
-              <Input type="number" value={String(blocks)} onChange={(e) => setBlocks(Math.max(1, Number(e.target.value) || 1))} />
+                  <Input type="number" value={String(blocks)} onChange={(e) => setBlocks(Math.max(1, Number(e.target.value) || 1))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Perguntas/bloco</Label>
-              <Input type="number" value={String(perBlock)} onChange={(e) => setPerBlock(Math.max(2, Number(e.target.value) || 2))} />
+                  <Input type="number" value={String(perBlock)} onChange={(e) => setPerBlock(Math.max(2, Number(e.target.value) || 2))} />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -162,7 +194,7 @@ function QuickAiDialog({ onClose }: { onClose: () => void }) {
               rows={4}
               value={brief}
               onChange={(e) => setBrief(e.target.value)}
-              placeholder="Ex.: Teste de Sabotadores (Shirzad Chamine) — 10 sabotadores, Likert 1-5, tom acolhedor."
+              placeholder="Cole aqui as perguntas numeradas ou descreva o teste. Ex.: 24 itens de emoções, escala 1-5: Nem um pouco, Um pouco, Moderadamente, Muito, Extremamente."
             />
           </div>
         </div>
