@@ -33,11 +33,12 @@ meRouter.get("/home/briefing", async (req, res) => {
         didNeoMentorship: true,
       },
     }),
-    prisma.notification
+    prisma.notificationLog
       .findMany({
-        where: { userId, readAt: null },
+        where: { userId, channel: "in_app", readAt: null },
         orderBy: { createdAt: "desc" },
         take: 5,
+        select: { id: true, title: true, body: true, linkUrl: true, createdAt: true },
       })
       .catch(() => []),
     prisma.leaderDNA
@@ -66,9 +67,9 @@ meRouter.get("/home/briefing", async (req, res) => {
     initialJourney,
     notifications: notifications.map((n) => ({
       id: n.id,
-      kind: n.kind,
       title: n.title,
       body: n.body,
+      linkUrl: n.linkUrl,
       createdAt: n.createdAt,
     })),
     windows: {
