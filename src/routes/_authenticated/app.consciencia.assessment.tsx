@@ -184,7 +184,7 @@ function AssessmentWizard() {
   const { orgId } = useCurrentOrg();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const requestedStep = search.step ? STEP_INDEX[search.step] : 0;
+  const requestedStep: number = isAssessmentStepKey(search.step) ? STEP_INDEX[search.step] : 0;
   const { data, isLoading } = useQuery({
     queryKey: ["consciencia", "me", orgId],
     enabled: !!orgId,
@@ -486,11 +486,11 @@ function AssessmentWizard() {
       </section>
 
       <footer className="flex items-center justify-between">
-        <Button variant="ghost" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="gap-1.5">
+        <Button variant="ghost" disabled={step === 0} onClick={() => setStep((s: number) => Math.max(0, s - 1))} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         {step < steps.length - 1 ? (
-          <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)} className="gap-1.5">
+          <Button disabled={!canNext()} onClick={() => setStep((s: number) => s + 1)} className="gap-1.5">
             Próximo <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
