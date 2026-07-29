@@ -32,6 +32,7 @@ import { calendarRouter, calendarPublicRouter } from "./routes/calendar.routes.j
 import { featureTemplatesRouter, bootstrapFeatureTemplates, resolveUserFeatures } from "./routes/feature-templates.routes.js";
 import { signupPlansRouter, publicSignupPlansRouter, bootstrapSignupPlans } from "./routes/signup-plans.routes.js";
 import { neoRouter } from "./routes/neo.routes.js";
+import { publicAssessmentsRouter } from "./routes/assessments-public.routes.js";
 import { meRouter } from "./routes/me.routes.js";
 import { requireAuth } from "./auth.js";
 import { prisma } from "./prisma.js";
@@ -112,6 +113,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.use("/api/public", webhooksRouter);
 app.use("/api/public", publicPulsesRouter);
 app.use("/api/public", calendarPublicRouter);
+app.use("/api/public", publicAssessmentsRouter);
 // Rota pública de listagem de planos de cadastro
 app.use("/auth", publicSignupPlansRouter);
 
