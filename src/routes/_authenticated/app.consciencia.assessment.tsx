@@ -184,7 +184,8 @@ function AssessmentWizard() {
   const { orgId } = useCurrentOrg();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const requestedStep: number = isAssessmentStepKey(search.step) ? STEP_INDEX[search.step] : 0;
+  const stepParam: unknown = search.step;
+  const requestedStep: number = isAssessmentStepKey(stepParam) ? STEP_INDEX[stepParam] : 0;
   const { data, isLoading } = useQuery({
     queryKey: ["consciencia", "me", orgId],
     enabled: !!orgId,
