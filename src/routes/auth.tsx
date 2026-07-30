@@ -14,6 +14,9 @@ type SignupPlan = { slug: string; name: string; description: string | null; targ
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    invite: typeof search.invite === "string" ? search.invite : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Entrar — LÍDER C.O.R.E." },
@@ -26,6 +29,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { invite: inviteToken } = Route.useSearch();
   const { user, signIn, signUp } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -43,6 +47,26 @@ function AuthPage() {
     staleTime: 60_000,
   });
   const plans: SignupPlan[] = plansData?.plans ?? [];
+
+  const { data: invite } = useQuery({
+    queryKey: ["invite", inviteToken],
+    queryFn: () => authApi.resolveInvite(inviteToken!),
+    enabled: !!inviteToken,
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    setMode("signup");
+  }, [inviteToken]);
+
+  useEffect(() => {
+    if (!invite) return;
+    if (invite.email) setEmail((cur) => cur || invite.email!);
+    if (invite.fullName) setFullName((cur) => cur || invite.fullName!);
+    if (invite.plan?.slug) setPlanSlug(invite.plan.slug);
+  }, [invite]);
 
   useEffect(() => {
     if (mode === "signup" && plans.length > 0 && !planSlug) {
@@ -66,7 +90,7 @@ function AuthPage() {
         await signIn(email, password);
         toast.success("Bem-vindo de volta.");
       } else {
-        await signUp(email, password, fullName, planSlug || undefined);
+        await signUp(email, password, fullName, planSlug || undefined, inviteToken);
         toast.success("Conta criada.");
       }
       // Redirect handled by the useEffect above once `user` populates.
@@ -138,7 +162,25 @@ function AuthPage() {
                 />
               </div>
             )}
-            {mode === "signup" && plans.length > 0 && (
+            {mode === "signup" && invite?.valid && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3">
+                <p className="text-sm font-medium">
+                  {invite.track === "mentored"
+                    ? "Convite de mentorado Neo"
+                    : "Convite de acesso"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {invite.track === "mentored"
+                    ? "Sua conta já entra com a jornada completa da metodologia C.O.R.E. liberada no onboarding."
+                    : "Sua conta será criada com o plano indicado no convite."}
+                  {invite.plan ? ` Plano: ${invite.plan.name}.` : ""}
+                </p>
+                {invite.note && (
+                  <p className="mt-2 text-xs italic text-muted-foreground">"{invite.note}"</p>
+                )}
+              </div>
+            )}
+            {mode === "signup" && !invite?.plan && plans.length > 0 && (
               <div className="space-y-2">
                 <Label>Plano de acesso</Label>
                 <div className="grid gap-2">

@@ -78,6 +78,7 @@ const navSections: NavSection[] = [
       { to: "/admin/modules", label: "Módulos do produto", icon: Boxes },
       { to: "/admin/feature-templates", label: "Templates de módulos", icon: ToggleRight },
       { to: "/admin/signup-plans", label: "Planos de cadastro", icon: ToggleRight },
+      { to: "/admin/invites", label: "Convites de líder", icon: KeyRound },
       { to: "/admin/apps", label: "Apps & Versões", icon: Package },
       { to: "/admin/notifications", label: "Notificações", icon: Bell },
       { to: "/admin/data", label: "Dados (Import/Export)", icon: Database },

@@ -32,6 +32,7 @@ import { coachRouter } from "./routes/coach.routes.js";
 import { calendarRouter, calendarPublicRouter } from "./routes/calendar.routes.js";
 import { featureTemplatesRouter, bootstrapFeatureTemplates, resolveUserFeatures } from "./routes/feature-templates.routes.js";
 import { signupPlansRouter, publicSignupPlansRouter, bootstrapSignupPlans } from "./routes/signup-plans.routes.js";
+import { invitesRouter, publicInvitesRouter } from "./routes/invites.routes.js";
 import { neoRouter } from "./routes/neo.routes.js";
 import { publicAssessmentsRouter } from "./routes/assessments-public.routes.js";
 import { bootstrapCoreAssessments } from "./lib/bootstrap-assessments.js";
@@ -118,6 +119,7 @@ app.use("/api/public", calendarPublicRouter);
 app.use("/api/public", publicAssessmentsRouter);
 // Rota pública de listagem de planos de cadastro
 app.use("/auth", publicSignupPlansRouter);
+app.use("/auth", publicInvitesRouter);
 
 app.use("/auth", authRouter);
 app.use("/organizations", orgsRouter);
@@ -149,6 +151,7 @@ app.use("/organization", calendarRouter);
 // Templates modulares
 app.use("/admin/feature-templates", featureTemplatesRouter);
 app.use("/admin/signup-plans", signupPlansRouter);
+app.use("/admin/invites", invitesRouter);
 app.use("/admin/neo", neoRouter);
 
 // Endpoints do "eu logado" (Home Briefing, DNA, jornada inicial)
