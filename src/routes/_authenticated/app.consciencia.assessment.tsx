@@ -337,7 +337,7 @@ function AssessmentWizard() {
 
         <div className="mt-4 flex items-center gap-1.5">
           {steps.map((_, i) => (
-            <div key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-foreground" : "bg-border")} />
+            <div key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-primary" : "bg-border")} />
           ))}
         </div>
       </header>
@@ -385,7 +385,7 @@ function AssessmentWizard() {
                     className={
                       "rounded-xl border p-3 text-left transition-colors " +
                       (discPrimary === d.key
-                        ? "border-foreground bg-foreground/5"
+                        ? "border-primary bg-primary/10"
                         : "border-border hover:bg-secondary/60")
                     }
                   >
@@ -431,7 +431,7 @@ function AssessmentWizard() {
                         className={
                           "h-9 flex-1 rounded-lg border text-sm transition-colors " +
                           (sabAns[p.id] === v
-                            ? "border-foreground bg-foreground text-background"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border bg-card hover:bg-secondary")
                         }>{v}</button>
                     ))}
@@ -469,7 +469,7 @@ function AssessmentWizard() {
                         className={
                           "rounded-lg border p-2.5 text-left text-sm transition-colors " +
                           (cerAns[b.id] === o.dim
-                            ? "border-foreground bg-foreground/5"
+                            ? "border-primary bg-primary/10"
                             : "border-border hover:bg-secondary/60")
                         }>
                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{o.dim}</div>
@@ -510,7 +510,7 @@ function AssessmentWizard() {
                     onClick={() => toggle(riskFlags, r.value, setRiskFlags)}
                     className={
                       "flex items-center justify-between rounded-xl border p-3 text-sm transition-colors " +
-                      (on ? "border-foreground bg-foreground/5" : "border-border hover:bg-secondary/60")
+                      (on ? "border-primary bg-primary/10" : "border-border hover:bg-secondary/60")
                     }
                   >
                     <span>{r.label}</span>
@@ -583,7 +583,7 @@ function HshBlock({
                   className={
                     "h-9 flex-1 rounded-lg border text-sm transition-colors " +
                     (values[i] === v
-                      ? "border-foreground bg-foreground text-background"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-card hover:bg-secondary")
                   }
                 >

@@ -148,7 +148,7 @@ function HeroCubes() {
     <div aria-hidden className="pointer-events-none relative hidden h-40 w-56 shrink-0 md:block">
       <div className="absolute right-4 top-2 h-16 w-16 rotate-6 rounded-2xl border border-border bg-card shadow-lg" />
       <div className="absolute right-20 top-10 h-12 w-12 -rotate-6 rounded-xl border border-border bg-card shadow-md" />
-      <div className="absolute right-8 bottom-3 h-20 w-20 rounded-2xl bg-foreground shadow-2xl shadow-foreground/20 flex items-center justify-center">
+      <div className="absolute right-8 bottom-3 h-20 w-20 rounded-2xl bg-primary shadow-2xl shadow-primary/25 flex items-center justify-center">
         <div className="h-3 w-3 rounded-full bg-background/80" />
       </div>
       <div className="absolute right-36 bottom-6 h-10 w-10 rotate-12 rounded-xl border border-accent/40 bg-accent/10" />

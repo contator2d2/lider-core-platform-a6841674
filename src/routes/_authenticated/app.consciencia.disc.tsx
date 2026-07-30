@@ -270,7 +270,7 @@ function DiscTestPage() {
               </div>
               <div className="mt-1.5 h-2 rounded-full bg-secondary">
                 <div
-                  className="h-2 rounded-full bg-foreground transition-all"
+                  className="h-2 rounded-full bg-primary transition-all"
                   style={{ width: `${r.percent}%` }}
                 />
               </div>
@@ -323,7 +323,7 @@ function DiscTestPage() {
         <div className="mt-4 flex items-center gap-3">
           <div className="h-1.5 flex-1 rounded-full bg-border">
             <div
-              className="h-1.5 rounded-full bg-foreground transition-all"
+              className="h-1.5 rounded-full bg-primary transition-all"
               style={{ width: `${(answered / ITEMS.length) * 100}%` }}
             />
           </div>
@@ -350,7 +350,7 @@ function DiscTestPage() {
                     className={
                       "rounded-xl border px-3 py-2.5 text-left text-[13px] transition-colors " +
                       (answers[idx] === o.factor
-                        ? "border-foreground bg-foreground/5 font-medium"
+                        ? "border-primary bg-primary/10 font-medium"
                         : "border-border hover:bg-secondary/60")
                     }
                   >

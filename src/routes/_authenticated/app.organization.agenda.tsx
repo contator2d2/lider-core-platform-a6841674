@@ -80,7 +80,7 @@ function AgendaPage() {
               onClick={() => setRange(r)}
               className={
                 "rounded-full px-4 py-1.5 text-sm font-medium transition-colors " +
-                (range === r ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")
+                (range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")
               }
             >
               {r === "day" ? "Hoje" : r === "week" ? "Semana" : "Mês"}
@@ -111,17 +111,17 @@ function AgendaPage() {
               className={
                 "relative flex flex-col items-center gap-1 rounded-2xl border px-1 py-3 text-center transition-colors " +
                 (active
-                  ? "border-foreground bg-foreground text-background"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card text-foreground hover:border-accent/40")
               }
             >
-              <span className={"text-[10px] font-bold uppercase tracking-widest " + (active ? "text-background/70" : "text-muted-foreground")}>
+              <span className={"text-[10px] font-bold uppercase tracking-widest " + (active ? "text-primary-foreground/70" : "text-muted-foreground")}>
                 {weekdayLabel(d)}
               </span>
               <span className="font-display text-2xl leading-none tabular-nums">
                 {d.getDate().toString().padStart(2, "0")}
               </span>
-              <span className={"text-[10px] " + (active ? "text-background/80" : "text-muted-foreground")}>
+              <span className={"text-[10px] " + (active ? "text-primary-foreground/80" : "text-muted-foreground")}>
                 {count === 0 ? "0 eventos" : count === 1 ? "1 evento" : `${count} eventos`}
               </span>
               {active && count > 0 && (

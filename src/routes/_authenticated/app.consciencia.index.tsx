@@ -290,7 +290,7 @@ function ConscienciaPage() {
             <Bell className="h-4 w-4" />
           </button>
           <div
-            className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-[13px] font-semibold text-background"
+            className="grid h-10 w-10 place-items-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground"
             aria-label="Perfil"
           >
             {initial}
@@ -325,7 +325,7 @@ function ConscienciaPage() {
             <Link
               to={current.to}
               search={current.search}
-              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-[12px] font-semibold text-background transition-transform hover:scale-[1.02] active:scale-100"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[12px] font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-100"
             >
               Continuar <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -341,25 +341,25 @@ function ConscienciaPage() {
 
       {/* 3 · Continue de onde parou */}
       {current && (
-        <section className="overflow-hidden rounded-3xl bg-foreground text-background">
+        <section className="overflow-hidden rounded-3xl bg-ink-gradient text-ink-foreground shadow-[0_24px_60px_-30px_oklch(0_0_0_/_0.5)]">
           <div className="relative p-6">
             <div
               aria-hidden
               className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-accent/40 blur-3xl"
             />
             <div className="relative">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-background/60">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-foreground/60">
                 Continue de onde parou
               </div>
               <div className="mt-3 flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-background/10 text-background">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ink-foreground/10 text-ink-foreground">
                   <current.icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-display text-xl font-bold leading-tight">
                     {current.title}
                   </div>
-                  <div className="text-[12px] text-background/60">
+                  <div className="text-[12px] text-ink-foreground/60">
                     Tempo estimado · {current.minutes} min
                   </div>
                 </div>
@@ -367,7 +367,7 @@ function ConscienciaPage() {
               <Link
                 to={current.to}
                 search={current.search}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-[13px] font-semibold text-accent-foreground transition-transform hover:scale-[1.01] active:scale-100"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-gradient px-4 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.01] active:scale-100"
               >
                 <Play className="h-4 w-4" fill="currentColor" /> Continuar
               </Link>
@@ -465,7 +465,7 @@ function ConscienciaPage() {
           <Link
             to={current.to}
             search={current.search}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-foreground px-4 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary px-4 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
           >
             Começar <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -552,7 +552,7 @@ function JourneyRow({
         className={
           "grid h-9 w-9 shrink-0 place-items-center rounded-full " +
           (isDone
-            ? "bg-foreground text-background"
+            ? "bg-primary text-primary-foreground"
             : isCurrent
               ? "bg-accent text-accent-foreground"
               : "bg-secondary text-muted-foreground")
