@@ -1149,6 +1149,7 @@ conscienciaRouter.post("/:orgId/consciencia/subordinate-map/:id/track", asyncRou
   }
 
   let steps: TrackStep[] = heuristicTrack(item);
+  const base = item;
   let summary = item.aiReading ?? "";
 
   try {
