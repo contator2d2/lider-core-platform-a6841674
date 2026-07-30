@@ -151,6 +151,27 @@ function AppShell() {
   const handleVoiceIntent = async (intent: VoiceIntent) => {
     if (!orgId) return;
     try {
+      // Notas viram registro na Base do líder (Notas & reuniões).
+      if (intent.tipo === "nota") {
+        await api(`/organization/${orgId}/base/notes`, {
+          method: "POST",
+          body: {
+            kind: "nota",
+            title: intent.titulo || intent.resumo.slice(0, 80) || "Nota por voz",
+            content: intent.resumo || intent.transcricao,
+            transcript: intent.transcricao,
+            source: "voz",
+            participants: intent.membroSugerido ? [intent.membroSugerido] : [],
+            meetingAt: null,
+          },
+        });
+        await queryClient.invalidateQueries({ queryKey: ["base-notes", orgId] });
+        setVoiceOpen(false);
+        toast.success("Nota salva na Base do líder.");
+        navigate({ to: "/app/notes" });
+        return;
+      }
+
       if (conscienciaOnly) {
         await api(`/organization/${orgId}/consciencia/agenda`, {
           method: "POST",
@@ -190,11 +211,9 @@ function AppShell() {
       if (intent.tipo === "feedback") {
         toast.success("Feedback capturado", { description: "Abrindo Feedbacks…" });
         navigate({ to: "/app/feedbacks" });
-      } else if (intent.tipo === "delegacao") {
+      } else {
         toast.success("Delegação capturada", { description: "Abrindo Delegações…" });
         navigate({ to: "/app/organization/delegations" });
-      } else {
-        toast.success("Nota salva", { description: intent.resumo.slice(0, 120) });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao processar áudio");
