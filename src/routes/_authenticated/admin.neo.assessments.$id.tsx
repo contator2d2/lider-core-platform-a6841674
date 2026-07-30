@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink, HeartPulse, BarChart3, Brain } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink, HeartPulse, BarChart3, Brain, Compass } from "lucide-react";
 
 type Option = { id?: string; label: string; value: string; score?: number };
 type Question = {
@@ -98,6 +98,12 @@ function Page() {
     onSuccess: (r) => { toast.success(`${r.questions} itens do Quociente Positivo adicionados`); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const applyHerrmann = useMutation({
+    mutationFn: () =>
+      api<{ questions: number }>(`/admin/neo/assessments/${id}/preset/dominancia-cerebral`, { method: "POST" }),
+    onSuccess: (r) => { toast.success(`${r.questions} questões de Dominância Cerebral adicionadas`); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const a = query.data;
 
@@ -130,6 +136,15 @@ function Page() {
             title="Adiciona os 12 itens oficiais do Quociente Positivo (Fredrickson) com cálculo automático da razão de positividade"
           >
             <HeartPulse className="mr-1.5 h-4 w-4" /> Quociente Positivo
+          </Button>
+          <Button
+            onClick={() => applyHerrmann.mutate()}
+            disabled={applyHerrmann.isPending}
+            variant="outline"
+            className="rounded-full border-[color:var(--neo-line)] bg-white/70"
+            title="Adiciona as 25 questões do teste de Dominância Cerebral (Ned Herrmann) com cálculo automático dos quadrantes A/B/C/D"
+          >
+            <Compass className="mr-1.5 h-4 w-4" /> Dominância Cerebral
           </Button>
           <Button
             onClick={() => addBlock.mutate()}
