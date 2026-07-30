@@ -16,6 +16,7 @@ import {
   Activity,
   Lock,
   Play,
+  Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -132,6 +133,14 @@ function ConscienciaPage() {
     queryFn: () => api<MeResponse>(`/organization/${orgId}/consciencia/me`),
   });
 
+  const { data: subordinates } = useQuery({
+    queryKey: ["consciencia", "subordinates", orgId],
+    enabled: !!orgId,
+    queryFn: () =>
+      api<{ items: Array<{ id: string }> }>(`/organization/${orgId}/consciencia/subordinate-map`),
+  });
+  const subordinateCount = subordinates?.items?.length ?? 0;
+
   if (!orgId) return null;
 
   const profile = data?.profile ?? null;
@@ -214,9 +223,12 @@ function ConscienciaPage() {
       key: "liderados",
       icon: Users,
       title: "Mapa dos liderados",
-      subtitle: "Perfis e trilha individual do time",
+      subtitle:
+        subordinateCount > 0
+          ? `${subordinateCount} perfil${subordinateCount > 1 ? "s" : ""} mapeado${subordinateCount > 1 ? "s" : ""}`
+          : "Perfis e trilha individual do time",
       minutes: 4,
-      done: false,
+      done: subordinateCount > 0,
       to: "/app/consciencia/liderados",
     },
     {
