@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Loader2, Check, X } from "lucide-react";
+import { Mic, Square, Loader2, Check, X, Trash2, AudioLines } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,14 @@ export type VoiceIntent = {
 
 type State = "idle" | "recording" | "processing" | "review";
 
+const BAR_COUNT = 28;
+
+function formatTime(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 /**
  * Botão flutuante: grava áudio, envia ao backend e devolve intenção
  * classificada (feedback | delegação | nota). O consumidor decide o que fazer.
@@ -24,26 +32,46 @@ export function VoiceCapture({
   orgId,
   onConfirm,
   label = "Ditar",
+  variant = "button",
 }: {
   orgId: string;
   onConfirm: (intent: VoiceIntent) => void | Promise<void>;
   label?: string;
+  variant?: "button" | "panel";
 }) {
   const [state, setState] = useState<State>("idle");
   const [intent, setIntent] = useState<VoiceIntent | null>(null);
   const [editable, setEditable] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [levels, setLevels] = useState<number[]>(() => Array(BAR_COUNT).fill(0.08));
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      teardown();
     };
   }, []);
 
+  function teardown() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    void audioCtxRef.current?.close().catch(() => {});
+    audioCtxRef.current = null;
+  }
+
   async function start() {
     try {
+      cancelledRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
@@ -55,19 +83,61 @@ export function VoiceCapture({
       };
       rec.onstop = () => void handleStop(mime);
       rec.start();
+      setSeconds(0);
+      setLevels(Array(BAR_COUNT).fill(0.08));
+      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      startMeter(stream);
       setState("recording");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sem acesso ao microfone");
     }
   }
 
+  function startMeter(stream: MediaStream) {
+    try {
+      const AudioCtx: typeof AudioContext =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteTimeDomainData(buf);
+        let peak = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = Math.abs(buf[i] - 128) / 128;
+          if (v > peak) peak = v;
+        }
+        const level = Math.min(1, Math.max(0.08, peak * 2.2));
+        setLevels((prev) => [...prev.slice(1), level]);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch {
+      /* medidor é opcional */
+    }
+  }
+
   function stop() {
     recorderRef.current?.stop();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    teardown();
+  }
+
+  function cancel() {
+    cancelledRef.current = true;
+    recorderRef.current?.stop();
+    teardown();
+    setState("idle");
   }
 
   async function handleStop(mime: string) {
+    if (cancelledRef.current) {
+      chunksRef.current = [];
+      return;
+    }
     setState("processing");
     try {
       const blob = new Blob(chunksRef.current, { type: mime });
@@ -109,24 +179,38 @@ export function VoiceCapture({
   function reset() {
     setIntent(null);
     setEditable("");
+    setSeconds(0);
     setState("idle");
   }
 
+  const intentLabel = (t: VoiceIntent["tipo"]) =>
+    t === "feedback"
+      ? "Feedback ditado"
+      : t === "delegacao"
+        ? "Delegação ditada"
+        : t === "kudos"
+          ? "Kudos ditado"
+          : t === "agenda"
+            ? "Agenda de liderança"
+            : "Nota ditada";
+
   if (state === "review" && intent) {
     return (
-      <div className="rounded-xl border border-primary/40 bg-primary/5 p-4">
-        <div className="mb-2 text-[10px] uppercase tracking-widest text-primary">
-          {intent.tipo === "feedback"
-            ? "Feedback ditado"
-            : intent.tipo === "delegacao"
-              ? "Delegação ditada"
-              : intent.tipo === "kudos"
-                ? "Kudos ditado"
-                : intent.tipo === "agenda"
-                  ? "Agenda de liderança"
-                  : "Nota ditada"}
-          {intent.membroSugerido && ` · ${intent.membroSugerido}`}
-          {intent.prazoISO && ` · prazo ${new Date(intent.prazoISO).toLocaleDateString("pt-BR")}`}
+      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground">
+            <AudioLines className="h-3 w-3" /> {intentLabel(intent.tipo)}
+          </span>
+          {intent.membroSugerido && (
+            <span className="rounded-full bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
+              {intent.membroSugerido}
+            </span>
+          )}
+          {intent.prazoISO && (
+            <span className="rounded-full bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
+              prazo {new Date(intent.prazoISO).toLocaleDateString("pt-BR")}
+            </span>
+          )}
         </div>
         {intent.titulo && <div className="mb-2 font-medium">{intent.titulo}</div>}
         <Textarea
@@ -150,28 +234,95 @@ export function VoiceCapture({
     );
   }
 
+  if (state === "recording" || state === "processing") {
+    const recording = state === "recording";
+    return (
+      <div className="rounded-2xl border border-border bg-card p-5 text-center">
+        <div className="relative mx-auto grid h-20 w-20 place-items-center">
+          {recording && (
+            <>
+              <span className="absolute inset-0 animate-ping rounded-full bg-destructive/25" />
+              <span className="absolute inset-2 rounded-full bg-destructive/15" />
+            </>
+          )}
+          <span
+            className={
+              "relative grid h-14 w-14 place-items-center rounded-full text-white " +
+              (recording ? "bg-destructive" : "bg-primary")
+            }
+          >
+            {recording ? (
+              <Mic className="h-6 w-6" strokeWidth={2.25} />
+            ) : (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            )}
+          </span>
+        </div>
+
+        <p className="mt-3 text-sm font-medium">
+          {recording ? "Gravando… fale naturalmente" : "Transcrevendo com a IA…"}
+        </p>
+        <p className="font-mono text-2xl tabular-nums tracking-tight">{formatTime(seconds)}</p>
+
+        <div className="mt-4 flex h-12 items-end justify-center gap-[3px]">
+          {levels.map((l, i) => (
+            <span
+              key={i}
+              className={
+                "w-[4px] rounded-full transition-[height] duration-75 " +
+                (recording ? "bg-destructive/70" : "bg-muted-foreground/30")
+              }
+              style={{ height: `${Math.round(l * 100)}%` }}
+            />
+          ))}
+        </div>
+
+        <div className="mt-5 flex items-center justify-center gap-2">
+          {recording ? (
+            <>
+              <Button type="button" onClick={stop} className="gap-2">
+                <Square className="h-4 w-4" /> Parar e transcrever
+              </Button>
+              <Button type="button" variant="ghost" onClick={cancel} className="gap-2">
+                <Trash2 className="h-4 w-4" /> Descartar
+              </Button>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">Isso leva alguns segundos.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "panel") {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+        <button
+          type="button"
+          onClick={start}
+          aria-label={label}
+          className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-accent text-white shadow-[0_18px_38px_-14px_color-mix(in_oklab,var(--accent)_65%,transparent)] transition active:scale-95"
+        >
+          <Mic className="h-8 w-8" strokeWidth={2} />
+        </button>
+        <p className="mt-4 text-sm font-medium">{label}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Toque para começar. A IA transcreve e organiza para você.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <Button
       type="button"
       size="sm"
-      variant={state === "recording" ? "destructive" : "outline"}
-      onClick={state === "recording" ? stop : start}
-      disabled={state === "processing"}
+      variant="outline"
+      onClick={start}
       className="gap-2"
     >
-      {state === "processing" ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" /> Transcrevendo…
-        </>
-      ) : state === "recording" ? (
-        <>
-          <Square className="h-4 w-4" /> Parar gravação
-        </>
-      ) : (
-        <>
-          <Mic className="h-4 w-4" /> {label}
-        </>
-      )}
+      <Mic className="h-4 w-4" /> {label}
     </Button>
   );
 }

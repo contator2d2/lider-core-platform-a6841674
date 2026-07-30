@@ -151,6 +151,27 @@ function AppShell() {
   const handleVoiceIntent = async (intent: VoiceIntent) => {
     if (!orgId) return;
     try {
+      // Notas viram registro na Base do líder (Notas & reuniões).
+      if (intent.tipo === "nota") {
+        await api(`/organization/${orgId}/base/notes`, {
+          method: "POST",
+          body: {
+            kind: "nota",
+            title: intent.titulo || intent.resumo.slice(0, 80) || "Nota por voz",
+            content: intent.resumo || intent.transcricao,
+            transcript: intent.transcricao,
+            source: "voz",
+            participants: intent.membroSugerido ? [intent.membroSugerido] : [],
+            meetingAt: null,
+          },
+        });
+        await queryClient.invalidateQueries({ queryKey: ["base-notes", orgId] });
+        setVoiceOpen(false);
+        toast.success("Nota salva na Base do líder.");
+        navigate({ to: "/app/notes" });
+        return;
+      }
+
       if (conscienciaOnly) {
         await api(`/organization/${orgId}/consciencia/agenda`, {
           method: "POST",
@@ -190,11 +211,9 @@ function AppShell() {
       if (intent.tipo === "feedback") {
         toast.success("Feedback capturado", { description: "Abrindo Feedbacks…" });
         navigate({ to: "/app/feedbacks" });
-      } else if (intent.tipo === "delegacao") {
+      } else {
         toast.success("Delegação capturada", { description: "Abrindo Delegações…" });
         navigate({ to: "/app/organization/delegations" });
-      } else {
-        toast.success("Nota salva", { description: intent.resumo.slice(0, 120) });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao processar áudio");
@@ -310,15 +329,20 @@ function AppShell() {
               <DialogTitle>Captura por voz</DialogTitle>
               <DialogDescription>
                 {conscienciaOnly
-                  ? "Fale uma ação, feedback, delegação ou lembrete. O registro entra na sua Agenda de liderança."
+                  ? "Fale uma ação, feedback ou lembrete. Notas vão para a Base do líder; o resto entra na Agenda."
                   : "Fale um feedback, delegação ou nota. A IA transcreve, classifica e leva você direto para o lugar certo."}
               </DialogDescription>
             </DialogHeader>
             {orgId && (
               <div className="pt-2">
-                <VoiceCapture orgId={orgId} onConfirm={handleVoiceIntent} label="Iniciar gravação" />
+                <VoiceCapture
+                  orgId={orgId}
+                  onConfirm={handleVoiceIntent}
+                  label="Toque para gravar"
+                  variant="panel"
+                />
                 <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-                  Exemplos: <em>"Dar feedback positivo à Ana"</em> · <em>"Delegar ao João o relatório até sexta"</em> · <em>"Lembrar de preparar a 1:1"</em>.
+                  Exemplos: <em>"Anotar que a Ana pediu mais autonomia"</em> · <em>"Dar feedback positivo à Ana"</em> · <em>"Delegar ao João o relatório até sexta"</em>.
                 </p>
               </div>
             )}
