@@ -48,6 +48,21 @@ type Briefing = {
   }>;
 };
 
+type AttentionItem = {
+  id: string;
+  title: string;
+  reason: string;
+  severity: "high" | "medium" | "low";
+  kind: string;
+  link: string | null;
+};
+type Attention = {
+  generatedAt: string;
+  items: AttentionItem[];
+  total: number;
+  coreScore: number | null;
+};
+
 function HomeBriefing() {
   const featuresQ = useFeatures();
   const modules = collectModules(featuresQ.data);
@@ -73,6 +88,8 @@ function HomeBriefing() {
           O que precisa da sua atenção hoje. Este é o seu Sistema Operacional do Líder — a metodologia vem toda do backend Neo.
         </p>
       </header>
+
+      <AttentionCard />
 
       {data?.initialJourney && (
         <Link
