@@ -9,7 +9,7 @@ export type PositivityItem = { prompt: string; polarity: "positive" | "negative"
 
 export const POSITIVITY_SLUG = "quociente-positivo";
 
-export const POSITIVITY_ITEMS: PositivityItem[] = [
+export const POSITIVITY_ITEMS_BLOCK_1: PositivityItem[] = [
   { emotion: "Interesse", polarity: "positive", prompt: "Em que grau você se sentiu intrigado, encantado ou fascinado?" },
   { emotion: "Estresse", polarity: "negative", prompt: "Em que grau você se sentiu preocupado, ansioso ou estressado?" },
   { emotion: "Amor", polarity: "positive", prompt: "Em que grau você sentiu carinho, compaixão ou amor?" },
@@ -24,12 +24,39 @@ export const POSITIVITY_ITEMS: PositivityItem[] = [
   { emotion: "Defensividade", polarity: "negative", prompt: "Em que grau você se sentiu na defensiva, ressentido ou com autopiedade?" },
 ];
 
-export const POSITIVITY_HELP =
-  "Escala: 1 Nem um pouco · 2 Um pouco · 3 Moderadamente · 4 Muito · 5 Extremamente";
+export const POSITIVITY_ITEMS_BLOCK_2: PositivityItem[] = [
+  { emotion: "Inquietação", polarity: "negative", prompt: "Em que grau você se sentiu inquieto, impaciente ou nervoso?" },
+  { emotion: "Alegria", polarity: "positive", prompt: "Em que grau você se sentiu alegre, feliz ou contente?" },
+  { emotion: "Raiva", polarity: "negative", prompt: "Em que grau você sentiu raiva, irritação ou fúria?" },
+  { emotion: "Serenidade", polarity: "positive", prompt: "Em que grau você sentiu paz, tranquilidade e satisfação?" },
+  { emotion: "Vergonha", polarity: "negative", prompt: "Em que grau você se sentiu humilhado, envergonhado ou diminuído?" },
+  { emotion: "Gratidão", polarity: "positive", prompt: "Em que grau você se sentiu compreensivo, grato ou satisfeito?" },
+  { emotion: "Frustração", polarity: "negative", prompt: "Em que grau você se sentiu frustrado, irritado ou aborrecido?" },
+  { emotion: "Comoção", polarity: "positive", prompt: "Em que grau você se sentiu emocionado, tocado ou jubiloso?" },
+  { emotion: "Tristeza", polarity: "negative", prompt: "Em que grau você se sentiu infeliz, triste ou descontente?" },
+  { emotion: "Esperança", polarity: "positive", prompt: "Em que grau você se sentiu otimista, esperançoso ou cheio de expectativas?" },
+  { emotion: "Inveja", polarity: "negative", prompt: "Em que grau você sentiu inveja, cobiça ou ciúme?" },
+  { emotion: "Lucidez", polarity: "positive", prompt: "Em que grau você se sentiu lúcido, centrado ou com os pés no chão?" },
+];
 
-export const POSITIVITY_BLOCK_TITLE = "Sentimentos — últimas 24h";
+export const POSITIVITY_ITEMS: PositivityItem[] = [...POSITIVITY_ITEMS_BLOCK_1, ...POSITIVITY_ITEMS_BLOCK_2];
+
+export const POSITIVITY_SCALE_LABELS = ["Nem um pouco", "Um pouco", "Moderadamente", "Muito", "Extremamente"];
+
+export const POSITIVITY_HELP = POSITIVITY_SCALE_LABELS.map((l, i) => `${i + 1} ${l}`).join(" · ");
+
+export const POSITIVITY_BLOCK_TITLE = "Sentimentos — últimas 24h (parte 1)";
 export const POSITIVITY_BLOCK_DESCRIPTION =
   "Deste mesmo horário ontem até agora, qual é o maior grau que você teve os sentimentos a seguir?";
+
+export const POSITIVITY_BLOCKS: Array<{ title: string; description: string; items: PositivityItem[] }> = [
+  { title: POSITIVITY_BLOCK_TITLE, description: POSITIVITY_BLOCK_DESCRIPTION, items: POSITIVITY_ITEMS_BLOCK_1 },
+  {
+    title: "Sentimentos — últimas 24h (parte 2)",
+    description: POSITIVITY_BLOCK_DESCRIPTION,
+    items: POSITIVITY_ITEMS_BLOCK_2,
+  },
+];
 
 function normalize(text: string): string {
   return text
