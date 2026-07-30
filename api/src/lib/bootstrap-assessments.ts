@@ -6,12 +6,24 @@ import {
   POSITIVITY_ITEMS,
   POSITIVITY_SLUG,
 } from "./positivity.js";
+import {
+  HERRMANN_BLOCK_DESCRIPTION,
+  HERRMANN_BLOCK_TITLE,
+  HERRMANN_HELP,
+  HERRMANN_ITEMS,
+  HERRMANN_SLUG,
+} from "./herrmann.js";
 
 /**
  * Garante que os assessments canônicos da metodologia existam no banco.
  * Roda no boot da API — nunca exige criação manual.
  */
 export async function bootstrapCoreAssessments() {
+  await bootstrapPositivity();
+  await bootstrapHerrmann();
+}
+
+async function bootstrapPositivity() {
   try {
     const existing = await prisma.assessment.findUnique({
       where: { slug: POSITIVITY_SLUG },
