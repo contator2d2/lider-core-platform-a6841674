@@ -12,6 +12,7 @@ import {
   Compass,
   MessageSquare,
   Sparkles,
+  NotebookPen,
   Target,
   Users as UsersIcon,
   ArrowRight,
@@ -50,6 +51,8 @@ type Briefing = {
 function HomeBriefing() {
   const featuresQ = useFeatures();
   const modules = collectModules(featuresQ.data);
+  // Enquanto as features carregam, não bloqueamos nada (evita "Em breve" falso).
+  const hasC = !featuresQ.data || modules.has("consciencia");
   const q = useQuery({
     queryKey: ["me", "home", "briefing"],
     queryFn: () => api<Briefing>("/me/home/briefing"),
