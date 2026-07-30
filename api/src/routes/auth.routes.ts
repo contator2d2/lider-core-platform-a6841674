@@ -12,21 +12,36 @@ const registerSchema = z.object({
   password: z.string().min(8),
   fullName: z.string().min(1),
   planSlug: z.string().min(1).optional(),
+  inviteToken: z.string().min(1).optional(),
 });
 
 authRouter.post("/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const { password, fullName, planSlug } = parsed.data;
+  const { password, fullName, planSlug, inviteToken } = parsed.data;
   const email = parsed.data.email.trim().toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return res.status(409).json({ error: "Email já cadastrado" });
 
+  // Convite (mentorado) — define trilha de onboarding e pode forçar o plano
+  let invite: Awaited<ReturnType<typeof prisma.leaderInvite.findUnique>> = null;
+  if (inviteToken) {
+    invite = await prisma.leaderInvite.findUnique({ where: { token: inviteToken } }).catch(() => null);
+    const invalid =
+      !invite ||
+      invite.revokedAt ||
+      (invite.expiresAt && invite.expiresAt < new Date()) ||
+      invite.usedCount >= invite.maxUses;
+    if (invalid) return res.status(410).json({ error: "Convite inválido ou expirado" });
+  }
+  const track = invite?.track === "mentored" ? "mentored" : "basic";
+  const effectivePlanSlug = invite?.planSlug ?? planSlug;
+
   // Resolve o plano selecionado (opcional)
   let plan: { slug: string; targetRole: "super_admin" | "neo_admin" | "franchise_owner" | "hr_admin" | "leader" | "collaborator"; planTier: "essencial" | "profissional" | "enterprise" } | null = null;
-  if (planSlug) {
-    const found = await prisma.signupPlan.findUnique({ where: { slug: planSlug } });
+  if (effectivePlanSlug) {
+    const found = await prisma.signupPlan.findUnique({ where: { slug: effectivePlanSlug } });
     if (found && found.active) {
       plan = { slug: found.slug, targetRole: found.targetRole, planTier: found.planTier };
     }
@@ -37,9 +52,22 @@ authRouter.post("/register", async (req, res) => {
     data: {
       email,
       passwordHash,
-      profile: { create: { fullName } },
+      profile: {
+        create: {
+          fullName,
+          onboardingTrack: track,
+          didNeoMentorship: track === "mentored",
+          invitedByUserId: invite?.createdByUserId ?? null,
+        },
+      },
     },
   });
+
+  if (invite) {
+    await prisma.leaderInvite
+      .update({ where: { id: invite.id }, data: { usedCount: { increment: 1 } } })
+      .catch((err) => console.error("[auth] falha ao marcar convite usado", err));
+  }
 
   // Aplica papel do plano selecionado (default = leader se nenhum plano foi passado)
   const roleToApply = plan?.targetRole ?? "leader";
@@ -80,6 +108,7 @@ authRouter.post("/register", async (req, res) => {
     token,
     user: { id: user.id, email: user.email, fullName },
     plan: plan ? { slug: plan.slug, role: plan.targetRole, tier: plan.planTier } : null,
+    track,
   });
 });
 
@@ -154,6 +183,8 @@ authRouter.get("/me", requireAuth, async (req, res) => {
         whatsapp: true,
         onboardingCompletedAt: true,
         onboardingSteps: true,
+        onboardingTrack: true,
+        didNeoMentorship: true,
       },
     }).catch((err) => {
       console.error("[auth] falha ao carregar perfil em /me", err);
@@ -170,6 +201,8 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       whatsapp: profile?.whatsapp ?? null,
       onboardingCompletedAt: profile?.onboardingCompletedAt ?? null,
       onboardingSteps: profile?.onboardingSteps ?? null,
+      onboardingTrack: profile?.onboardingTrack ?? "basic",
+      didNeoMentorship: profile?.didNeoMentorship ?? false,
       roles: user.roles.map((r: { role: string }) => r.role),
       memberships: user.memberships.map((m: { role: string; organization: { id: string; name: string; slug: string; plan: string } }) => ({
         role: m.role,
