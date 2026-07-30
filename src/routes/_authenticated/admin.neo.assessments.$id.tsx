@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink, HeartPulse, BarChart3, Brain } from "lucide-react";
 
 type Option = { id?: string; label: string; value: string; score?: number };
 type Question = {
@@ -92,6 +92,12 @@ function Page() {
     onSuccess: () => { toast.success("Publicado — nova versão criada"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const applyPositivity = useMutation({
+    mutationFn: () =>
+      api<{ questions: number }>(`/admin/neo/assessments/${id}/preset/quociente-positivo`, { method: "POST" }),
+    onSuccess: (r) => { toast.success(`${r.questions} itens do Quociente Positivo adicionados`); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const a = query.data;
 
@@ -115,6 +121,15 @@ function Page() {
             className="rounded-full border-[color:var(--neo-line)] bg-white/70"
           >
             <Sparkles className="mr-1.5 h-4 w-4" /> Gerar com IA
+          </Button>
+          <Button
+            onClick={() => applyPositivity.mutate()}
+            disabled={applyPositivity.isPending}
+            variant="outline"
+            className="rounded-full border-[color:var(--neo-line)] bg-white/70"
+            title="Adiciona os 12 itens oficiais do Quociente Positivo (Fredrickson) com cálculo automático da razão de positividade"
+          >
+            <HeartPulse className="mr-1.5 h-4 w-4" /> Quociente Positivo
           </Button>
           <Button
             onClick={() => addBlock.mutate()}
@@ -227,6 +242,7 @@ function Page() {
         />
       )}
       {a && <SharePanel assessmentId={a.id} />}
+      {a && <ResponsesPanel assessmentId={a.id} />}
     </>
   );
 }
