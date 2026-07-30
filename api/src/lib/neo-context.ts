@@ -19,7 +19,7 @@ function clip(s: string | null | undefined, max = 280) {
 export async function buildNeoContext(): Promise<string> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.text;
 
-  const [items, knowledge, templates, assessments, journeys, competencies, docs] = await Promise.all([
+  const [items, knowledge, templates, assessments, journeys, competencies, doc] = await Promise.all([
     prisma.methodologyItem.findMany({
       where: { status: "active" },
       orderBy: [{ type: "asc" }, { orderIndex: "asc" }],
@@ -32,9 +32,9 @@ export async function buildNeoContext(): Promise<string> {
       where: { status: "active" },
       include: { steps: { orderBy: { orderIndex: "asc" }, take: 30 } },
       take: 20,
-    }).catch(() => [] as Array<{ title: string; description: string | null; steps: Array<{ title: string }> }>),
-    prisma.methodologyCompetency.findMany({ take: 60 }).catch(() => []),
-    prisma.methodologyDoc.findMany({ take: 30 }).catch(() => []),
+    }).catch(() => []),
+    prisma.methodologyCompetency.findMany({ where: { active: true }, take: 60 }).catch(() => []),
+    prisma.methodologyDoc.findFirst().catch(() => null),
   ]);
 
   const lines: string[] = [];
@@ -58,19 +58,30 @@ export async function buildNeoContext(): Promise<string> {
 
   if (competencies.length) {
     lines.push("\n## competências (catálogo legado)");
-    for (const c of competencies) lines.push(`- ${c.name}: ${clip((c as { description?: string | null }).description)}`);
+    for (const c of competencies) {
+      lines.push(
+        `- ${c.name}: ${clip(c.description)}` +
+          (c.behaviors?.length ? ` | comportamentos: ${c.behaviors.slice(0, 5).join("; ")}` : "") +
+          (c.guidingQuestions?.length ? ` | perguntas-guia: ${c.guidingQuestions.slice(0, 3).join("; ")}` : ""),
+      );
+    }
   }
 
   if (knowledge.length) {
     lines.push("\n## base de conhecimento (playbooks, artigos, scripts)");
     for (const k of knowledge) {
-      lines.push(`- [${k.kind}] ${k.title}: ${clip(k.summary ?? k.content, 400)}`);
+      lines.push(`- [${k.kind}] ${k.title}${k.category ? ` (${k.category})` : ""}: ${clip(k.summary, 400)}`);
     }
   }
 
-  if (docs.length) {
-    lines.push("\n## documentos da metodologia");
-    for (const d of docs) lines.push(`- ${d.title}: ${clip((d as { content?: string | null }).content, 400)}`);
+  if (doc) {
+    lines.push("\n## identidade da metodologia");
+    if (doc.mission) lines.push(`- Missão: ${clip(doc.mission, 400)}`);
+    if (doc.vision) lines.push(`- Visão: ${clip(doc.vision, 400)}`);
+    if (doc.manifesto) lines.push(`- Manifesto: ${clip(doc.manifesto, 600)}`);
+    if (doc.leaderProfile) lines.push(`- Perfil do líder C.O.R.E.: ${clip(doc.leaderProfile, 600)}`);
+    if (doc.principles?.length) lines.push(`- Princípios: ${doc.principles.join(" · ")}`);
+    if (doc.aiSystemPrompt) lines.push(`- Orientação oficial à IA: ${clip(doc.aiSystemPrompt, 900)}`);
   }
 
   if (templates.length) {
@@ -80,14 +91,14 @@ export async function buildNeoContext(): Promise<string> {
 
   if (assessments.length) {
     lines.push("\n## assessments disponíveis");
-    for (const a of assessments) lines.push(`- ${a.title}${a.kind ? ` (${a.kind})` : ""}: ${clip(a.description, 180)}`);
+    for (const a of assessments) lines.push(`- ${a.name}${a.category ? ` (${a.category})` : ""}: ${clip(a.objective, 180)}`);
   }
 
   if (journeys.length) {
     lines.push("\n## jornadas de desenvolvimento");
     for (const j of journeys) {
       const steps = (j as { steps?: Array<{ title: string }> }).steps ?? [];
-      lines.push(`- ${j.title}: ${clip(j.description, 160)}${steps.length ? ` | passos: ${steps.map((s) => s.title).join(" → ")}` : ""}`);
+      lines.push(`- ${j.name}: ${clip(j.description, 160)}${steps.length ? ` | passos: ${steps.map((s) => s.title).join(" → ")}` : ""}`);
     }
   }
 
