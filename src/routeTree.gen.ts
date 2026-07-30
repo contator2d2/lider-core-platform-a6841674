@@ -72,7 +72,9 @@ import { Route as AuthenticatedAdminBrandingRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
 import { Route as AuthenticatedAdminAppsRouteImport } from './routes/_authenticated/admin.apps'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated/admin.ai'
+import { Route as AuthenticatedAppTeamIndexRouteImport } from './routes/_authenticated/app.team.index'
 import { Route as AuthenticatedAppOrganizationIndexRouteImport } from './routes/_authenticated/app.organization.index'
+import { Route as AuthenticatedAppConscienciaIndexRouteImport } from './routes/_authenticated/app.consciencia.index'
 import { Route as AuthenticatedAppTeamMembershipIdRouteImport } from './routes/_authenticated/app.team.$membershipId'
 import { Route as AuthenticatedAppOrganizationRolesRouteImport } from './routes/_authenticated/app.organization.roles'
 import { Route as AuthenticatedAppOrganizationRitualsRouteImport } from './routes/_authenticated/app.organization.rituals'
@@ -448,11 +450,23 @@ const AuthenticatedAdminAiRoute = AuthenticatedAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAppTeamIndexRoute =
+  AuthenticatedAppTeamIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppTeamRoute,
+  } as any)
 const AuthenticatedAppOrganizationIndexRoute =
   AuthenticatedAppOrganizationIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedAppOrganizationRoute,
+  } as any)
+const AuthenticatedAppConscienciaIndexRoute =
+  AuthenticatedAppConscienciaIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppConscienciaRoute,
   } as any)
 const AuthenticatedAppTeamMembershipIdRoute =
   AuthenticatedAppTeamMembershipIdRouteImport.update({
@@ -696,7 +710,9 @@ export interface FileRoutesByFullPath {
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
   '/app/team/$membershipId': typeof AuthenticatedAppTeamMembershipIdRoute
+  '/app/consciencia/': typeof AuthenticatedAppConscienciaIndexRoute
   '/app/organization/': typeof AuthenticatedAppOrganizationIndexRoute
+  '/app/team/': typeof AuthenticatedAppTeamIndexRoute
   '/admin/neo/assessments/$id': typeof AuthenticatedAdminNeoAssessmentsIdRoute
   '/admin/neo/journeys/$id': typeof AuthenticatedAdminNeoJourneysIdRoute
   '/admin/neo/assessments/': typeof AuthenticatedAdminNeoAssessmentsIndexRoute
@@ -734,7 +750,6 @@ export interface FileRoutesByTo {
   '/app/360': typeof AuthenticatedApp360Route
   '/app/ai': typeof AuthenticatedAppAiRoute
   '/app/coach': typeof AuthenticatedAppCoachRoute
-  '/app/consciencia': typeof AuthenticatedAppConscienciaRouteWithChildren
   '/app/evolution': typeof AuthenticatedAppEvolutionRoute
   '/app/feedbacks': typeof AuthenticatedAppFeedbacksRoute
   '/app/help': typeof AuthenticatedAppHelpRoute
@@ -748,7 +763,6 @@ export interface FileRoutesByTo {
   '/app/pulses': typeof AuthenticatedAppPulsesRoute
   '/app/results': typeof AuthenticatedAppResultsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
-  '/app/team': typeof AuthenticatedAppTeamRouteWithChildren
   '/company/billing': typeof AuthenticatedCompanyBillingRoute
   '/company/leaders': typeof AuthenticatedCompanyLeadersRoute
   '/company/leadership': typeof AuthenticatedCompanyLeadershipRoute
@@ -780,7 +794,9 @@ export interface FileRoutesByTo {
   '/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
   '/app/team/$membershipId': typeof AuthenticatedAppTeamMembershipIdRoute
+  '/app/consciencia': typeof AuthenticatedAppConscienciaIndexRoute
   '/app/organization': typeof AuthenticatedAppOrganizationIndexRoute
+  '/app/team': typeof AuthenticatedAppTeamIndexRoute
   '/admin/neo/assessments/$id': typeof AuthenticatedAdminNeoAssessmentsIdRoute
   '/admin/neo/journeys/$id': typeof AuthenticatedAdminNeoJourneysIdRoute
   '/admin/neo/assessments': typeof AuthenticatedAdminNeoAssessmentsIndexRoute
@@ -873,7 +889,9 @@ export interface FileRoutesById {
   '/_authenticated/app/organization/rituals': typeof AuthenticatedAppOrganizationRitualsRoute
   '/_authenticated/app/organization/roles': typeof AuthenticatedAppOrganizationRolesRoute
   '/_authenticated/app/team/$membershipId': typeof AuthenticatedAppTeamMembershipIdRoute
+  '/_authenticated/app/consciencia/': typeof AuthenticatedAppConscienciaIndexRoute
   '/_authenticated/app/organization/': typeof AuthenticatedAppOrganizationIndexRoute
+  '/_authenticated/app/team/': typeof AuthenticatedAppTeamIndexRoute
   '/_authenticated/admin/neo/assessments/$id': typeof AuthenticatedAdminNeoAssessmentsIdRoute
   '/_authenticated/admin/neo/journeys/$id': typeof AuthenticatedAdminNeoJourneysIdRoute
   '/_authenticated/admin/neo/assessments/': typeof AuthenticatedAdminNeoAssessmentsIndexRoute
@@ -966,7 +984,9 @@ export interface FileRouteTypes {
     | '/app/organization/rituals'
     | '/app/organization/roles'
     | '/app/team/$membershipId'
+    | '/app/consciencia/'
     | '/app/organization/'
+    | '/app/team/'
     | '/admin/neo/assessments/$id'
     | '/admin/neo/journeys/$id'
     | '/admin/neo/assessments/'
@@ -1004,7 +1024,6 @@ export interface FileRouteTypes {
     | '/app/360'
     | '/app/ai'
     | '/app/coach'
-    | '/app/consciencia'
     | '/app/evolution'
     | '/app/feedbacks'
     | '/app/help'
@@ -1018,7 +1037,6 @@ export interface FileRouteTypes {
     | '/app/pulses'
     | '/app/results'
     | '/app/settings'
-    | '/app/team'
     | '/company/billing'
     | '/company/leaders'
     | '/company/leadership'
@@ -1050,7 +1068,9 @@ export interface FileRouteTypes {
     | '/app/organization/rituals'
     | '/app/organization/roles'
     | '/app/team/$membershipId'
+    | '/app/consciencia'
     | '/app/organization'
+    | '/app/team'
     | '/admin/neo/assessments/$id'
     | '/admin/neo/journeys/$id'
     | '/admin/neo/assessments'
@@ -1142,7 +1162,9 @@ export interface FileRouteTypes {
     | '/_authenticated/app/organization/rituals'
     | '/_authenticated/app/organization/roles'
     | '/_authenticated/app/team/$membershipId'
+    | '/_authenticated/app/consciencia/'
     | '/_authenticated/app/organization/'
+    | '/_authenticated/app/team/'
     | '/_authenticated/admin/neo/assessments/$id'
     | '/_authenticated/admin/neo/journeys/$id'
     | '/_authenticated/admin/neo/assessments/'
@@ -1600,12 +1622,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/app/team/': {
+      id: '/_authenticated/app/team/'
+      path: '/'
+      fullPath: '/app/team/'
+      preLoaderRoute: typeof AuthenticatedAppTeamIndexRouteImport
+      parentRoute: typeof AuthenticatedAppTeamRoute
+    }
     '/_authenticated/app/organization/': {
       id: '/_authenticated/app/organization/'
       path: '/'
       fullPath: '/app/organization/'
       preLoaderRoute: typeof AuthenticatedAppOrganizationIndexRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationRoute
+    }
+    '/_authenticated/app/consciencia/': {
+      id: '/_authenticated/app/consciencia/'
+      path: '/'
+      fullPath: '/app/consciencia/'
+      preLoaderRoute: typeof AuthenticatedAppConscienciaIndexRouteImport
+      parentRoute: typeof AuthenticatedAppConscienciaRoute
     }
     '/_authenticated/app/team/$membershipId': {
       id: '/_authenticated/app/team/$membershipId'
@@ -1908,6 +1944,7 @@ interface AuthenticatedAppConscienciaRouteChildren {
   AuthenticatedAppConscienciaCoachRoute: typeof AuthenticatedAppConscienciaCoachRoute
   AuthenticatedAppConscienciaLideradosRoute: typeof AuthenticatedAppConscienciaLideradosRoute
   AuthenticatedAppConscienciaPdiRoute: typeof AuthenticatedAppConscienciaPdiRoute
+  AuthenticatedAppConscienciaIndexRoute: typeof AuthenticatedAppConscienciaIndexRoute
 }
 
 const AuthenticatedAppConscienciaRouteChildren: AuthenticatedAppConscienciaRouteChildren =
@@ -1923,6 +1960,8 @@ const AuthenticatedAppConscienciaRouteChildren: AuthenticatedAppConscienciaRoute
     AuthenticatedAppConscienciaLideradosRoute:
       AuthenticatedAppConscienciaLideradosRoute,
     AuthenticatedAppConscienciaPdiRoute: AuthenticatedAppConscienciaPdiRoute,
+    AuthenticatedAppConscienciaIndexRoute:
+      AuthenticatedAppConscienciaIndexRoute,
   }
 
 const AuthenticatedAppConscienciaRouteWithChildren =
@@ -1973,10 +2012,12 @@ const AuthenticatedAppOrganizationRouteWithChildren =
 
 interface AuthenticatedAppTeamRouteChildren {
   AuthenticatedAppTeamMembershipIdRoute: typeof AuthenticatedAppTeamMembershipIdRoute
+  AuthenticatedAppTeamIndexRoute: typeof AuthenticatedAppTeamIndexRoute
 }
 
 const AuthenticatedAppTeamRouteChildren: AuthenticatedAppTeamRouteChildren = {
   AuthenticatedAppTeamMembershipIdRoute: AuthenticatedAppTeamMembershipIdRoute,
+  AuthenticatedAppTeamIndexRoute: AuthenticatedAppTeamIndexRoute,
 }
 
 const AuthenticatedAppTeamRouteWithChildren =
