@@ -1065,6 +1065,8 @@ model SubordinateAssessment {
   sabotageScores  Json?         @map("sabotage_scores")
   aiReading       String?       @map("ai_reading")
   aiTrack         String?       @map("ai_track")
+  trackSteps      Json?         @map("track_steps")
+  trackGeneratedAt DateTime?    @map("track_generated_at")
   lastPulseSendId String?       @map("last_pulse_send_id") @db.Uuid
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
