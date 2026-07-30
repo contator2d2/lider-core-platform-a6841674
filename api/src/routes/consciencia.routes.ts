@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { completeChat, extractDocumentText } from "../lib/ai-gateway.js";
 
 /**
  * MÓDULO C — Consciência.
