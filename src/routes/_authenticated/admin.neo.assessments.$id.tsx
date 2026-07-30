@@ -719,6 +719,9 @@ type ResponseScore = {
   positiveAvg?: number;
   negativeAvg?: number;
   band?: string;
+  kind?: string;
+  profile?: string;
+  dominantName?: string | null;
   breakdown?: Array<{ emotion: string; polarity: "positive" | "negative"; value: number }>;
   analysis?: PositivityAnalysis;
 } | null;
@@ -801,6 +804,7 @@ function ResponsesPanel({ assessmentId }: { assessmentId: string }) {
                       {r.share?.label && <span>via {r.share.label}</span>}
                       {r.score?.ratio != null && <span>razão {r.score.ratio}:1</span>}
                       {r.score?.ratio === null && r.score?.positiveHits ? <span>razão acima de 5:1</span> : null}
+                      {r.score?.profile && <span>{r.score.profile}</span>}
                     </div>
                   </div>
                   <button
