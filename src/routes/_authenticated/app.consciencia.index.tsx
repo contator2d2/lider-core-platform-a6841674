@@ -415,6 +415,18 @@ function ConscienciaPage() {
               Perfis e trilhas do time
             </div>
           </Link>
+          <Link
+            to="/app/consciencia/disc"
+            className="rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-secondary/50"
+          >
+            <Brain className="h-4 w-4 text-accent" />
+            <div className="mt-2 text-[13px] font-semibold leading-tight">
+              {profile?.discPrimary ? "Refazer teste DISC" : "Fazer teste DISC"}
+            </div>
+            <div className="mt-0.5 text-[11px] text-muted-foreground">
+              20 questões · resultado na hora
+            </div>
+          </Link>
         </div>
       </section>
 
