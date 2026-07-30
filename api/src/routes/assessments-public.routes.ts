@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { isPositivityAssessment, scorePositivity } from "../lib/positivity.js";
+import { isHerrmannAssessment, scoreHerrmann } from "../lib/herrmann.js";
 
 /**
  * Endpoints públicos (sem login) para responder assessments via link.
@@ -93,11 +94,27 @@ publicAssessmentsRouter.post("/assessment/:token", async (req, res) => {
   let score: unknown = null;
   const assessment = await prisma.assessment.findUnique({
     where: { id: link.assessmentId },
-    select: { slug: true, blocks: { select: { questions: { select: { id: true, prompt: true } } } } },
+    select: {
+      slug: true,
+      blocks: {
+        select: {
+          questions: {
+            select: {
+              id: true,
+              prompt: true,
+              options: { select: { id: true, label: true, value: true } },
+            },
+          },
+        },
+      },
+    },
   });
   if (assessment && isPositivityAssessment(assessment.slug)) {
     const questions = assessment.blocks.flatMap((b) => b.questions);
     score = scorePositivity(questions, parsed.data.answers);
+  } else if (assessment && isHerrmannAssessment(assessment.slug)) {
+    const questions = assessment.blocks.flatMap((b) => b.questions);
+    score = scoreHerrmann(questions, parsed.data.answers);
   }
 
   const saved = await prisma.assessmentPublicResponse.create({
