@@ -27,6 +27,7 @@ import {
   UserCircle2,
   Settings2,
   Bell,
+  NotebookPen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -57,8 +58,9 @@ const nav = [
   { to: "/app/pdis", label: "PDIs", icon: BookOpen, section: "Evolução", module: "evolucao" },
   { to: "/app/360", label: "360 leve", icon: UsersRound, section: "Evolução", module: "evolucao" },
   { to: "/app/feedbacks", label: "Feedbacks", icon: Compass, section: "Evolução", module: "evolucao" },
-  { to: "/app/ai", label: "IA Coach", icon: Sparkles, section: "Evolução", module: "evolucao" },
   { to: "/app/coach", label: "Coach preditivo", icon: Radar, section: "Evolução", module: "evolucao" },
+  { to: "/app/notes", label: "Notas & reuniões", icon: NotebookPen, section: "Base", module: "*" },
+  { to: "/app/ai", label: "Assistente IA", icon: Sparkles, section: "Base", module: "*" },
   { to: "/app/profile", label: "Perfil", icon: UserCircle2, section: "Conta", module: "*" },
   { to: "/app/notifications", label: "Notificações", icon: Bell, section: "Conta", module: "*" },
   { to: "/app/settings", label: "Configurações", icon: Settings2, section: "Conta", module: "*" },
@@ -69,7 +71,7 @@ const mobileNav = [
   { to: "/app", label: "Início", icon: Home, module: "consciencia" },
   { to: "/app/organization/agenda", label: "Agenda", icon: Calendar, module: "organizacao" },
   { to: "/app/team", label: "Equipe", icon: Users, module: "consciencia" },
-  { to: "/app/ai", label: "Ações", icon: Zap, module: "evolucao" },
+  { to: "/app/notes", label: "Notas", icon: NotebookPen, module: "*" },
   { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
 ] as const;
 
@@ -77,6 +79,8 @@ const conscienciaOnlyNav = [
   { to: "/app/consciencia", label: "Início", icon: Home, section: "Consciência", module: "consciencia" },
   { to: "/app/journey", label: "Jornada", icon: Compass, section: "Consciência", module: "consciencia" },
   { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência", module: "consciencia" },
+  { to: "/app/notes", label: "Notas & reuniões", icon: NotebookPen, section: "Base", module: "*" },
+  { to: "/app/ai", label: "Assistente IA", icon: Sparkles, section: "Base", module: "*" },
   { to: "/app/profile", label: "Perfil", icon: UserCircle2, section: "Conta", module: "*" },
   { to: "/app/notifications", label: "Notificações", icon: Bell, section: "Conta", module: "*" },
   { to: "/app/settings", label: "Configurações", icon: Settings2, section: "Conta", module: "*" },
@@ -88,6 +92,7 @@ const conscienciaOnlyMobileNav = [
   { to: "/app/consciencia/agenda", label: "Agenda", icon: Calendar, module: "consciencia" },
   { to: "/app/team", label: "Equipe", icon: Users, module: "consciencia" },
   { to: "/app/consciencia/pdi", label: "PDI", icon: Zap, module: "consciencia" },
+  { to: "/app/notes", label: "Notas", icon: NotebookPen, module: "*" },
   { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
 ] as const;
 
