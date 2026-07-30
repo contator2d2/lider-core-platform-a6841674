@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink, HeartPulse, BarChart3, Brain } from "lucide-react";
 
 type Option = { id?: string; label: string; value: string; score?: number };
 type Question = {
@@ -92,6 +92,12 @@ function Page() {
     onSuccess: () => { toast.success("Publicado — nova versão criada"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const applyPositivity = useMutation({
+    mutationFn: () =>
+      api<{ questions: number }>(`/admin/neo/assessments/${id}/preset/quociente-positivo`, { method: "POST" }),
+    onSuccess: (r) => { toast.success(`${r.questions} itens do Quociente Positivo adicionados`); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const a = query.data;
 
@@ -115,6 +121,15 @@ function Page() {
             className="rounded-full border-[color:var(--neo-line)] bg-white/70"
           >
             <Sparkles className="mr-1.5 h-4 w-4" /> Gerar com IA
+          </Button>
+          <Button
+            onClick={() => applyPositivity.mutate()}
+            disabled={applyPositivity.isPending}
+            variant="outline"
+            className="rounded-full border-[color:var(--neo-line)] bg-white/70"
+            title="Adiciona os 12 itens oficiais do Quociente Positivo (Fredrickson) com cálculo automático da razão de positividade"
+          >
+            <HeartPulse className="mr-1.5 h-4 w-4" /> Quociente Positivo
           </Button>
           <Button
             onClick={() => addBlock.mutate()}
@@ -227,6 +242,7 @@ function Page() {
         />
       )}
       {a && <SharePanel assessmentId={a.id} />}
+      {a && <ResponsesPanel assessmentId={a.id} />}
     </>
   );
 }
@@ -669,5 +685,183 @@ export function AiGenerateDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+// ============================================================
+// Respostas recebidas + score e leitura da IA
+// ============================================================
+type PositivityAnalysis = {
+  resumo?: string;
+  interpretacao?: string;
+  pontosFortes?: string[];
+  pontosAtencao?: string[];
+  recomendacoes?: string[];
+};
+type ResponseScore = {
+  ratio?: number | null;
+  positiveHits?: number;
+  negativeHits?: number;
+  positiveAvg?: number;
+  negativeAvg?: number;
+  band?: string;
+  breakdown?: Array<{ emotion: string; polarity: "positive" | "negative"; value: number }>;
+  analysis?: PositivityAnalysis;
+} | null;
+type PublicResponse = {
+  id: string;
+  respondentName: string | null;
+  respondentEmail: string | null;
+  submittedAt: string;
+  score: ResponseScore;
+  share: { id: string; label: string | null; token: string } | null;
+};
+
+const BAND_LABEL: Record<string, { label: string; className: string }> = {
+  florescimento: { label: "Florescimento", className: "bg-emerald-50 text-emerald-700" },
+  equilibrio: { label: "Equilíbrio", className: "bg-sky-50 text-sky-700" },
+  atencao: { label: "Atenção", className: "bg-amber-50 text-amber-800" },
+  risco: { label: "Risco", className: "bg-red-50 text-red-700" },
+};
+
+function ResponsesPanel({ assessmentId }: { assessmentId: string }) {
+  const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const responses = useQuery<PublicResponse[]>({
+    queryKey: ["/admin/neo/assessments", assessmentId, "responses"],
+    queryFn: () => api<PublicResponse[]>(`/admin/neo/assessments/${assessmentId}/responses`),
+  });
+
+  const analyze = useMutation({
+    mutationFn: (responseId: string) =>
+      api(`/admin/neo/assessments/responses/${responseId}/analyze`, { method: "POST" }),
+    onSuccess: () => {
+      toast.success("Análise gerada pela IA");
+      qc.invalidateQueries({ queryKey: ["/admin/neo/assessments", assessmentId, "responses"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <section className="mt-8 rounded-2xl border neo-hairline bg-white p-6">
+      <div className="flex items-start gap-3 border-b neo-hairline pb-4">
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--neo-cream)]">
+          <BarChart3 className="h-4 w-4 text-[color:var(--neo-ink)]" />
+        </div>
+        <div>
+          <div className="neo-eyebrow">Resultados</div>
+          <h2 className="text-2xl">Respostas recebidas</h2>
+          <p className="mt-1 text-sm text-[color:var(--neo-muted)]">
+            Cada resposta recebe o score automático (quando o assessment tem motor de cálculo, como o
+            Quociente Positivo) e pode ser interpretada pela IA da Neo.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-2">
+        {responses.isLoading ? (
+          <div className="text-sm text-[color:var(--neo-muted)]">Carregando…</div>
+        ) : !responses.data?.length ? (
+          <div className="rounded-xl border neo-hairline bg-[color:var(--neo-cream)]/40 p-4 text-sm text-[color:var(--neo-muted)]">
+            Nenhuma resposta recebida ainda. Gere um link público acima e compartilhe.
+          </div>
+        ) : (
+          responses.data.map((r) => {
+            const band = r.score?.band ? BAND_LABEL[r.score.band] : null;
+            const open = openId === r.id;
+            return (
+              <div key={r.id} className="rounded-xl border neo-hairline bg-white">
+                <div className="flex flex-wrap items-center gap-3 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {r.respondentName || "Anônimo"}
+                      {band && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${band.className}`}>
+                          {band.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-[color:var(--neo-muted)]">
+                      <span>{new Date(r.submittedAt).toLocaleString("pt-BR")}</span>
+                      {r.share?.label && <span>via {r.share.label}</span>}
+                      {r.score?.ratio != null && <span>razão {r.score.ratio}:1</span>}
+                      {r.score?.ratio === null && r.score?.positiveHits ? <span>razão acima de 5:1</span> : null}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setOpenId(open ? null : r.id)}
+                    className="rounded-full border neo-hairline bg-white px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--neo-cream)]"
+                  >
+                    {open ? "Fechar" : "Ver detalhes"}
+                  </button>
+                  <button
+                    onClick={() => analyze.mutate(r.id)}
+                    disabled={analyze.isPending}
+                    className="inline-flex items-center gap-1 rounded-full bg-[color:var(--neo-ink)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[color:var(--neo-ink)]/90 disabled:opacity-50"
+                  >
+                    <Brain className="h-3.5 w-3.5" /> Analisar com IA
+                  </button>
+                </div>
+
+                {open && (
+                  <div className="border-t neo-hairline p-4 text-sm">
+                    {r.score?.breakdown?.length ? (
+                      <div className="mb-4 grid gap-1.5 sm:grid-cols-2">
+                        {r.score.breakdown.map((b) => (
+                          <div
+                            key={b.emotion}
+                            className="flex items-center justify-between rounded-lg bg-[color:var(--neo-cream)]/50 px-3 py-1.5 text-xs"
+                          >
+                            <span>
+                              {b.emotion}{" "}
+                              <span className={b.polarity === "positive" ? "text-emerald-600" : "text-red-600"}>
+                                ({b.polarity === "positive" ? "+" : "−"})
+                              </span>
+                            </span>
+                            <span className="font-semibold">{b.value}/5</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {r.score?.analysis ? (
+                      <div className="space-y-3">
+                        {r.score.analysis.resumo && <p>{r.score.analysis.resumo}</p>}
+                        {r.score.analysis.interpretacao && (
+                          <p className="text-[color:var(--neo-muted)]">{r.score.analysis.interpretacao}</p>
+                        )}
+                        {(["pontosFortes", "pontosAtencao", "recomendacoes"] as const).map((k) => {
+                          const list = r.score?.analysis?.[k];
+                          if (!list?.length) return null;
+                          const titles = {
+                            pontosFortes: "Pontos fortes",
+                            pontosAtencao: "Pontos de atenção",
+                            recomendacoes: "Recomendações (7 dias)",
+                          } as const;
+                          return (
+                            <div key={k}>
+                              <div className="neo-eyebrow">{titles[k]}</div>
+                              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
+                                {list.map((x) => (
+                                  <li key={x}>{x}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[color:var(--neo-muted)]">
+                        Ainda sem leitura da IA. Clique em “Analisar com IA” para gerar a interpretação.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
   );
 }

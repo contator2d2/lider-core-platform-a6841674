@@ -6,6 +6,13 @@ import { prisma } from "../prisma.js";
 import { requireAuth, requireRoles } from "../auth.js";
 import { recordAudit, shallowDiff } from "../lib/audit.js";
 import { completeChat } from "../lib/ai-gateway.js";
+import {
+  POSITIVITY_BLOCK_DESCRIPTION,
+  POSITIVITY_BLOCK_TITLE,
+  POSITIVITY_HELP,
+  POSITIVITY_ITEMS,
+  scorePositivity,
+} from "../lib/positivity.js";
 
 export const neoRouter = Router();
 neoRouter.use(requireAuth, requireRoles("super_admin", "neo_admin"));
@@ -568,6 +575,120 @@ neoRouter.get("/assessments/:id/responses", async (req, res) => {
     include: { share: { select: { id: true, label: true, token: true } } },
   });
   res.json(rows);
+});
+
+// ============================================================
+// Quociente Positivo — preset oficial + análise
+// ============================================================
+
+/** Preenche o assessment com os 12 itens oficiais do Quociente Positivo. */
+neoRouter.post("/assessments/:id/preset/quociente-positivo", async (req, res) => {
+  const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
+
+  const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
+  const block = await prisma.assessmentBlock.create({
+    data: {
+      assessmentId: a.id,
+      title: POSITIVITY_BLOCK_TITLE,
+      description: POSITIVITY_BLOCK_DESCRIPTION,
+      orderIndex: existingBlocks,
+    },
+  });
+  await prisma.assessmentQuestion.createMany({
+    data: POSITIVITY_ITEMS.map((item, index) => ({
+      blockId: block.id,
+      type: "likert" as const,
+      prompt: item.prompt,
+      helpText: POSITIVITY_HELP,
+      required: true,
+      weight: 1,
+      scaleMin: 1,
+      scaleMax: 5,
+      orderIndex: index,
+    })),
+  });
+  await recordAudit({
+    entity: "assessment",
+    entityId: a.id,
+    action: "update",
+    actorId: req.userId,
+    note: "preset Quociente Positivo aplicado",
+  });
+  res.json({ created: 1, questions: POSITIVITY_ITEMS.length, mode: "preset" });
+});
+
+/** Recalcula o score e gera a leitura da IA para uma resposta pública. */
+neoRouter.post("/assessments/responses/:responseId/analyze", async (req, res) => {
+  const response = await prisma.assessmentPublicResponse.findUnique({
+    where: { id: req.params.responseId },
+  });
+  if (!response) return res.status(404).json({ error: "Resposta não encontrada" });
+
+  const assessment = await prisma.assessment.findUnique({
+    where: { id: response.assessmentId },
+    select: {
+      name: true,
+      objective: true,
+      blocks: { select: { questions: { select: { id: true, prompt: true, scaleMin: true, scaleMax: true } } } },
+    },
+  });
+  if (!assessment) return res.status(404).json({ error: "Assessment não encontrado" });
+
+  const questions = assessment.blocks.flatMap((b) => b.questions);
+  const answers = (response.answers ?? {}) as Record<string, unknown>;
+  const computed = scorePositivity(questions, answers);
+
+  const readable = questions
+    .map((q) => `- ${q.prompt} → ${String(answers[q.id] ?? "sem resposta")}`)
+    .join("\n");
+
+  try {
+    const raw = await completeChat({
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é psicóloga organizacional da Neo Pessoas. Analise respostas de assessment com rigor técnico e linguagem humana em pt-BR. Retorne SOMENTE JSON válido, sem markdown.",
+        },
+        {
+          role: "user",
+          content: `Assessment: ${assessment.name}
+Objetivo: ${assessment.objective ?? "—"}
+Respondente: ${response.respondentName ?? "anônimo"}
+${computed ? `Score calculado (Positivity Ratio de Fredrickson): razão ${computed.ratio ?? "acima de 5"} · ${computed.positiveHits} emoções positivas e ${computed.negativeHits} negativas em grau >= 3 · média positiva ${computed.positiveAvg} · média negativa ${computed.negativeAvg} · faixa ${computed.band}.` : ""}
+
+Respostas (escala 1 a 5):
+${readable}
+
+Retorne exatamente:
+{
+  "resumo": "2-3 frases sobre o estado emocional das últimas 24h",
+  "interpretacao": "o que a razão de positividade indica na prática para a liderança",
+  "pontosFortes": ["..."],
+  "pontosAtencao": ["..."],
+  "recomendacoes": ["3 a 5 ações concretas para os próximos 7 dias"]
+}`,
+        },
+      ],
+      temperature: 0.4,
+    });
+    const analysis = extractJson<Record<string, unknown>>(raw);
+    const score = { ...(computed ?? {}), analysis, analyzedAt: new Date().toISOString() };
+    await prisma.assessmentPublicResponse.update({
+      where: { id: response.id },
+      data: { score: score as never },
+    });
+    res.json({ score });
+  } catch (e) {
+    if (computed) {
+      await prisma.assessmentPublicResponse.update({
+        where: { id: response.id },
+        data: { score: computed as never },
+      });
+    }
+    res.status(500).json({ error: e instanceof Error ? e.message : "Falha na análise por IA" });
+  }
 });
 
 // ============================================================

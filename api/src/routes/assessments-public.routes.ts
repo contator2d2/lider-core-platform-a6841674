@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma.js";
+import { isPositivityAssessment, scorePositivity } from "../lib/positivity.js";
 
 /**
  * Endpoints públicos (sem login) para responder assessments via link.
@@ -88,6 +89,17 @@ publicAssessmentsRouter.post("/assessment/:token", async (req, res) => {
       return res.status(410).json({ error: "Este link atingiu o limite de respostas." });
   }
 
+  // Score automático para assessments com motor próprio (ex.: Quociente Positivo)
+  let score: unknown = null;
+  const assessment = await prisma.assessment.findUnique({
+    where: { id: link.assessmentId },
+    select: { slug: true, blocks: { select: { questions: { select: { id: true, prompt: true } } } } },
+  });
+  if (assessment && isPositivityAssessment(assessment.slug)) {
+    const questions = assessment.blocks.flatMap((b) => b.questions);
+    score = scorePositivity(questions, parsed.data.answers);
+  }
+
   const saved = await prisma.assessmentPublicResponse.create({
     data: {
       shareId: link.id,
@@ -95,6 +107,7 @@ publicAssessmentsRouter.post("/assessment/:token", async (req, res) => {
       respondentName: parsed.data.respondentName ?? null,
       respondentEmail: parsed.data.respondentEmail ?? null,
       answers: parsed.data.answers as never,
+      score: (score ?? undefined) as never,
     },
   });
 

@@ -33,6 +33,7 @@ import { featureTemplatesRouter, bootstrapFeatureTemplates, resolveUserFeatures 
 import { signupPlansRouter, publicSignupPlansRouter, bootstrapSignupPlans } from "./routes/signup-plans.routes.js";
 import { neoRouter } from "./routes/neo.routes.js";
 import { publicAssessmentsRouter } from "./routes/assessments-public.routes.js";
+import { bootstrapCoreAssessments } from "./lib/bootstrap-assessments.js";
 import { meRouter } from "./routes/me.routes.js";
 import { requireAuth } from "./auth.js";
 import { prisma } from "./prisma.js";
@@ -180,6 +181,7 @@ app.listen(env.PORT, () => {
   void bootstrapDefaultPermissions();
   void bootstrapFeatureTemplates();
   void bootstrapSignupPlans();
+  void bootstrapCoreAssessments();
 });
 
 async function bootstrapSuperAdmins() {
