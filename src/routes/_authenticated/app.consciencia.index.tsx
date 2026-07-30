@@ -14,7 +14,6 @@ import {
   ArrowRight,
   Pencil,
   Activity,
-  Lock,
   Play,
   Users,
 } from "lucide-react";
@@ -250,12 +249,12 @@ function ConscienciaPage() {
   const current = currentIdx >= 0 ? steps[currentIdx] : null;
   const next = currentIdx >= 0 ? steps[currentIdx + 1] ?? null : null;
 
-  // Trilha visível: concluídos + atual + próximo
-  const visibleSteps: Array<Step & { state: "done" | "current" | "next" }> = [
-    ...steps.filter((s) => s.done).map((s) => ({ ...s, state: "done" as const })),
-    ...(current ? [{ ...current, state: "current" as const }] : []),
-    ...(next ? [{ ...next, state: "next" as const }] : []),
-  ];
+  // Trilha completa: nenhuma etapa fica bloqueada — todas navegáveis.
+  const visibleSteps: Array<Step & { state: "done" | "current" | "todo" }> = steps.map((s) => ({
+    ...s,
+    state: s.done ? ("done" as const) : s.key === current?.key ? ("current" as const) : ("todo" as const),
+  }));
+  void next;
 
   const initial =
     (user?.fullName ?? user?.email ?? "?")
@@ -489,13 +488,13 @@ function JourneyRow({
     icon: React.ComponentType<{ className?: string }>;
     title: string;
     subtitle: string;
-    state: "done" | "current" | "next";
+    state: "done" | "current" | "todo";
+    minutes: number;
     to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
     search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
 }) {
   const Icon = step.icon;
-  const isNext = step.state === "next";
   const isCurrent = step.state === "current";
   const isDone = step.state === "done";
   const inner = (
@@ -519,32 +518,26 @@ function JourneyRow({
               : "bg-secondary text-muted-foreground")
         }
       >
-        {isDone ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : isNext ? (
-          <Lock className="h-3.5 w-3.5" />
-        ) : (
-          <Icon className="h-4 w-4" />
-        )}
+        {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
       </div>
       <div className="min-w-0 flex-1">
         <div
           className={
-            "truncate text-[13px] font-semibold leading-tight " +
-            (isNext ? "text-muted-foreground" : "text-foreground")
+            "truncate text-[13px] font-semibold leading-tight text-foreground"
           }
         >
           {step.title}
         </div>
         <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-          {isCurrent ? "Continue daqui" : isNext ? "Próximo" : step.subtitle}
+          {isCurrent ? `Continue daqui · ${step.minutes} min` : step.subtitle}
         </div>
       </div>
-      {isCurrent && <ArrowRight className="h-4 w-4 shrink-0 text-accent" />}
+      <ArrowRight
+        className={"h-4 w-4 shrink-0 " + (isCurrent ? "text-accent" : "text-muted-foreground")}
+      />
     </div>
   );
 
-  if (isNext) return <li>{inner}</li>;
   return (
     <li>
       <Link to={step.to} search={step.search} className="block w-full text-left">
