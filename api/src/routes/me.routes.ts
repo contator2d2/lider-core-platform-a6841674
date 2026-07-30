@@ -225,7 +225,7 @@ meRouter.get("/home/attention", async (req, res) => {
         reason: `Delegação atrasada há ${Math.max(days, 1)} dia${days === 1 ? "" : "s"}`,
         severity: "high",
         kind: "delegation",
-        link: "/app/delegations",
+        link: "/app/organization/delegations",
       });
     }
 
