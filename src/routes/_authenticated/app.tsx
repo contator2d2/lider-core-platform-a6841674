@@ -260,7 +260,7 @@ function AppShell() {
     <div
       className={
         "min-h-screen bg-background text-foreground md:grid " +
-        (collapsed ? "md:grid-cols-[76px,1fr]" : "md:grid-cols-[264px,1fr]")
+        (collapsed ? "md:grid-cols-[76px_1fr]" : "md:grid-cols-[264px_1fr]")
       }
     >
       <aside className="sticky top-0 hidden h-screen border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col">

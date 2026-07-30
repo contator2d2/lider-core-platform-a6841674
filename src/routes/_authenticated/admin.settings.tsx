@@ -160,7 +160,7 @@ function SettingsPage() {
         title="Central de Configurações"
         description="SMTP, WhatsApp, SSO, backup, cobrança, segurança e integrações — tudo em um lugar. Segredos são mascarados após salvar."
       />
-      <div className="grid gap-6 md:grid-cols-[220px,1fr]">
+      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
         <nav className="space-y-1">
           {CATEGORIES.map((c) => {
             const Icon = c.icon;

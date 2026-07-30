@@ -155,7 +155,7 @@ function EvolutionPageInner() {
 
       {current && (
         <>
-          <section className="grid gap-4 md:grid-cols-[1.1fr,1fr]">
+          <section className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
             <FadeIn delay={0.05}>
               <div className="card-elevated relative overflow-hidden p-6">
                 <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-accent/20 blur-3xl" />
