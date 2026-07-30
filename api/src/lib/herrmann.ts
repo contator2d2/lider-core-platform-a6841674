@@ -197,6 +197,45 @@ export function isHerrmannAssessment(slug: string | null | undefined) {
   return (slug ?? "").startsWith(HERRMANN_SLUG);
 }
 
+// ------------------------------------------------------------
+// Modo de ativação C.O.R.E. — nome prático em cima do quadrante
+// A (analítico/resultado) → Tubarão
+// B (organizador/processo) → Lobo
+// C (relacional/pessoas)   → Gato
+// D (visão/estratégia)     → Águia
+// ------------------------------------------------------------
+export type ActivationMode = "aguia" | "lobo" | "gato" | "tubarao";
+
+export const ACTIVATION_BY_QUADRANT: Record<HerrmannQuadrant, ActivationMode> = {
+  A: "tubarao",
+  B: "lobo",
+  C: "gato",
+  D: "aguia",
+};
+
+export const ACTIVATION_MODES: Record<ActivationMode, { name: string; description: string }> = {
+  aguia: {
+    name: "Águia",
+    description:
+      "Ativa pela visão: enxerga o todo, conecta cenários e antecipa movimentos. Cuidado com a distância do chão da operação.",
+  },
+  lobo: {
+    name: "Lobo",
+    description:
+      "Ativa pelo método: organiza, cria ritmo e faz o time andar em ordem. Cuidado com rigidez e excesso de controle.",
+  },
+  gato: {
+    name: "Gato",
+    description:
+      "Ativa pela relação: lê o clima, cuida das pessoas e sustenta a confiança. Cuidado com evitar conversas duras.",
+  },
+  tubarao: {
+    name: "Tubarão",
+    description:
+      "Ativa pelo resultado: decide rápido, cobra e vai direto ao alvo. Cuidado com atropelar pessoas e contexto.",
+  },
+};
+
 function normalize(text: string): string {
   return text
     .toLowerCase()
