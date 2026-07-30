@@ -26,6 +26,34 @@ function Page() {
       description="Administre competências, valores, pilares, rituais e todos os artefatos da metodologia Neo. Cada alteração gera versão auditável."
       endpoint="/admin/neo/methodology-items"
       entityLabel="item"
+      help={{
+        what:
+          "É o dicionário oficial da metodologia Neo: competências, valores, pilares, módulos C.O.R.E., rituais e ferramentas. Tudo o que o app e a IA consideram 'verdade da metodologia' nasce aqui.",
+        why: [
+          "Alimenta o contexto da IA (coach, análises de assessment e recomendações).",
+          "Define as competências usadas no radar, no 9-Box e nos PDIs dos líderes.",
+          "Padroniza a linguagem: o app do líder exibe estes nomes e descrições.",
+          "Cada alteração gera versão auditável, então dá para evoluir sem perder histórico.",
+        ],
+        steps: [
+          "Clique em Novo e escolha o Tipo (competência, valor, pilar, ritual…).",
+          "Preencha Nome, Descrição e Objetivo com a linguagem que o líder deve ler no app.",
+          "Use Categoria e Tags para agrupar (ex.: 'Consciência', 'Heart', 'liderança').",
+          "Defina a Ordem para controlar a sequência de exibição nas telas.",
+          "Deixe em Rascunho enquanto valida e mude para Ativo para publicar ao app.",
+        ],
+        examples: [
+          "Competência: Autoconsciência",
+          "Pilar: Consciência (C)",
+          "Ritual: 1:1 quinzenal",
+          "Valor: Verdade com cuidado",
+        ],
+        tips: [
+          "Só itens com status Ativo aparecem para os líderes e para a IA.",
+          "Escreva a Descrição pensando em quem vai ler: o líder, não o time técnico.",
+          "Arquive em vez de excluir para manter o histórico das avaliações antigas.",
+        ],
+      }}
       filterField="type"
       filterOptions={TYPES}
       defaultValues={{ type: "competencia", status: "active", orderIndex: 0, tags: [] }}
