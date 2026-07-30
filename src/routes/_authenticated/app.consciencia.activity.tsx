@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Save, FileText, ArrowRight } from "lucide-react";
+import { Loader2, Save, FileText, ArrowRight, Upload, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ type Me = {
   profile: {
     activityDescription: string | null;
     activityDescriptionUrl: string | null;
+    activityDocName?: string | null;
+    activityDocAt?: string | null;
   } | null;
 };
 
@@ -34,6 +36,7 @@ function ActivityPage() {
   const navigate = useNavigate();
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["consciencia", "me", orgId],
@@ -63,6 +66,41 @@ function ActivityPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar"),
   });
+
+  async function handleFile(file: File) {
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Envie um documento de até 8 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+        reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+        reader.readAsDataURL(file);
+      });
+      const r = await api<{ extractedText: string }>(
+        `/organization/${orgId}/consciencia/me/activity/document`,
+        {
+          method: "POST",
+          body: {
+            filename: file.name,
+            mimeType: file.type || "application/octet-stream",
+            base64,
+            replaceDescription: text.trim().length === 0,
+          },
+        },
+      );
+      if (!text.trim()) setText(r.extractedText);
+      toast.success("Documento lido e anexado à sua descrição.");
+      qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não consegui ler esse documento.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   if (!orgId) return null;
 
@@ -107,6 +145,35 @@ function ActivityPage() {
               placeholder="https://…"
               inputMode="url"
             />
+          </div>
+          <div className="rounded-xl border border-dashed border-border p-4">
+            <Label className="flex items-center gap-2">
+              <Upload className="h-3.5 w-3.5" /> Enviar documento (PDF, DOCX, TXT ou imagem)
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              A IA lê o arquivo e transforma em descrição de atividades. Você pode editar depois.
+            </p>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.md,.csv,image/*"
+              className="mt-3 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-2 file:text-sm"
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void handleFile(f);
+              }}
+            />
+            {uploading && (
+              <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Lendo o documento…
+              </p>
+            )}
+            {data?.profile?.activityDocName && !uploading && (
+              <p className="mt-2 flex items-center gap-2 text-xs text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" /> {data.profile.activityDocName}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Button
