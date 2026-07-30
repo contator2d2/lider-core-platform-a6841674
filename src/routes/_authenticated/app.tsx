@@ -113,8 +113,23 @@ function AppShell() {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { signOut } = useAuth();
+  const { user } = useAuth();
   const { orgId } = useCurrentOrg();
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Detecta a plataforma: no desktop mostramos a versão completa com sidebar.
+  useEffect(() => {
+    const saved = window.localStorage.getItem("lc:sidebar-collapsed");
+    if (saved === "1") setCollapsed(true);
+  }, []);
+  const toggleSidebar = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      window.localStorage.setItem("lc:sidebar-collapsed", next ? "1" : "0");
+      return next;
+    });
+  };
   const featuresQ = useFeatures();
   const roles = featuresQ.data?.roles ?? [];
   const isAdmin = roles.includes("super_admin") || roles.includes("neo_admin");
