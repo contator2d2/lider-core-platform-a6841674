@@ -472,7 +472,7 @@ function Goals({ orgId, pdi }: { orgId: string; pdi: Pdi }) {
   });
 
   return (
-    <div className="mt-4 rounded-lg border border-border bg-secondary/20 p-4">
+    <div className="mt-1 rounded-xl border border-border bg-secondary/30 p-4">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Metas</div>
         <Button size="sm" variant="outline" onClick={() => setAdding((v) => !v)} className="h-7 gap-1 text-xs">
@@ -496,10 +496,32 @@ function Goals({ orgId, pdi }: { orgId: string; pdi: Pdi }) {
       )}
       <ul className="space-y-2">
         {pdi.goals.map((g) => (
-          <li key={g.id} className="flex items-start justify-between gap-3 rounded-md border border-border bg-background p-3 text-sm">
+          <li
+            key={g.id}
+            className={cn(
+              "flex flex-wrap items-start justify-between gap-3 rounded-lg border bg-background p-3 text-sm",
+              g.status === "atrasado"
+                ? "border-destructive/35"
+                : g.status === "concluido"
+                  ? "border-success/35"
+                  : "border-border",
+            )}
+          >
             <div className="flex-1">
-              <div className={g.status === "concluido" ? "line-through text-muted-foreground" : "font-medium"}>
-                {g.title}
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={g.status === "concluido" ? "text-muted-foreground line-through" : "font-medium"}
+                >
+                  {g.title}
+                </span>
+                <span
+                  className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest",
+                    GOAL_STATUS_CLS[g.status],
+                  )}
+                >
+                  {GOAL_STATUS[g.status]}
+                </span>
               </div>
               {g.action && <div className="text-xs text-muted-foreground">{g.action}</div>}
               {g.dueAt && (
