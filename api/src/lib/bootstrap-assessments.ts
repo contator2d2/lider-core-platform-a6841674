@@ -13,6 +13,8 @@ import {
   HERRMANN_ITEMS,
   HERRMANN_SLUG,
 } from "./herrmann.js";
+import { DISC_BLOCK_DESCRIPTION, DISC_BLOCK_TITLE, DISC_HELP, DISC_ITEMS, DISC_SLUG } from "./disc.js";
+import { RADAR_HSH_BLOCKS, RADAR_HSH_HELP, RADAR_HSH_SLUG } from "./radar-hsh.js";
 
 /**
  * Garante que os assessments canônicos da metodologia existam no banco.
@@ -21,6 +23,8 @@ import {
 export async function bootstrapCoreAssessments() {
   await bootstrapPositivity();
   await bootstrapHerrmann();
+  await bootstrapDisc();
+  await bootstrapRadarHsh();
 }
 
 async function bootstrapPositivity() {
