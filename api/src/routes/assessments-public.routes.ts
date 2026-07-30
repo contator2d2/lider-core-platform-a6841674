@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { isPositivityAssessment, scorePositivity } from "../lib/positivity.js";
 import { isHerrmannAssessment, scoreHerrmann } from "../lib/herrmann.js";
+import { isDiscAssessment, scoreDisc } from "../lib/disc.js";
+import { isRadarHshAssessment, scoreRadarHsh } from "../lib/radar-hsh.js";
 
 /**
  * Endpoints públicos (sem login) para responder assessments via link.
@@ -115,6 +117,12 @@ publicAssessmentsRouter.post("/assessment/:token", async (req, res) => {
   } else if (assessment && isHerrmannAssessment(assessment.slug)) {
     const questions = assessment.blocks.flatMap((b) => b.questions);
     score = scoreHerrmann(questions, parsed.data.answers);
+  } else if (assessment && isDiscAssessment(assessment.slug)) {
+    const questions = assessment.blocks.flatMap((b) => b.questions);
+    score = scoreDisc(questions, parsed.data.answers);
+  } else if (assessment && isRadarHshAssessment(assessment.slug)) {
+    const questions = assessment.blocks.flatMap((b) => b.questions);
+    score = scoreRadarHsh(questions, parsed.data.answers);
   }
 
   const saved = await prisma.assessmentPublicResponse.create({

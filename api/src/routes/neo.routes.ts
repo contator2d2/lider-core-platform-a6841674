@@ -21,6 +21,8 @@ import {
   HERRMANN_QUADRANTS,
   scoreHerrmann,
 } from "../lib/herrmann.js";
+import { DISC_BLOCK_DESCRIPTION, DISC_BLOCK_TITLE, DISC_FACTORS, DISC_HELP, DISC_ITEMS, scoreDisc } from "../lib/disc.js";
+import { HSH_AXES, RADAR_HSH_BLOCKS, RADAR_HSH_HELP, scoreRadarHsh } from "../lib/radar-hsh.js";
 
 export const neoRouter = Router();
 neoRouter.use(requireAuth, requireRoles("super_admin", "neo_admin"));
@@ -673,6 +675,90 @@ neoRouter.post("/assessments/:id/preset/dominancia-cerebral", async (req, res) =
   res.json({ created: 1, questions: HERRMANN_ITEMS.length, mode: "preset" });
 });
 
+/** Preenche o assessment com as 20 questões do DISC. */
+neoRouter.post("/assessments/:id/preset/disc", async (req, res) => {
+  const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
+
+  const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
+  const block = await prisma.assessmentBlock.create({
+    data: {
+      assessmentId: a.id,
+      title: DISC_BLOCK_TITLE,
+      description: DISC_BLOCK_DESCRIPTION,
+      orderIndex: existingBlocks,
+    },
+  });
+
+  for (const [index, item] of DISC_ITEMS.entries()) {
+    await prisma.assessmentQuestion.create({
+      data: {
+        blockId: block.id,
+        type: "unica",
+        prompt: `${index + 1}) ${item.prompt}`,
+        helpText: DISC_HELP,
+        required: true,
+        weight: 1,
+        orderIndex: index,
+        options: {
+          create: item.options.map((opt, i) => ({ label: opt.label, value: opt.factor, score: 1, orderIndex: i })),
+        },
+      },
+    });
+  }
+
+  await recordAudit({
+    entity: "assessment",
+    entityId: a.id,
+    action: "update",
+    actorId: req.userId,
+    note: "preset DISC aplicado",
+  });
+  res.json({ created: 1, questions: DISC_ITEMS.length, mode: "preset" });
+});
+
+/** Preenche o assessment com os 30 itens do Radar das Competências H.S.H. */
+neoRouter.post("/assessments/:id/preset/radar-hsh", async (req, res) => {
+  const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
+
+  const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
+  let total = 0;
+  for (const [bIndex, blockDef] of RADAR_HSH_BLOCKS.entries()) {
+    const block = await prisma.assessmentBlock.create({
+      data: {
+        assessmentId: a.id,
+        title: blockDef.title,
+        description: blockDef.description,
+        orderIndex: existingBlocks + bIndex,
+      },
+    });
+    await prisma.assessmentQuestion.createMany({
+      data: blockDef.items.map((prompt, index) => ({
+        blockId: block.id,
+        type: "likert" as const,
+        prompt,
+        helpText: RADAR_HSH_HELP,
+        required: true,
+        weight: 1,
+        scaleMin: 1,
+        scaleMax: 5,
+        orderIndex: index,
+      })),
+    });
+    total += blockDef.items.length;
+  }
+
+  await recordAudit({
+    entity: "assessment",
+    entityId: a.id,
+    action: "update",
+    actorId: req.userId,
+    note: "preset Radar H.S.H aplicado",
+  });
+  res.json({ created: RADAR_HSH_BLOCKS.length, questions: total, mode: "preset" });
+});
+
 /** Recalcula o score e gera a leitura da IA para uma resposta pública. */
 neoRouter.post("/assessments/responses/:responseId/analyze", async (req, res) => {
   const response = await prisma.assessmentPublicResponse.findUnique({
@@ -706,8 +792,14 @@ neoRouter.post("/assessments/responses/:responseId/analyze", async (req, res) =>
   const questions = assessment.blocks.flatMap((b) => b.questions);
   const answers = (response.answers ?? {}) as Record<string, unknown>;
   const isHerrmann = (assessment.slug ?? "").startsWith("dominancia-cerebral");
+  const slug = assessment.slug ?? "";
+  const isDisc = slug.startsWith("disc-");
+  const isRadar = slug.startsWith("radar-competencias");
   const herrmann = isHerrmann ? scoreHerrmann(questions, answers) : null;
-  const computed: Record<string, unknown> | null = herrmann ?? scorePositivity(questions, answers);
+  const disc = isDisc ? scoreDisc(questions, answers) : null;
+  const radar = isRadar ? scoreRadarHsh(questions, answers) : null;
+  const computed: Record<string, unknown> | null =
+    herrmann ?? disc ?? radar ?? scorePositivity(questions, answers);
 
   const readable = questions
     .map((q) => {
@@ -721,7 +813,15 @@ neoRouter.post("/assessments/responses/:responseId/analyze", async (req, res) =>
     ? `Score calculado (Dominância Cerebral de Ned Herrmann): ${herrmann.profile}. Distribuição: ${herrmann.ranking
         .map((r) => `${r.quadrant} ${HERRMANN_QUADRANTS[r.quadrant].short} ${r.count} (${r.percent}%)`)
         .join(" · ")}.`
-    : computed
+    : disc
+      ? `Score calculado (DISC): ${disc.profile}. Distribuição: ${disc.ranking
+          .map((r) => `${r.factor} ${DISC_FACTORS[r.factor].name} ${r.count} (${r.percent}%)`)
+          .join(" · ")}.`
+      : radar
+        ? `Score calculado (Radar das Competências H.S.H — média das respostas × 20): ${(["hard", "soft", "heart"] as const)
+            .map((a) => `${HSH_AXES[a].name} ${radar.scores[a]}/100`)
+            .join(" · ")}. Média geral ${radar.overall}/100.`
+        : computed
       ? `Score calculado (Positivity Ratio de Fredrickson): razão ${(computed as { ratio?: number | null }).ratio ?? "acima de 5"} · faixa ${(computed as { band?: string }).band}.`
       : "";
 

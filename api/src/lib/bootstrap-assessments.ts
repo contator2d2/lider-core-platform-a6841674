@@ -13,6 +13,8 @@ import {
   HERRMANN_ITEMS,
   HERRMANN_SLUG,
 } from "./herrmann.js";
+import { DISC_BLOCK_DESCRIPTION, DISC_BLOCK_TITLE, DISC_HELP, DISC_ITEMS, DISC_SLUG } from "./disc.js";
+import { RADAR_HSH_BLOCKS, RADAR_HSH_HELP, RADAR_HSH_SLUG } from "./radar-hsh.js";
 
 /**
  * Garante que os assessments canônicos da metodologia existam no banco.
@@ -21,6 +23,8 @@ import {
 export async function bootstrapCoreAssessments() {
   await bootstrapPositivity();
   await bootstrapHerrmann();
+  await bootstrapDisc();
+  await bootstrapRadarHsh();
 }
 
 async function bootstrapPositivity() {
@@ -144,5 +148,130 @@ async function bootstrapHerrmann() {
     console.log(`[bootstrap] assessment "Dominância Cerebral (Herrmann)" garantido (${HERRMANN_ITEMS.length} questões)`);
   } catch (err) {
     console.error("[bootstrap] falha ao garantir assessment Herrmann", err);
+  }
+}
+
+async function bootstrapDisc() {
+  try {
+    const existing = await prisma.assessment.findUnique({
+      where: { slug: DISC_SLUG },
+      include: { blocks: { include: { _count: { select: { questions: true } } } } },
+    });
+
+    const assessment =
+      existing ??
+      (await prisma.assessment.create({
+        data: {
+          slug: DISC_SLUG,
+          name: "DISC — Perfil Comportamental",
+          objective:
+            "Mapear o perfil comportamental do líder nos fatores Dominância, Influência, Estabilidade e Conformidade, orientando comunicação, delegação e desenvolvimento.",
+          audience: "Líderes e liderados",
+          competency: "Autoconhecimento",
+          category: "Consciência",
+          coreModule: "C",
+          estimatedTime: 8,
+          frequency: "semestral",
+          status: "active",
+        },
+        include: { blocks: { include: { _count: { select: { questions: true } } } } },
+      }));
+
+    const hasQuestions = (assessment.blocks ?? []).some((b: { _count: { questions: number } }) => b._count.questions > 0);
+    if (hasQuestions) return;
+
+    const block = await prisma.assessmentBlock.create({
+      data: {
+        assessmentId: assessment.id,
+        title: DISC_BLOCK_TITLE,
+        description: DISC_BLOCK_DESCRIPTION,
+        orderIndex: 0,
+      },
+    });
+
+    for (const [index, item] of DISC_ITEMS.entries()) {
+      await prisma.assessmentQuestion.create({
+        data: {
+          blockId: block.id,
+          type: "unica",
+          prompt: `${index + 1}) ${item.prompt}`,
+          helpText: DISC_HELP,
+          required: true,
+          weight: 1,
+          orderIndex: index,
+          options: {
+            create: item.options.map((opt, i) => ({
+              label: opt.label,
+              value: opt.factor,
+              score: 1,
+              orderIndex: i,
+            })),
+          },
+        },
+      });
+    }
+
+    console.log(`[bootstrap] assessment "DISC" garantido (${DISC_ITEMS.length} questões)`);
+  } catch (err) {
+    console.error("[bootstrap] falha ao garantir assessment DISC", err);
+  }
+}
+
+async function bootstrapRadarHsh() {
+  try {
+    const existing = await prisma.assessment.findUnique({
+      where: { slug: RADAR_HSH_SLUG },
+      include: { blocks: { include: { _count: { select: { questions: true } } } } },
+    });
+
+    const assessment =
+      existing ??
+      (await prisma.assessment.create({
+        data: {
+          slug: RADAR_HSH_SLUG,
+          name: "Radar das Competências (Hard · Soft · Heart)",
+          objective:
+            "Medir o nível de desenvolvimento do líder nos três eixos da metodologia C.O.R.E.: Hard (saber fazer), Soft (saber agir e se relacionar) e Heart (saber ser). Score por eixo = média das 10 respostas × 20 (0 a 100).",
+          audience: "Líderes",
+          competency: "Autoconhecimento",
+          category: "Consciência",
+          coreModule: "C",
+          estimatedTime: 12,
+          frequency: "trimestral",
+          status: "active",
+        },
+        include: { blocks: { include: { _count: { select: { questions: true } } } } },
+      }));
+
+    const hasQuestions = (assessment.blocks ?? []).some((b: { _count: { questions: number } }) => b._count.questions > 0);
+    if (hasQuestions) return;
+
+    for (const [bIndex, blockDef] of RADAR_HSH_BLOCKS.entries()) {
+      const block = await prisma.assessmentBlock.create({
+        data: {
+          assessmentId: assessment.id,
+          title: blockDef.title,
+          description: blockDef.description,
+          orderIndex: bIndex,
+        },
+      });
+      await prisma.assessmentQuestion.createMany({
+        data: blockDef.items.map((prompt, index) => ({
+          blockId: block.id,
+          type: "likert" as const,
+          prompt,
+          helpText: RADAR_HSH_HELP,
+          required: true,
+          weight: 1,
+          scaleMin: 1,
+          scaleMax: 5,
+          orderIndex: index,
+        })),
+      });
+    }
+
+    console.log("[bootstrap] assessment \"Radar das Competências H.S.H\" garantido (30 itens)");
+  } catch (err) {
+    console.error("[bootstrap] falha ao garantir assessment Radar H.S.H", err);
   }
 }
