@@ -325,7 +325,7 @@ function ConscienciaPage() {
             <Link
               to={current.to}
               search={current.search}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[12px] font-semibold text-background transition-transform hover:scale-[1.02] active:scale-100"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[12px] font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-100"
             >
               Continuar <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -348,18 +348,18 @@ function ConscienciaPage() {
               className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-accent/40 blur-3xl"
             />
             <div className="relative">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-background/60">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-foreground/60">
                 Continue de onde parou
               </div>
               <div className="mt-3 flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-background/10 text-background">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ink-foreground/10 text-ink-foreground">
                   <current.icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-display text-xl font-bold leading-tight">
                     {current.title}
                   </div>
-                  <div className="text-[12px] text-background/60">
+                  <div className="text-[12px] text-ink-foreground/60">
                     Tempo estimado · {current.minutes} min
                   </div>
                 </div>

@@ -115,13 +115,13 @@ function AgendaPage() {
                   : "border-border bg-card text-foreground hover:border-accent/40")
               }
             >
-              <span className={"text-[10px] font-bold uppercase tracking-widest " + (active ? "text-background/70" : "text-muted-foreground")}>
+              <span className={"text-[10px] font-bold uppercase tracking-widest " + (active ? "text-primary-foreground/70" : "text-muted-foreground")}>
                 {weekdayLabel(d)}
               </span>
               <span className="font-display text-2xl leading-none tabular-nums">
                 {d.getDate().toString().padStart(2, "0")}
               </span>
-              <span className={"text-[10px] " + (active ? "text-background/80" : "text-muted-foreground")}>
+              <span className={"text-[10px] " + (active ? "text-primary-foreground/80" : "text-muted-foreground")}>
                 {count === 0 ? "0 eventos" : count === 1 ? "1 evento" : `${count} eventos`}
               </span>
               {active && count > 0 && (

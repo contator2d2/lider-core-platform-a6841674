@@ -337,7 +337,7 @@ function AssessmentWizard() {
 
         <div className="mt-4 flex items-center gap-1.5">
           {steps.map((_, i) => (
-            <div key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-foreground" : "bg-border")} />
+            <div key={i} className={"h-1.5 flex-1 rounded-full " + (i <= step ? "bg-primary" : "bg-border")} />
           ))}
         </div>
       </header>
