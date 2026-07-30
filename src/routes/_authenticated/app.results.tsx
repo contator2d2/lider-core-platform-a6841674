@@ -219,7 +219,7 @@ function ResultsPage() {
                   const m = DEV_META[r.classification];
                   const Icon = m.icon;
                   return (
-                    <li key={r.id} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr,auto,auto,auto] md:items-center md:gap-4">
+                    <li key={r.id} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr_auto_auto_auto] md:items-center md:gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className={"inline-block h-2 w-2 rounded-full " + m.dot} />

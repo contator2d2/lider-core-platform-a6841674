@@ -406,7 +406,7 @@ function TemplatesPanel() {
   });
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr,380px]">
+    <div className="grid gap-6 md:grid-cols-[1fr_380px]">
       <div className="rounded-2xl border border-border bg-card">
         <div className="border-b border-border p-4">
           <h3 className="font-display text-lg">Templates cadastrados</h3>

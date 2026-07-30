@@ -104,7 +104,7 @@ function ImportPanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
       <aside className="space-y-2">
         {ENTITIES.map((e) => {
           const Icon = e.icon;

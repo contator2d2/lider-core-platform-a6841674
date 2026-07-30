@@ -154,7 +154,7 @@ function BillingPage() {
         </div>
         <div className="divide-y divide-border">
           {subs.data?.map((s) => (
-            <div key={s.id} className="grid gap-3 p-5 md:grid-cols-[1fr,120px,120px,140px,140px] md:items-center">
+            <div key={s.id} className="grid gap-3 p-5 md:grid-cols-[1fr_120px_120px_140px_140px] md:items-center">
               <div>
                 <div className="font-medium">{s.ownerName}</div>
                 <div className="text-xs text-muted-foreground">

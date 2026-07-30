@@ -143,7 +143,7 @@ function Index() {
 
       {/* PLATAFORMA */}
       <section id="plataforma" className="border-y border-border bg-secondary/40">
-        <div className="mx-auto grid max-w-6xl gap-16 px-6 py-24 md:grid-cols-[1.1fr,1fr] md:items-center">
+        <div className="mx-auto grid max-w-6xl gap-16 px-6 py-24 md:grid-cols-[1.1fr_1fr] md:items-center">
           <div>
             <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
               A plataforma
