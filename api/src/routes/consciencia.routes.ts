@@ -84,6 +84,8 @@ conscienciaRouter.get("/:orgId/consciencia/me", asyncRoute(async (req, res) => {
         assessmentAt: true,
         activityDescription: true,
         activityDescriptionUrl: true,
+        activityDocName: true,
+        activityDocAt: true,
         coachCadence: true,
         sabotageScores: true,
         cerebralProfile: true,
