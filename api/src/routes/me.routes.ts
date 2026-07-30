@@ -166,7 +166,7 @@ meRouter.get("/home/attention", async (req, res) => {
     // 1) Liderados sem 1:1 recente
     const lastOneOnOne = new Map<string, Date>();
     for (const o of oneOnOnes) {
-      if (o.status === "cancelled") continue;
+      if (o.status === "canceled") continue;
       if (o.scheduledAt > now) continue;
       const prev = lastOneOnOne.get(o.subjectUserId);
       if (!prev || o.scheduledAt > prev) lastOneOnOne.set(o.subjectUserId, o.scheduledAt);
@@ -217,7 +217,7 @@ meRouter.get("/home/attention", async (req, res) => {
 
     // 3) Delegações atrasadas
     for (const d of delegations as Array<{ id: string; title: string; dueAt: Date | null; status: string }>) {
-      if (["concluida", "cancelada"].includes(String(d.status))) continue;
+      if (["done", "canceled"].includes(String(d.status))) continue;
       const days = d.dueAt ? Math.floor((now.getTime() - new Date(d.dueAt).getTime()) / DAY) : 0;
       items.push({
         id: `dg-${d.id}`,
