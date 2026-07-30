@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { NeoHelp, type NeoHelpContent } from "@/components/admin/NeoHelp";
 
 export type FieldDef =
   | { kind: "text"; name: string; label: string; required?: boolean; placeholder?: string }
@@ -33,6 +34,7 @@ export function NeoCrudPage<T extends Item>({
   entityLabel,
   defaultValues,
   headerExtra,
+  help,
 }: {
   title: string;
   eyebrow?: string;
@@ -45,6 +47,7 @@ export function NeoCrudPage<T extends Item>({
   entityLabel: string;
   defaultValues?: Record<string, unknown>;
   headerExtra?: React.ReactNode;
+  help?: NeoHelpContent;
 }) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
@@ -114,6 +117,8 @@ export function NeoCrudPage<T extends Item>({
           </Button>
         </div>
       </div>
+
+      {help && <NeoHelp content={help} />}
 
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[240px]">
