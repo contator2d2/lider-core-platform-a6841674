@@ -347,54 +347,31 @@ function PdisPage() {
               key={p.id}
               className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-colors hover:border-primary/30"
             >
-              <div className="flex flex-wrap items-start justify-between gap-4 p-5">
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <Users className="h-3 w-3" /> {subject?.fullName ?? "Liderado"}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest",
-                        PDI_STATUS_CLS[p.status],
-                      )}
-                    >
-                      {PDI_STATUS[p.status]}
-                    </span>
+              <div className="space-y-4 p-5">
+                {/* Linha 1: pessoa + status + ações */}
+                <div className="flex items-center gap-3">
+                  <Avatar name={subject?.fullName} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium leading-tight">
+                      {subject?.fullName ?? "Liderado"}
+                    </div>
+                    <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                      Criado em {new Date(p.createdAt).toLocaleDateString("pt-BR")}
+                    </div>
                   </div>
-                  <h3 className="mt-2 font-display text-xl leading-tight">{p.title}</h3>
-                  {p.focus && (
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      Foco: <span className="text-foreground">{p.focus}</span>
-                    </div>
-                  )}
-                  {p.reviewAt && (
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <CalendarClock className="h-3.5 w-3.5" />
-                      Rever em {new Date(p.reviewAt).toLocaleDateString("pt-BR")}
-                    </div>
-                  )}
-                  {total > 0 && (
-                    <div className="mt-3 max-w-sm">
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>{done} de {total} metas concluídas</span>
-                        <span className="font-semibold text-foreground">{pct}%</span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "hidden rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest sm:inline",
+                      PDI_STATUS_CLS[p.status],
+                    )}
+                  >
+                    {PDI_STATUS[p.status]}
+                  </span>
                   <Select
                     value={p.status}
                     onValueChange={(v) => patchStatus.mutate({ id: p.id, status: v as PdiStatus })}
                   >
-                    <SelectTrigger className="h-8 w-36 text-xs">
+                    <SelectTrigger className="h-8 w-32 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -408,16 +385,47 @@ function PdisPage() {
                     className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     aria-label="Excluir"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                {p.summary && (
-                  <p className="w-full text-sm leading-relaxed text-muted-foreground">{p.summary}</p>
+
+                {/* Linha 2: conteúdo do PDI */}
+                <div>
+                  <h3 className="font-display text-xl leading-tight">{p.title}</h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    {p.focus && (
+                      <span className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-primary">
+                        <Target className="h-3 w-3" /> {p.focus}
+                      </span>
+                    )}
+                    {p.reviewAt && (
+                      <span className="flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2 py-0.5 text-muted-foreground">
+                        <CalendarClock className="h-3 w-3" />
+                        Rever em {new Date(p.reviewAt).toLocaleDateString("pt-BR")}
+                      </span>
+                    )}
+                  </div>
+                  {p.summary && (
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{p.summary}</p>
+                  )}
+                </div>
+
+                {total > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{done} de {total} metas concluídas</span>
+                      <span className="font-semibold text-foreground">{pct}%</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
 
-                <div className="w-full">
-                  <Goals orgId={orgId} pdi={p} />
-                </div>
+                <Goals orgId={orgId} pdi={p} />
               </div>
             </li>
           );
