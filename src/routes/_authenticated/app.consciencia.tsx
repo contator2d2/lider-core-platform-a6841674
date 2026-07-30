@@ -152,7 +152,7 @@ function ConscienciaPage() {
     subtitle: string;
     minutes: number;
     done: boolean;
-    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach";
+    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
     search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
   const steps: Step[] = [
@@ -209,6 +209,15 @@ function ConscienciaPage() {
       minutes: 3,
       done: activeCommitments > 0 || !!profile?.autoPdiGeneratedAt,
       to: "/app/consciencia/pdi",
+    },
+    {
+      key: "liderados",
+      icon: Users,
+      title: "Mapa dos liderados",
+      subtitle: "Perfis e trilha individual do time",
+      minutes: 4,
+      done: false,
+      to: "/app/consciencia/liderados",
     },
     {
       key: "coach",
@@ -469,7 +478,7 @@ function JourneyRow({
     title: string;
     subtitle: string;
     state: "done" | "current" | "next";
-    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach";
+    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
     search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
 }) {
