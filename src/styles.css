@@ -301,6 +301,7 @@
   font-family: var(--font-neo);
 }
 
+:root,
 .neo-admin {
   --neo-ink: oklch(0.15 0.01 260);
   --neo-paper: oklch(0.995 0.002 90);
@@ -308,6 +309,9 @@
   --neo-line: oklch(0.88 0.008 90);
   --neo-muted: oklch(0.45 0.01 260);
   --neo-accent: oklch(0.55 0.14 45);
+}
+
+.neo-admin {
   background: var(--neo-paper);
   color: var(--neo-ink);
   font-family: var(--font-neo);
