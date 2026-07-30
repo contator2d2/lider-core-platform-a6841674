@@ -89,7 +89,9 @@ import { Route as AuthenticatedAppConscienciaActivityRouteImport } from './route
 import { Route as AuthenticatedAdminNeoTemplatesRouteImport } from './routes/_authenticated/admin.neo.templates'
 import { Route as AuthenticatedAdminNeoMethodologyRouteImport } from './routes/_authenticated/admin.neo.methodology'
 import { Route as AuthenticatedAdminNeoKnowledgeRouteImport } from './routes/_authenticated/admin.neo.knowledge'
+import { Route as AuthenticatedAdminNeoJourneysRouteImport } from './routes/_authenticated/admin.neo.journeys'
 import { Route as AuthenticatedAdminNeoAuditRouteImport } from './routes/_authenticated/admin.neo.audit'
+import { Route as AuthenticatedAdminNeoAssessmentsRouteImport } from './routes/_authenticated/admin.neo.assessments'
 import { Route as AuthenticatedAdminNeoJourneysIndexRouteImport } from './routes/_authenticated/admin.neo.journeys.index'
 import { Route as AuthenticatedAdminNeoAssessmentsIndexRouteImport } from './routes/_authenticated/admin.neo.assessments.index'
 import { Route as AuthenticatedAdminNeoJourneysIdRouteImport } from './routes/_authenticated/admin.neo.journeys.$id'
@@ -546,35 +548,47 @@ const AuthenticatedAdminNeoKnowledgeRoute =
     path: '/neo/knowledge',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminNeoJourneysRoute =
+  AuthenticatedAdminNeoJourneysRouteImport.update({
+    id: '/neo/journeys',
+    path: '/neo/journeys',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminNeoAuditRoute =
   AuthenticatedAdminNeoAuditRouteImport.update({
     id: '/neo/audit',
     path: '/neo/audit',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminNeoAssessmentsRoute =
+  AuthenticatedAdminNeoAssessmentsRouteImport.update({
+    id: '/neo/assessments',
+    path: '/neo/assessments',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminNeoJourneysIndexRoute =
   AuthenticatedAdminNeoJourneysIndexRouteImport.update({
-    id: '/neo/journeys/',
-    path: '/neo/journeys/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminNeoJourneysRoute,
   } as any)
 const AuthenticatedAdminNeoAssessmentsIndexRoute =
   AuthenticatedAdminNeoAssessmentsIndexRouteImport.update({
-    id: '/neo/assessments/',
-    path: '/neo/assessments/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminNeoAssessmentsRoute,
   } as any)
 const AuthenticatedAdminNeoJourneysIdRoute =
   AuthenticatedAdminNeoJourneysIdRouteImport.update({
-    id: '/neo/journeys/$id',
-    path: '/neo/journeys/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminNeoJourneysRoute,
   } as any)
 const AuthenticatedAdminNeoAssessmentsIdRoute =
   AuthenticatedAdminNeoAssessmentsIdRouteImport.update({
-    id: '/neo/assessments/$id',
-    path: '/neo/assessments/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminNeoAssessmentsRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -638,7 +652,9 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AuthenticatedAppIndexRoute
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/franchise/': typeof AuthenticatedFranchiseIndexRoute
+  '/admin/neo/assessments': typeof AuthenticatedAdminNeoAssessmentsRouteWithChildren
   '/admin/neo/audit': typeof AuthenticatedAdminNeoAuditRoute
+  '/admin/neo/journeys': typeof AuthenticatedAdminNeoJourneysRouteWithChildren
   '/admin/neo/knowledge': typeof AuthenticatedAdminNeoKnowledgeRoute
   '/admin/neo/methodology': typeof AuthenticatedAdminNeoMethodologyRoute
   '/admin/neo/templates': typeof AuthenticatedAdminNeoTemplatesRoute
@@ -807,7 +823,9 @@ export interface FileRoutesById {
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/franchise/': typeof AuthenticatedFranchiseIndexRoute
+  '/_authenticated/admin/neo/assessments': typeof AuthenticatedAdminNeoAssessmentsRouteWithChildren
   '/_authenticated/admin/neo/audit': typeof AuthenticatedAdminNeoAuditRoute
+  '/_authenticated/admin/neo/journeys': typeof AuthenticatedAdminNeoJourneysRouteWithChildren
   '/_authenticated/admin/neo/knowledge': typeof AuthenticatedAdminNeoKnowledgeRoute
   '/_authenticated/admin/neo/methodology': typeof AuthenticatedAdminNeoMethodologyRoute
   '/_authenticated/admin/neo/templates': typeof AuthenticatedAdminNeoTemplatesRoute
@@ -895,7 +913,9 @@ export interface FileRouteTypes {
     | '/app/'
     | '/company/'
     | '/franchise/'
+    | '/admin/neo/assessments'
     | '/admin/neo/audit'
+    | '/admin/neo/journeys'
     | '/admin/neo/knowledge'
     | '/admin/neo/methodology'
     | '/admin/neo/templates'
@@ -1063,7 +1083,9 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/company/'
     | '/_authenticated/franchise/'
+    | '/_authenticated/admin/neo/assessments'
     | '/_authenticated/admin/neo/audit'
+    | '/_authenticated/admin/neo/journeys'
     | '/_authenticated/admin/neo/knowledge'
     | '/_authenticated/admin/neo/methodology'
     | '/_authenticated/admin/neo/templates'
@@ -1659,6 +1681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNeoKnowledgeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/neo/journeys': {
+      id: '/_authenticated/admin/neo/journeys'
+      path: '/neo/journeys'
+      fullPath: '/admin/neo/journeys'
+      preLoaderRoute: typeof AuthenticatedAdminNeoJourneysRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/neo/audit': {
       id: '/_authenticated/admin/neo/audit'
       path: '/neo/audit'
@@ -1666,36 +1695,78 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNeoAuditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/neo/assessments': {
+      id: '/_authenticated/admin/neo/assessments'
+      path: '/neo/assessments'
+      fullPath: '/admin/neo/assessments'
+      preLoaderRoute: typeof AuthenticatedAdminNeoAssessmentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/neo/journeys/': {
       id: '/_authenticated/admin/neo/journeys/'
-      path: '/neo/journeys'
+      path: '/'
       fullPath: '/admin/neo/journeys/'
       preLoaderRoute: typeof AuthenticatedAdminNeoJourneysIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminNeoJourneysRoute
     }
     '/_authenticated/admin/neo/assessments/': {
       id: '/_authenticated/admin/neo/assessments/'
-      path: '/neo/assessments'
+      path: '/'
       fullPath: '/admin/neo/assessments/'
       preLoaderRoute: typeof AuthenticatedAdminNeoAssessmentsIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminNeoAssessmentsRoute
     }
     '/_authenticated/admin/neo/journeys/$id': {
       id: '/_authenticated/admin/neo/journeys/$id'
-      path: '/neo/journeys/$id'
+      path: '/$id'
       fullPath: '/admin/neo/journeys/$id'
       preLoaderRoute: typeof AuthenticatedAdminNeoJourneysIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminNeoJourneysRoute
     }
     '/_authenticated/admin/neo/assessments/$id': {
       id: '/_authenticated/admin/neo/assessments/$id'
-      path: '/neo/assessments/$id'
+      path: '/$id'
       fullPath: '/admin/neo/assessments/$id'
       preLoaderRoute: typeof AuthenticatedAdminNeoAssessmentsIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminNeoAssessmentsRoute
     }
   }
 }
+
+interface AuthenticatedAdminNeoAssessmentsRouteChildren {
+  AuthenticatedAdminNeoAssessmentsIdRoute: typeof AuthenticatedAdminNeoAssessmentsIdRoute
+  AuthenticatedAdminNeoAssessmentsIndexRoute: typeof AuthenticatedAdminNeoAssessmentsIndexRoute
+}
+
+const AuthenticatedAdminNeoAssessmentsRouteChildren: AuthenticatedAdminNeoAssessmentsRouteChildren =
+  {
+    AuthenticatedAdminNeoAssessmentsIdRoute:
+      AuthenticatedAdminNeoAssessmentsIdRoute,
+    AuthenticatedAdminNeoAssessmentsIndexRoute:
+      AuthenticatedAdminNeoAssessmentsIndexRoute,
+  }
+
+const AuthenticatedAdminNeoAssessmentsRouteWithChildren =
+  AuthenticatedAdminNeoAssessmentsRoute._addFileChildren(
+    AuthenticatedAdminNeoAssessmentsRouteChildren,
+  )
+
+interface AuthenticatedAdminNeoJourneysRouteChildren {
+  AuthenticatedAdminNeoJourneysIdRoute: typeof AuthenticatedAdminNeoJourneysIdRoute
+  AuthenticatedAdminNeoJourneysIndexRoute: typeof AuthenticatedAdminNeoJourneysIndexRoute
+}
+
+const AuthenticatedAdminNeoJourneysRouteChildren: AuthenticatedAdminNeoJourneysRouteChildren =
+  {
+    AuthenticatedAdminNeoJourneysIdRoute: AuthenticatedAdminNeoJourneysIdRoute,
+    AuthenticatedAdminNeoJourneysIndexRoute:
+      AuthenticatedAdminNeoJourneysIndexRoute,
+  }
+
+const AuthenticatedAdminNeoJourneysRouteWithChildren =
+  AuthenticatedAdminNeoJourneysRoute._addFileChildren(
+    AuthenticatedAdminNeoJourneysRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRoute
@@ -1722,14 +1793,12 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminNeoAssessmentsRoute: typeof AuthenticatedAdminNeoAssessmentsRouteWithChildren
   AuthenticatedAdminNeoAuditRoute: typeof AuthenticatedAdminNeoAuditRoute
+  AuthenticatedAdminNeoJourneysRoute: typeof AuthenticatedAdminNeoJourneysRouteWithChildren
   AuthenticatedAdminNeoKnowledgeRoute: typeof AuthenticatedAdminNeoKnowledgeRoute
   AuthenticatedAdminNeoMethodologyRoute: typeof AuthenticatedAdminNeoMethodologyRoute
   AuthenticatedAdminNeoTemplatesRoute: typeof AuthenticatedAdminNeoTemplatesRoute
-  AuthenticatedAdminNeoAssessmentsIdRoute: typeof AuthenticatedAdminNeoAssessmentsIdRoute
-  AuthenticatedAdminNeoJourneysIdRoute: typeof AuthenticatedAdminNeoJourneysIdRoute
-  AuthenticatedAdminNeoAssessmentsIndexRoute: typeof AuthenticatedAdminNeoAssessmentsIndexRoute
-  AuthenticatedAdminNeoJourneysIndexRoute: typeof AuthenticatedAdminNeoJourneysIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -1758,17 +1827,14 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminNeoAssessmentsRoute:
+    AuthenticatedAdminNeoAssessmentsRouteWithChildren,
   AuthenticatedAdminNeoAuditRoute: AuthenticatedAdminNeoAuditRoute,
+  AuthenticatedAdminNeoJourneysRoute:
+    AuthenticatedAdminNeoJourneysRouteWithChildren,
   AuthenticatedAdminNeoKnowledgeRoute: AuthenticatedAdminNeoKnowledgeRoute,
   AuthenticatedAdminNeoMethodologyRoute: AuthenticatedAdminNeoMethodologyRoute,
   AuthenticatedAdminNeoTemplatesRoute: AuthenticatedAdminNeoTemplatesRoute,
-  AuthenticatedAdminNeoAssessmentsIdRoute:
-    AuthenticatedAdminNeoAssessmentsIdRoute,
-  AuthenticatedAdminNeoJourneysIdRoute: AuthenticatedAdminNeoJourneysIdRoute,
-  AuthenticatedAdminNeoAssessmentsIndexRoute:
-    AuthenticatedAdminNeoAssessmentsIndexRoute,
-  AuthenticatedAdminNeoJourneysIndexRoute:
-    AuthenticatedAdminNeoJourneysIndexRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
