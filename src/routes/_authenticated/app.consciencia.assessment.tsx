@@ -365,6 +365,17 @@ function AssessmentWizard() {
           <div className="space-y-5">
             <div>
               <Label>Estilo DISC predominante *</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Não sabe o seu?{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-accent underline"
+                  onClick={() => navigate({ to: "/app/consciencia/disc" })}
+                >
+                  Faça (ou refaça) o teste DISC completo de 20 questões
+                </button>
+                .
+              </p>
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 {DISC.map((d) => (
                   <button
