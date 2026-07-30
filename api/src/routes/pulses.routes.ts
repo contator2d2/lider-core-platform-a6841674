@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { prisma } from "../prisma.js";
+import { heuristicTrack } from "../lib/subordinate-track.js";
 import { requireAuth } from "../auth.js";
 import { notifyInApp } from "../lib/notifications.js";
 
@@ -647,6 +648,13 @@ async function interpretPulseAnswer(
     track = `Trilha: aproveitar a força de "${c.primary}" e balancear com prática oposta na próxima quinzena.`;
   }
 
+  const trackSteps = heuristicTrack({
+    memberLabel: label,
+    discPrimary: (patch.discPrimary as string | undefined) ?? existing?.discPrimary ?? null,
+    cerebralPrimary: (patch.cerebralPrimary as string | undefined) ?? existing?.cerebralPrimary ?? null,
+    sabotageScores: patch.sabotageScores ?? existing?.sabotageScores ?? null,
+  });
+
   if (existing) {
     await prisma.subordinateAssessment.update({
       where: { id: existing.id },
@@ -654,6 +662,8 @@ async function interpretPulseAnswer(
         ...patch,
         aiReading: reading,
         aiTrack: track,
+        trackSteps: trackSteps as never,
+        trackGeneratedAt: new Date(),
         memberPhone: s.subjectPhone ?? existing.memberPhone,
         memberId: s.subjectUserId ?? existing.memberId,
       },
@@ -668,6 +678,8 @@ async function interpretPulseAnswer(
         memberId: s.subjectUserId ?? null,
         aiReading: reading,
         aiTrack: track,
+        trackSteps: trackSteps as never,
+        trackGeneratedAt: new Date(),
         ...patch,
       },
     });

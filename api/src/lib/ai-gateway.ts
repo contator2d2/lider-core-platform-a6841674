@@ -222,6 +222,70 @@ export async function* streamChat({
 // ---------- Transcrição de áudio (voz → texto) ----------
 
 /**
+ * Extrai o texto útil de um documento anexado (PDF, DOCX, imagem…).
+ * Arquivos de texto puro são decodificados localmente; binários vão para o
+ * provedor de IA configurado, que devolve o conteúdo em texto corrido.
+ */
+export async function extractDocumentText({
+  filename,
+  mimeType,
+  base64,
+}: {
+  filename: string;
+  mimeType: string;
+  base64: string;
+}): Promise<string> {
+  const plain = /^text\//i.test(mimeType) || /\.(txt|md|csv|json)$/i.test(filename);
+  if (plain) return Buffer.from(base64, "base64").toString("utf8").slice(0, 20000);
+
+  const instruction =
+    "Extraia em texto corrido, em português do Brasil, tudo o que este documento descreve sobre as atividades, responsabilidades e rotinas de trabalho da pessoa. Não invente nada. Responda apenas com o conteúdo extraído.";
+
+  const cfg = await loadAIConfig();
+
+  if (cfg.provider === "openai") {
+    const res = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.model,
+        temperature: 0,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: instruction },
+              /^image\//i.test(mimeType)
+                ? { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
+                : { type: "file", file: { filename, file_data: `data:${mimeType};base64,${base64}` } },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenAI ${res.status}: ${await res.text()}`);
+    const json = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+    return (json.choices?.[0]?.message?.content ?? "").slice(0, 20000);
+  }
+
+  const res = await fetch(geminiUrl(cfg.model, "generateContent", cfg.apiKey), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        { role: "user", parts: [{ text: instruction }, { inlineData: { mimeType, data: base64 } }] },
+      ],
+      generationConfig: { temperature: 0 },
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  return (json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "").slice(0, 20000);
+}
+
+/**
  * Transcreve áudio usando o provedor configurado.
  * - Gemini: envia como inlineData multimodal para o mesmo modelo de chat.
  * - OpenAI: usa /v1/audio/transcriptions com whisper-1.

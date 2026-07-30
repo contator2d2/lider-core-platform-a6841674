@@ -16,6 +16,7 @@ import {
   Activity,
   Lock,
   Play,
+  Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -132,6 +133,14 @@ function ConscienciaPage() {
     queryFn: () => api<MeResponse>(`/organization/${orgId}/consciencia/me`),
   });
 
+  const { data: subordinates } = useQuery({
+    queryKey: ["consciencia", "subordinates", orgId],
+    enabled: !!orgId,
+    queryFn: () =>
+      api<{ items: Array<{ id: string }> }>(`/organization/${orgId}/consciencia/subordinate-map`),
+  });
+  const subordinateCount = subordinates?.items?.length ?? 0;
+
   if (!orgId) return null;
 
   const profile = data?.profile ?? null;
@@ -152,7 +161,7 @@ function ConscienciaPage() {
     subtitle: string;
     minutes: number;
     done: boolean;
-    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach";
+    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
     search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
   const steps: Step[] = [
@@ -209,6 +218,18 @@ function ConscienciaPage() {
       minutes: 3,
       done: activeCommitments > 0 || !!profile?.autoPdiGeneratedAt,
       to: "/app/consciencia/pdi",
+    },
+    {
+      key: "liderados",
+      icon: Users,
+      title: "Mapa dos liderados",
+      subtitle:
+        subordinateCount > 0
+          ? `${subordinateCount} perfil${subordinateCount > 1 ? "s" : ""} mapeado${subordinateCount > 1 ? "s" : ""}`
+          : "Perfis e trilha individual do time",
+      minutes: 4,
+      done: subordinateCount > 0,
+      to: "/app/consciencia/liderados",
     },
     {
       key: "coach",
@@ -469,7 +490,7 @@ function JourneyRow({
     title: string;
     subtitle: string;
     state: "done" | "current" | "next";
-    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach";
+    to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
     search?: { step: "behavioral" | "hsh" | "sabotages" };
   };
 }) {

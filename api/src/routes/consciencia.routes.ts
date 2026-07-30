@@ -2,6 +2,8 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
+import { completeChat, extractDocumentText } from "../lib/ai-gateway.js";
+import { heuristicTrack, type TrackStep } from "../lib/subordinate-track.js";
 
 /**
  * MÓDULO C — Consciência.
@@ -82,6 +84,8 @@ conscienciaRouter.get("/:orgId/consciencia/me", asyncRoute(async (req, res) => {
         assessmentAt: true,
         activityDescription: true,
         activityDescriptionUrl: true,
+        activityDocName: true,
+        activityDocAt: true,
         coachCadence: true,
         sabotageScores: true,
         cerebralProfile: true,
@@ -480,6 +484,78 @@ conscienciaRouter.put("/:orgId/consciencia/me/activity", async (req, res) => {
 });
 
 // -------- PDI auto-gerado (heurístico) --------
+// -------- Upload de documento com a descrição de atividades --------
+const activityDocSchema = z.object({
+  filename: z.string().min(1).max(200),
+  mimeType: z.string().min(3).max(120),
+  /** conteúdo do arquivo em base64 (sem o prefixo data:) */
+  base64: z.string().min(10),
+  /** se true, substitui a descrição livre pelo texto extraído */
+  replaceDescription: z.boolean().optional(),
+});
+
+conscienciaRouter.post("/:orgId/consciencia/me/activity/document", asyncRoute(async (req, res) => {
+  let data: z.infer<typeof activityDocSchema>;
+  try {
+    data = activityDocSchema.parse(req.body);
+  } catch (err) {
+    return badReq(res, err);
+  }
+
+  const bytes = Buffer.byteLength(data.base64, "base64");
+  if (bytes > 8 * 1024 * 1024) {
+    return res.status(413).json({ error: "Arquivo muito grande. Envie um documento de até 8 MB." });
+  }
+
+  let text = "";
+  try {
+    text = (await extractDocumentText(data)).trim();
+  } catch (err) {
+    console.error("[consciencia] extração de documento falhou", err);
+    return res.status(502).json({
+      error:
+        err instanceof Error && /Provedor de IA|Chave de API/.test(err.message)
+          ? err.message
+          : "Não consegui ler esse documento. Tente um PDF/DOCX menor ou cole o texto na descrição.",
+    });
+  }
+
+  if (!text) {
+    return res.status(422).json({ error: "Não encontrei conteúdo legível nesse documento." });
+  }
+
+  const orgId = req.params.orgId;
+  const userId = req.userId!;
+  const current = await prisma.leaderProfile.findUnique({
+    where: { organizationId_userId: { organizationId: orgId, userId } },
+    select: { activityDescription: true },
+  });
+  const description =
+    data.replaceDescription || !current?.activityDescription?.trim()
+      ? text
+      : current.activityDescription;
+
+  const saved = await prisma.leaderProfile.upsert({
+    where: { organizationId_userId: { organizationId: orgId, userId } },
+    update: {
+      activityDocName: data.filename,
+      activityDocText: text,
+      activityDocAt: new Date(),
+      activityDescription: description,
+    },
+    create: {
+      organizationId: orgId,
+      userId,
+      activityDocName: data.filename,
+      activityDocText: text,
+      activityDocAt: new Date(),
+      activityDescription: description,
+    },
+  });
+
+  res.status(201).json({ profile: saved, extractedText: text });
+}));
+
 conscienciaRouter.post("/:orgId/consciencia/pdi/auto-generate", async (req, res) => {
   try {
     const orgId = req.params.orgId;
@@ -705,4 +781,67 @@ conscienciaRouter.get("/:orgId/consciencia/subordinate-map", asyncRoute(async (r
     orderBy: { updatedAt: "desc" },
   });
   res.json({ items });
+}));
+
+// -------- Trilha individual do liderado (gerada a partir do assessment) --------
+conscienciaRouter.post("/:orgId/consciencia/subordinate-map/:id/track", asyncRoute(async (req, res) => {
+  const item = await prisma.subordinateAssessment.findUnique({ where: { id: req.params.id } });
+  if (!item || item.leaderId !== req.userId! || item.organizationId !== req.params.orgId) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  let steps: TrackStep[] = heuristicTrack(item);
+  let summary = item.aiReading ?? "";
+
+  try {
+    const raw = await completeChat({
+      temperature: 0.3,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é o coach da metodologia Líder C.O.R.E. Gere trilhas curtas de desenvolvimento de 4 semanas, práticas e específicas, em português do Brasil. Responda APENAS com JSON válido.",
+        },
+        {
+          role: "user",
+          content: `Liderado: ${item.memberLabel}
+Perfil DISC: ${item.discPrimary ?? "não informado"}
+Modo de ativação: ${item.cerebralPrimary ?? "não informado"}
+Sabotadores: ${JSON.stringify(item.sabotageScores ?? {})}
+Leitura atual: ${item.aiReading ?? "—"}
+
+Devolva JSON no formato:
+{"summary":"1 parágrafo","steps":[{"week":1,"title":"","focus":"","practice":"","leaderAction":""}]}
+Exatamente 4 semanas.`,
+        },
+      ],
+    });
+    const json = JSON.parse(raw.replace(/^```(?:json)?|```$/gm, "").trim()) as {
+      summary?: string;
+      steps?: TrackStep[];
+    };
+    if (Array.isArray(json.steps) && json.steps.length) {
+      steps = json.steps.slice(0, 6).map((s, i) => ({
+        week: Number(s.week) || i + 1,
+        title: String(s.title ?? `Semana ${i + 1}`),
+        focus: String(s.focus ?? ""),
+        practice: String(s.practice ?? ""),
+        leaderAction: String(s.leaderAction ?? ""),
+      }));
+    }
+    if (json.summary) summary = json.summary;
+  } catch (err) {
+    console.warn("[consciencia] trilha do liderado via IA indisponível, usando heurística", err);
+  }
+
+  const saved = await prisma.subordinateAssessment.update({
+    where: { id: item.id },
+    data: {
+      trackSteps: steps as never,
+      trackGeneratedAt: new Date(),
+      aiTrack: summary || item.aiTrack,
+    },
+  });
+
+  res.json(saved);
 }));

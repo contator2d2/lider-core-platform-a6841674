@@ -197,6 +197,45 @@ export function isHerrmannAssessment(slug: string | null | undefined) {
   return (slug ?? "").startsWith(HERRMANN_SLUG);
 }
 
+// ------------------------------------------------------------
+// Modo de ativação C.O.R.E. — nome prático em cima do quadrante
+// A (analítico/resultado) → Tubarão
+// B (organizador/processo) → Lobo
+// C (relacional/pessoas)   → Gato
+// D (visão/estratégia)     → Águia
+// ------------------------------------------------------------
+export type ActivationMode = "aguia" | "lobo" | "gato" | "tubarao";
+
+export const ACTIVATION_BY_QUADRANT: Record<HerrmannQuadrant, ActivationMode> = {
+  A: "tubarao",
+  B: "lobo",
+  C: "gato",
+  D: "aguia",
+};
+
+export const ACTIVATION_MODES: Record<ActivationMode, { name: string; description: string }> = {
+  aguia: {
+    name: "Águia",
+    description:
+      "Ativa pela visão: enxerga o todo, conecta cenários e antecipa movimentos. Cuidado com a distância do chão da operação.",
+  },
+  lobo: {
+    name: "Lobo",
+    description:
+      "Ativa pelo método: organiza, cria ritmo e faz o time andar em ordem. Cuidado com rigidez e excesso de controle.",
+  },
+  gato: {
+    name: "Gato",
+    description:
+      "Ativa pela relação: lê o clima, cuida das pessoas e sustenta a confiança. Cuidado com evitar conversas duras.",
+  },
+  tubarao: {
+    name: "Tubarão",
+    description:
+      "Ativa pelo resultado: decide rápido, cobra e vai direto ao alvo. Cuidado com atropelar pessoas e contexto.",
+  },
+};
+
 function normalize(text: string): string {
   return text
     .toLowerCase()
@@ -218,6 +257,9 @@ export type HerrmannScore = {
   percents: Record<HerrmannQuadrant, number>;
   dominant: HerrmannQuadrant | null;
   dominantName: string | null;
+  activationMode: ActivationMode | null;
+  activationName: string | null;
+  activationDescription: string | null;
   profile: string;
   ranking: Array<{ quadrant: HerrmannQuadrant; name: string; count: number; percent: number }>;
   breakdown: Array<{ emotion: string; polarity: "positive" | "negative"; value: number }>;
@@ -262,6 +304,8 @@ export function scoreHerrmann(
     .sort((a, b) => b.count - a.count);
 
   const dominant = ranking[0].count > 0 ? ranking[0].quadrant : null;
+  const activationMode = dominant ? ACTIVATION_BY_QUADRANT[dominant] : null;
+  const activation = activationMode ? ACTIVATION_MODES[activationMode] : null;
   const strong = ranking.filter((r) => r.percent >= 25).map((r) => r.quadrant);
   const profile =
     strong.length >= 3
@@ -279,7 +323,10 @@ export function scoreHerrmann(
     percents,
     dominant,
     dominantName: dominant ? HERRMANN_QUADRANTS[dominant].name : null,
-    profile,
+    activationMode,
+    activationName: activation?.name ?? null,
+    activationDescription: activation?.description ?? null,
+    profile: activation ? `Modo de ativação: ${activation.name} · ${profile}` : profile,
     ranking,
     breakdown: ranking.map((r) => ({
       emotion: `${r.quadrant} · ${r.name} (${r.percent}%)`,
