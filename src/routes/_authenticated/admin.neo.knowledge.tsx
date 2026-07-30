@@ -30,6 +30,32 @@ function Page() {
       description="Playbooks, conceitos, técnicas e recomendações que alimentam a IA e os líderes. Tudo versionado e pesquisável."
       endpoint="/admin/neo/knowledge"
       entityLabel="conteúdo"
+      help={{
+        what:
+          "É a biblioteca de conteúdo da Neo: playbooks, conceitos, técnicas, exercícios e boas práticas. É daqui que a IA tira embasamento e o líder tira material de apoio.",
+        why: [
+          "Dá repertório à IA: quanto mais conteúdo ativo, mais específicas as recomendações.",
+          "Vira material de apoio dentro das jornadas e dos PDIs.",
+          "Centraliza o conhecimento da Neo sem depender de arquivos soltos.",
+        ],
+        steps: [
+          "Clique em Novo e escolha o Tipo (playbook, conceito, exercício, vídeo…).",
+          "Dê um Título objetivo e escreva um Resumo de 2 a 3 linhas — é o que a IA lê primeiro.",
+          "Coloque o material completo em Conteúdo (aceita markdown: títulos, listas, negrito).",
+          "Informe Público-alvo e Dificuldade para a IA saber a quem recomendar.",
+          "Marque Tags ligadas às competências da Metodologia e publique como Ativo.",
+        ],
+        examples: [
+          "Playbook: Como conduzir um 1:1 difícil",
+          "Conceito: Razão de positividade",
+          "Exercício: Diário de gatilhos (7 dias)",
+        ],
+        tips: [
+          "Use as mesmas Tags dos itens de Metodologia para conectar conteúdo e competência.",
+          "Resumo bem escrito = recomendação melhor da IA.",
+          "Rascunho não é exibido nem usado pela IA.",
+        ],
+      }}
       filterField="kind"
       filterOptions={KINDS}
       defaultValues={{ kind: "playbook", status: "active", tags: [] }}
