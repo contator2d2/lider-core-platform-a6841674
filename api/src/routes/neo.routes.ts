@@ -792,8 +792,14 @@ neoRouter.post("/assessments/responses/:responseId/analyze", async (req, res) =>
   const questions = assessment.blocks.flatMap((b) => b.questions);
   const answers = (response.answers ?? {}) as Record<string, unknown>;
   const isHerrmann = (assessment.slug ?? "").startsWith("dominancia-cerebral");
+  const slug = assessment.slug ?? "";
+  const isDisc = slug.startsWith("disc-");
+  const isRadar = slug.startsWith("radar-competencias");
   const herrmann = isHerrmann ? scoreHerrmann(questions, answers) : null;
-  const computed: Record<string, unknown> | null = herrmann ?? scorePositivity(questions, answers);
+  const disc = isDisc ? scoreDisc(questions, answers) : null;
+  const radar = isRadar ? scoreRadarHsh(questions, answers) : null;
+  const computed: Record<string, unknown> | null =
+    herrmann ?? disc ?? radar ?? scorePositivity(questions, answers);
 
   const readable = questions
     .map((q) => {
@@ -807,7 +813,15 @@ neoRouter.post("/assessments/responses/:responseId/analyze", async (req, res) =>
     ? `Score calculado (Dominância Cerebral de Ned Herrmann): ${herrmann.profile}. Distribuição: ${herrmann.ranking
         .map((r) => `${r.quadrant} ${HERRMANN_QUADRANTS[r.quadrant].short} ${r.count} (${r.percent}%)`)
         .join(" · ")}.`
-    : computed
+    : disc
+      ? `Score calculado (DISC): ${disc.profile}. Distribuição: ${disc.ranking
+          .map((r) => `${r.factor} ${DISC_FACTORS[r.factor].name} ${r.count} (${r.percent}%)`)
+          .join(" · ")}.`
+      : radar
+        ? `Score calculado (Radar das Competências H.S.H — média das respostas × 20): ${(["hard", "soft", "heart"] as const)
+            .map((a) => `${HSH_AXES[a].name} ${radar.scores[a]}/100`)
+            .join(" · ")}. Média geral ${radar.overall}/100.`
+        : computed
       ? `Score calculado (Positivity Ratio de Fredrickson): razão ${(computed as { ratio?: number | null }).ratio ?? "acima de 5"} · faixa ${(computed as { band?: string }).band}.`
       : "";
 
