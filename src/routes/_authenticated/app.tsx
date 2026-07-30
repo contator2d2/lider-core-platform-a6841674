@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useFeatures } from "@/lib/features";
 import {
@@ -28,6 +28,8 @@ import {
   Settings2,
   Bell,
   NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
@@ -110,9 +112,23 @@ function AppShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { orgId } = useCurrentOrg();
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Detecta a plataforma: no desktop mostramos a versão completa com sidebar.
+  useEffect(() => {
+    const saved = window.localStorage.getItem("lc:sidebar-collapsed");
+    if (saved === "1") setCollapsed(true);
+  }, []);
+  const toggleSidebar = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      window.localStorage.setItem("lc:sidebar-collapsed", next ? "1" : "0");
+      return next;
+    });
+  };
   const featuresQ = useFeatures();
   const roles = featuresQ.data?.roles ?? [];
   const isAdmin = roles.includes("super_admin") || roles.includes("neo_admin");
@@ -231,22 +247,49 @@ function AppShell() {
     return pathname === to || pathname.startsWith(to + "/");
   };
 
+  const currentLabel =
+    visibleNav.find((n) => isActiveRoute(n.to))?.label ?? "Sala de liderança";
+  const initials = (user?.fullName || user?.email || "L")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+
   return (
-    <div className="min-h-screen bg-background text-foreground md:grid md:grid-cols-[260px,1fr]">
-      <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col">
-        <div className="flex items-center gap-3 border-b border-sidebar-border px-6 py-5">
-          <Logo className="h-7 w-auto max-w-[160px]" />
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Neo Pessoas
-          </span>
+    <div
+      className={
+        "min-h-screen bg-background text-foreground md:grid " +
+        (collapsed ? "md:grid-cols-[76px,1fr]" : "md:grid-cols-[264px,1fr]")
+      }
+    >
+      <aside className="sticky top-0 hidden h-screen border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col">
+        <div
+          className={
+            "flex items-center gap-3 border-b border-sidebar-border py-5 " +
+            (collapsed ? "justify-center px-2" : "px-5")
+          }
+        >
+          {collapsed ? (
+            <Logo variant="mark" className="h-8 w-8 rounded-lg" />
+          ) : (
+            <>
+              <Logo className="h-7 w-auto max-w-[150px]" />
+              <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground">
+                Neo
+              </span>
+            </>
+          )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-6">
+        <nav className={"flex-1 overflow-y-auto py-5 " + (collapsed ? "px-2" : "px-3")}>
           {Object.entries(grouped).map(([section, items]) => (
-            <div key={section} className="mb-6">
-              <div className="mb-2 px-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                {section}
-              </div>
+            <div key={section} className="mb-5">
+              {!collapsed && (
+                <div className="mb-2 px-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  {section}
+                </div>
+              )}
               <ul className="space-y-0.5">
                 {items.map(({ to, label, icon: Icon }) => {
                   const active = isActiveRoute(to);
@@ -254,15 +297,18 @@ function AppShell() {
                     <li key={to}>
                       <Link
                         to={to}
+                        title={collapsed ? label : undefined}
                         className={
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors " +
+                          "flex items-center rounded-lg text-sm transition-colors " +
+                          (collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2") +
+                          " " +
                           (active
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                             : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground")
                         }
                       >
-                        <Icon className="h-4 w-4" strokeWidth={1.75} />
-                        {label}
+                        <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2 : 1.75} />
+                        {!collapsed && <span className="truncate">{label}</span>}
                       </Link>
                     </li>
                   );
@@ -272,21 +318,71 @@ function AppShell() {
           ))}
         </nav>
 
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-3 border-t border-sidebar-border px-6 py-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" /> Sair
-        </button>
+        <div className="border-t border-sidebar-border p-3">
+          <div
+            className={
+              "flex items-center gap-3 rounded-xl bg-sidebar-accent/40 p-2 " +
+              (collapsed ? "justify-center" : "")
+            }
+          >
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent">
+              {initials}
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-medium">{user?.fullName ?? "Líder"}</div>
+                <div className="truncate text-[11px] text-muted-foreground">{user?.email}</div>
+              </div>
+            )}
+            {!collapsed && (
+              <button
+                onClick={handleSignOut}
+                title="Sair"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={toggleSidebar}
+            className={
+              "mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground " +
+              (collapsed ? "justify-center px-0" : "")
+            }
+          >
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> Recolher menu</>}
+          </button>
+        </div>
       </aside>
 
-      <div className="flex flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/85 px-5 py-3 backdrop-blur md:px-10 md:py-4">
+      <div className="flex min-w-0 flex-col">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/60 bg-background/85 px-5 py-3 backdrop-blur md:px-8 md:py-4">
           <Logo className="h-6 w-auto max-w-[130px] md:hidden" />
-          <div className="hidden text-xs uppercase tracking-widest text-muted-foreground md:block">
-            {formatToday()}
+          <div className="hidden min-w-0 md:block">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {formatToday()}
+            </div>
+            <div className="truncate text-sm font-medium">{currentLabel}</div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            {orgId && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setVoiceOpen(true)}
+                  className="hidden items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-accent/50 hover:text-foreground md:inline-flex"
+                >
+                  <Mic className="h-4 w-4" /> Ditar
+                </button>
+                <Link
+                  to={quickActionTo}
+                  className="hidden items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_24px_-14px_color-mix(in_oklab,var(--accent)_70%,transparent)] transition hover:brightness-105 md:inline-flex"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} /> Nova ação
+                </Link>
+              </>
+            )}
             <TeamHealthPill orgId={orgId} />
             <NotificationBell />
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-secondary text-sm font-medium ring-2 ring-border">
@@ -294,8 +390,10 @@ function AppShell() {
             </div>
           </div>
         </header>
-        <main className="flex-1 px-4 py-5 pb-28 md:px-10 md:py-12 md:pb-12">
-          <Outlet />
+        <main className="flex-1 px-4 py-5 pb-28 md:px-8 md:py-10 md:pb-14 xl:px-12">
+          <div className="mx-auto w-full max-w-[1200px]">
+            <Outlet />
+          </div>
         </main>
         <LeaderOnboarding />
 
