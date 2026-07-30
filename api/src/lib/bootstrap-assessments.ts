@@ -80,3 +80,69 @@ async function bootstrapPositivity() {
     console.error("[bootstrap] falha ao garantir assessments canônicos", err);
   }
 }
+
+async function bootstrapHerrmann() {
+  try {
+    const existing = await prisma.assessment.findUnique({
+      where: { slug: HERRMANN_SLUG },
+      include: { blocks: { include: { _count: { select: { questions: true } } } } },
+    });
+
+    const assessment =
+      existing ??
+      (await prisma.assessment.create({
+        data: {
+          slug: HERRMANN_SLUG,
+          name: "Dominância Cerebral (Herrmann)",
+          objective:
+            "Avaliação comportamental baseada no modelo de dominância cerebral de Ned Herrmann: identifica a preferência de pensamento do líder entre os quadrantes Analítico, Organizado, Relacional e Experimental.",
+          audience: "Líderes e liderados",
+          competency: "Autoconhecimento",
+          category: "Consciência",
+          coreModule: "C",
+          estimatedTime: 10,
+          frequency: "semestral",
+          status: "active",
+        },
+        include: { blocks: { include: { _count: { select: { questions: true } } } } },
+      }));
+
+    const hasQuestions = (assessment.blocks ?? []).some((b) => b._count.questions > 0);
+    if (hasQuestions) return;
+
+    const block = await prisma.assessmentBlock.create({
+      data: {
+        assessmentId: assessment.id,
+        title: HERRMANN_BLOCK_TITLE,
+        description: HERRMANN_BLOCK_DESCRIPTION,
+        orderIndex: 0,
+      },
+    });
+
+    for (const [index, item] of HERRMANN_ITEMS.entries()) {
+      await prisma.assessmentQuestion.create({
+        data: {
+          blockId: block.id,
+          type: "unica",
+          prompt: `${index + 1}) ${item.prompt}`,
+          helpText: HERRMANN_HELP,
+          required: true,
+          weight: 1,
+          orderIndex: index,
+          options: {
+            create: item.options.map((opt, i) => ({
+              label: opt.label,
+              value: opt.quadrant,
+              score: 1,
+              orderIndex: i,
+            })),
+          },
+        },
+      });
+    }
+
+    console.log(`[bootstrap] assessment "Dominância Cerebral (Herrmann)" garantido (${HERRMANN_ITEMS.length} questões)`);
+  } catch (err) {
+    console.error("[bootstrap] falha ao garantir assessment Herrmann", err);
+  }
+}
