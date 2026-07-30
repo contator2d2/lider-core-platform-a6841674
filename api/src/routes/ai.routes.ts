@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 import { completeChat, streamChat, transcribeAudio, type ChatMessage } from "../lib/ai-gateway.js";
+import { neoContextMessage } from "../lib/neo-context.js";
 
 /**
  * IA Coach — usa o provedor de IA (OpenAI ou Gemini) configurado pelo
@@ -150,6 +151,7 @@ aiRouter.post("/:orgId/ai/coach/insight", async (req, res) => {
     const text = await completeChat({
       messages: [
         { role: "system", content: systemPrompt() },
+      await neoContextMessage(),
         contextMessage(ctx),
         {
           role: "user",
@@ -200,6 +202,7 @@ aiRouter.post("/:orgId/ai/coach/chat", async (req, res: Response) => {
     const ctx = await buildLeaderContext(req.userId!, orgId);
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt() },
+      await neoContextMessage(),
       contextMessage(ctx),
       ...parsed.data.messages,
     ];
@@ -236,6 +239,7 @@ aiRouter.post("/:orgId/ai/explain-metric", async (req, res) => {
     const text = await completeChat({
       messages: [
         { role: "system", content: systemPrompt() },
+      await neoContextMessage(),
         contextMessage(ctx),
         {
           role: "user",
@@ -353,6 +357,7 @@ aiRouter.post("/:orgId/ai/one-on-one/:id/brief", async (req, res) => {
     const text = await completeChat({
       messages: [
         { role: "system", content: systemPrompt() },
+      await neoContextMessage(),
         { role: "system", content: `Contexto do liderado (JSON):\n\`\`\`json\n${JSON.stringify(ctx, null, 2)}\n\`\`\`` },
         {
           role: "user",
