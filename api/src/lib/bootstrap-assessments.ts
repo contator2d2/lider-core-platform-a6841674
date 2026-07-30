@@ -1,7 +1,6 @@
 import { prisma } from "../prisma.js";
 import {
-  POSITIVITY_BLOCK_DESCRIPTION,
-  POSITIVITY_BLOCK_TITLE,
+  POSITIVITY_BLOCKS,
   POSITIVITY_HELP,
   POSITIVITY_ITEMS,
   POSITIVITY_SLUG,
@@ -53,31 +52,37 @@ async function bootstrapPositivity() {
         include: { blocks: { include: { _count: { select: { questions: true } } } } },
       }));
 
-    const hasQuestions = (assessment.blocks ?? []).some((b) => b._count.questions > 0);
-    if (hasQuestions) return;
+    const totalQuestions = (assessment.blocks ?? []).reduce((acc, b) => acc + b._count.questions, 0);
+    if (totalQuestions >= POSITIVITY_ITEMS.length) return;
 
-    const block = await prisma.assessmentBlock.create({
-      data: {
-        assessmentId: assessment.id,
-        title: POSITIVITY_BLOCK_TITLE,
-        description: POSITIVITY_BLOCK_DESCRIPTION,
-        orderIndex: 0,
-      },
-    });
+    // versão antiga (12 itens) ou incompleta: recria os 2 blocos oficiais
+    if (totalQuestions > 0) {
+      await prisma.assessmentBlock.deleteMany({ where: { assessmentId: assessment.id } });
+    }
 
-    await prisma.assessmentQuestion.createMany({
-      data: POSITIVITY_ITEMS.map((item, index) => ({
-        blockId: block.id,
-        type: "likert" as const,
-        prompt: item.prompt,
-        helpText: POSITIVITY_HELP,
-        required: true,
-        weight: 1,
-        scaleMin: 1,
-        scaleMax: 5,
-        orderIndex: index,
-      })),
-    });
+    for (const [bIndex, def] of POSITIVITY_BLOCKS.entries()) {
+      const block = await prisma.assessmentBlock.create({
+        data: {
+          assessmentId: assessment.id,
+          title: def.title,
+          description: def.description,
+          orderIndex: bIndex,
+        },
+      });
+      await prisma.assessmentQuestion.createMany({
+        data: def.items.map((item, index) => ({
+          blockId: block.id,
+          type: "likert" as const,
+          prompt: item.prompt,
+          helpText: POSITIVITY_HELP,
+          required: true,
+          weight: 1,
+          scaleMin: 1,
+          scaleMax: 5,
+          orderIndex: index,
+        })),
+      });
+    }
 
     console.log(`[bootstrap] assessment "Quociente Positivo" garantido (${POSITIVITY_ITEMS.length} itens)`);
   } catch (err) {

@@ -7,8 +7,7 @@ import { requireAuth, requireRoles } from "../auth.js";
 import { recordAudit, shallowDiff } from "../lib/audit.js";
 import { completeChat } from "../lib/ai-gateway.js";
 import {
-  POSITIVITY_BLOCK_DESCRIPTION,
-  POSITIVITY_BLOCK_TITLE,
+  POSITIVITY_BLOCKS,
   POSITIVITY_HELP,
   POSITIVITY_ITEMS,
   scorePositivity,
@@ -597,27 +596,29 @@ neoRouter.post("/assessments/:id/preset/quociente-positivo", async (req, res) =>
   if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
 
   const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
-  const block = await prisma.assessmentBlock.create({
-    data: {
-      assessmentId: a.id,
-      title: POSITIVITY_BLOCK_TITLE,
-      description: POSITIVITY_BLOCK_DESCRIPTION,
-      orderIndex: existingBlocks,
-    },
-  });
-  await prisma.assessmentQuestion.createMany({
-    data: POSITIVITY_ITEMS.map((item, index) => ({
-      blockId: block.id,
-      type: "likert" as const,
-      prompt: item.prompt,
-      helpText: POSITIVITY_HELP,
-      required: true,
-      weight: 1,
-      scaleMin: 1,
-      scaleMax: 5,
-      orderIndex: index,
-    })),
-  });
+  for (const [bIndex, def] of POSITIVITY_BLOCKS.entries()) {
+    const block = await prisma.assessmentBlock.create({
+      data: {
+        assessmentId: a.id,
+        title: def.title,
+        description: def.description,
+        orderIndex: existingBlocks + bIndex,
+      },
+    });
+    await prisma.assessmentQuestion.createMany({
+      data: def.items.map((item, index) => ({
+        blockId: block.id,
+        type: "likert" as const,
+        prompt: item.prompt,
+        helpText: POSITIVITY_HELP,
+        required: true,
+        weight: 1,
+        scaleMin: 1,
+        scaleMax: 5,
+        orderIndex: index,
+      })),
+    });
+  }
   await recordAudit({
     entity: "assessment",
     entityId: a.id,
@@ -625,7 +626,7 @@ neoRouter.post("/assessments/:id/preset/quociente-positivo", async (req, res) =>
     actorId: req.userId,
     note: "preset Quociente Positivo aplicado",
   });
-  res.json({ created: 1, questions: POSITIVITY_ITEMS.length, mode: "preset" });
+  res.json({ created: POSITIVITY_BLOCKS.length, questions: POSITIVITY_ITEMS.length, mode: "preset" });
 });
 
 /** Preenche o assessment com as 25 questões do teste de Dominância Cerebral (Herrmann). */

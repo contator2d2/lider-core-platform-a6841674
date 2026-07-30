@@ -278,25 +278,38 @@ function renderQuestion(
     const max = q.scaleMax ?? 5;
     const scale = Array.from({ length: max - min + 1 }, (_, i) => min + i);
     const val = answers[q.id] as number | undefined;
+    // rótulos vindos do helpText no formato "1 Nem um pouco · 2 Um pouco · ..."
+    const parsedLabels = (q.helpText ?? "")
+      .split("·")
+      .map((p) => p.trim())
+      .map((p) => /^\d+\s+(.+)$/.exec(p)?.[1]?.trim() ?? "")
+      .filter(Boolean);
+    const labels = parsedLabels.length === scale.length ? parsedLabels : null;
     return (
       <div key={q.id} style={delay} className="animate-fade-in rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md">
         <label className="text-sm font-semibold">
           {q.prompt} {q.required && <span className="text-destructive">*</span>}
         </label>
-        {q.helpText && <p className="mt-1 text-xs text-muted-foreground">{q.helpText}</p>}
-        <div className="mt-4 flex items-center justify-between gap-2">
-          {scale.map((n) => (
+        {q.helpText && !labels && <p className="mt-1 text-xs text-muted-foreground">{q.helpText}</p>}
+        <div className="mt-4 flex items-stretch justify-between gap-2">
+          {scale.map((n, i) => (
             <button
               key={n}
+              type="button"
               onClick={() => set(n)}
               className={
-                "h-14 flex-1 rounded-xl border text-base font-bold transition-all duration-200 " +
+                "flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-3 transition-all duration-200 " +
                 (val === n
-                  ? "scale-110 border-transparent bg-accent-gradient text-white shadow-lg shadow-accent/40"
+                  ? "border-transparent bg-accent-gradient text-white shadow-lg shadow-accent/40"
                   : "border-border bg-background hover:-translate-y-0.5 hover:border-accent/50 hover:bg-accent/5")
               }
             >
-              {n}
+              <span className="text-base font-bold">{n}</span>
+              {labels && (
+                <span className={"text-[10px] leading-tight " + (val === n ? "text-white/90" : "text-muted-foreground")}>
+                  {labels[i]}
+                </span>
+              )}
             </button>
           ))}
         </div>
