@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
@@ -183,6 +183,7 @@ const CEREBRAL_LABEL: Record<CerebralMode, string> = {
 function AssessmentWizard() {
   const { orgId } = useCurrentOrg();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const search = Route.useSearch();
   const stepParam: unknown = search.step;
   const requestedStep: number = isAssessmentStepKey(stepParam) ? STEP_INDEX[stepParam] : 0;
@@ -204,6 +205,7 @@ function AssessmentWizard() {
   const [hard, setHard] = useState<number[]>(Array(10).fill(3));
   const [soft, setSoft] = useState<number[]>(Array(10).fill(3));
   const [heart, setHeart] = useState<number[]>(Array(10).fill(3));
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setStep(requestedStep);
@@ -278,7 +280,8 @@ function AssessmentWizard() {
           markAssessedNow: true,
         },
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
       toast.success("Assessment oficial concluído.");
       navigate({ to: "/app/consciencia" });
     },
@@ -314,9 +317,12 @@ function AssessmentWizard() {
   };
   const goNext = () => {
     if (!canNext()) {
-      toast.warning(nextBlockedMessage());
+      const message = nextBlockedMessage();
+      setBlockedMessage(message);
+      toast.warning(message);
       return;
     }
+    setBlockedMessage(null);
     setStep((s: number) => Math.min(steps.length - 1, s + 1));
   };
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
@@ -337,6 +343,11 @@ function AssessmentWizard() {
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-6">
+        {blockedMessage && (
+          <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-medium text-foreground">
+            {blockedMessage}
+          </div>
+        )}
         {step === 0 && (
           <div className="space-y-4">
             <div>
@@ -402,7 +413,10 @@ function AssessmentWizard() {
                     <button
                         type="button"
                         key={v}
-                        onClick={() => setSabAns((prev) => ({ ...prev, [p.id]: v }))}
+                        onClick={() => {
+                          setBlockedMessage(null);
+                          setSabAns((prev) => ({ ...prev, [p.id]: v }));
+                        }}
                         className={
                           "h-9 flex-1 rounded-lg border text-sm transition-colors " +
                           (sabAns[p.id] === v
@@ -437,7 +451,10 @@ function AssessmentWizard() {
                       <button
                         type="button"
                         key={o.dim}
-                        onClick={() => setCerAns((prev) => ({ ...prev, [b.id]: o.dim }))}
+                        onClick={() => {
+                          setBlockedMessage(null);
+                          setCerAns((prev) => ({ ...prev, [b.id]: o.dim }));
+                        }}
                         className={
                           "rounded-lg border p-2.5 text-left text-sm transition-colors " +
                           (cerAns[b.id] === o.dim

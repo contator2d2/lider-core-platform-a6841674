@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Flag } from "lucide-react";
@@ -21,6 +21,7 @@ type Goal = { title: string; description: string; priority: "high" | "medium" | 
 
 function PdiAutoPage() {
   const { orgId } = useCurrentOrg();
+  const qc = useQueryClient();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ function PdiAutoPage() {
     onSuccess: (r) => {
       setGoals(r.goals);
       setGeneratedAt(r.generatedAt);
+      qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
       toast.success(`${r.goals.length} objetivos sugeridos.`);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar"),
