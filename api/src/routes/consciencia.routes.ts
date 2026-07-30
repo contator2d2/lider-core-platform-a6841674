@@ -1030,19 +1030,125 @@ conscienciaRouter.delete("/:orgId/consciencia/agenda/:id", asyncRoute(async (req
 
 // -------- Mapa comportamental dos liderados --------
 conscienciaRouter.get("/:orgId/consciencia/subordinate-map", asyncRoute(async (req, res) => {
-  const items = await prisma.subordinateAssessment.findMany({
-    where: { organizationId: req.params.orgId, leaderId: req.userId! },
-    orderBy: { updatedAt: "desc" },
+  const orgId = req.params.orgId;
+
+  const [memberships, assessments, profiles] = await Promise.all([
+    prisma.membership.findMany({
+      where: { organizationId: orgId, userId: { not: req.userId! } },
+      include: { user: { include: { profile: true } }, team: true, area: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.subordinateAssessment.findMany({
+      where: { organizationId: orgId },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.teamMemberProfile.findMany({ where: { organizationId: orgId } }),
+  ]);
+
+  const profByMembership = new Map(profiles.map((p) => [p.membershipId, p]));
+  const byUser = new Map<string, (typeof assessments)[number]>();
+  const byLabel = new Map<string, (typeof assessments)[number]>();
+  for (const a of assessments) {
+    if (a.memberId && !byUser.has(a.memberId)) byUser.set(a.memberId, a);
+    const key = a.memberLabel.trim().toLowerCase();
+    if (key && !byLabel.has(key)) byLabel.set(key, a);
+  }
+
+  const used = new Set<string>();
+  const items = memberships.map((m) => {
+    const name = m.user.profile?.fullName ?? m.user.email;
+    const a = byUser.get(m.userId) ?? byLabel.get(name.trim().toLowerCase()) ?? null;
+    if (a) used.add(a.id);
+    const prof = profByMembership.get(m.id);
+    return {
+      id: a?.id ?? `membership:${m.id}`,
+      membershipId: m.id,
+      userId: m.userId,
+      memberLabel: name,
+      email: m.user.email,
+      roleTitle: prof?.roleTitle ?? null,
+      teamName: m.team?.name ?? null,
+      areaName: m.area?.name ?? null,
+      whatsapp: m.user.profile?.whatsapp ?? m.user.profile?.phone ?? null,
+      hasAssessment: !!a,
+      discPrimary: a?.discPrimary ?? prof?.discPrimary ?? null,
+      cerebralPrimary: a?.cerebralPrimary ?? null,
+      aiReading: a?.aiReading ?? null,
+      aiTrack: a?.aiTrack ?? null,
+      trackSteps: a?.trackSteps ?? null,
+      trackGeneratedAt: a?.trackGeneratedAt ?? null,
+      updatedAt: a?.updatedAt ?? m.createdAt,
+    };
   });
-  res.json({ items });
+
+  // Respostas de assessment que ainda não têm cadastro na equipe (ex.: pulso por link)
+  const orphans = assessments
+    .filter((a) => !used.has(a.id) && a.leaderId === req.userId!)
+    .map((a) => ({
+      id: a.id,
+      membershipId: null as string | null,
+      userId: a.memberId,
+      memberLabel: a.memberLabel,
+      email: null as string | null,
+      roleTitle: null as string | null,
+      teamName: null as string | null,
+      areaName: null as string | null,
+      whatsapp: a.memberPhone,
+      hasAssessment: true,
+      discPrimary: a.discPrimary,
+      cerebralPrimary: a.cerebralPrimary,
+      aiReading: a.aiReading,
+      aiTrack: a.aiTrack,
+      trackSteps: a.trackSteps,
+      trackGeneratedAt: a.trackGeneratedAt,
+      updatedAt: a.updatedAt,
+    }));
+
+  res.json({ items: [...items, ...orphans] });
 }));
 
 // -------- Trilha individual do liderado (gerada a partir do assessment) --------
 conscienciaRouter.post("/:orgId/consciencia/subordinate-map/:id/track", asyncRoute(async (req, res) => {
-  const item = await prisma.subordinateAssessment.findUnique({ where: { id: req.params.id } });
-  if (!item || item.leaderId !== req.userId! || item.organizationId !== req.params.orgId) {
-    return res.status(404).json({ error: "Not found" });
+  const orgId = req.params.orgId;
+  const rawId = req.params.id;
+
+  let item: Awaited<ReturnType<typeof prisma.subordinateAssessment.findUnique>> = null;
+
+  if (rawId.startsWith("membership:")) {
+    // Liderado cadastrado na equipe que ainda não respondeu assessment:
+    // criamos o registro a partir dos dados do time para poder gerar a trilha.
+    const membershipId = rawId.slice("membership:".length);
+    const membership = await prisma.membership.findFirst({
+      where: { id: membershipId, organizationId: orgId },
+      include: { user: { include: { profile: true } } },
+    });
+    if (!membership) return res.status(404).json({ error: "Not found" });
+    const prof = await prisma.teamMemberProfile.findUnique({
+      where: { membershipId: membership.id },
+    });
+    const label = membership.user.profile?.fullName ?? membership.user.email;
+    item =
+      (await prisma.subordinateAssessment.findFirst({
+        where: { organizationId: orgId, leaderId: req.userId!, memberId: membership.userId },
+      })) ??
+      (await prisma.subordinateAssessment.create({
+        data: {
+          organizationId: orgId,
+          leaderId: req.userId!,
+          memberId: membership.userId,
+          memberLabel: label,
+          memberPhone: membership.user.profile?.whatsapp ?? membership.user.profile?.phone ?? null,
+          discPrimary: prof?.discPrimary ?? null,
+        },
+      }));
+  } else {
+    item = await prisma.subordinateAssessment.findUnique({ where: { id: rawId } });
+    if (!item || item.leaderId !== req.userId! || item.organizationId !== orgId) {
+      return res.status(404).json({ error: "Not found" });
+    }
   }
+
+  if (!item) return res.status(404).json({ error: "Not found" });
 
   let steps: TrackStep[] = heuristicTrack(item);
   let summary = item.aiReading ?? "";

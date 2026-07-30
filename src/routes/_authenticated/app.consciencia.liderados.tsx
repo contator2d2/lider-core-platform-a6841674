@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Users, Route as RouteIcon } from "lucide-react";
+import { Loader2, Sparkles, Users, Route as RouteIcon, UserPlus, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,13 @@ type TrackStep = {
 
 type Item = {
   id: string;
+  membershipId: string | null;
+  userId: string | null;
   memberLabel: string;
+  roleTitle: string | null;
+  teamName: string | null;
+  areaName: string | null;
+  hasAssessment: boolean;
   discPrimary: string | null;
   cerebralPrimary: string | null;
   aiReading: string | null;
@@ -91,8 +97,13 @@ function SubordinatesPage() {
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <Users className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="mt-3 text-sm text-muted-foreground">
-            Nenhum liderado respondeu ainda. Envie um assessment pelo módulo de Pulsos.
+            Você ainda não tem liderados cadastrados nesta organização.
           </p>
+          <Button asChild className="mt-4 gap-2">
+            <Link to="/app/team">
+              <UserPlus className="h-4 w-4" /> Cadastrar pessoas na equipe
+            </Link>
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -101,6 +112,10 @@ function SubordinatesPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-display text-xl">{it.memberLabel}</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {[it.roleTitle, it.teamName ?? it.areaName].filter(Boolean).join(" · ") ||
+                      "Sem cargo/equipe definidos"}
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {it.discPrimary && <Badge variant="secondary">DISC {it.discPrimary}</Badge>}
                     {it.cerebralPrimary && (
@@ -108,8 +123,17 @@ function SubordinatesPage() {
                         Modo {MODE_LABEL[it.cerebralPrimary] ?? it.cerebralPrimary}
                       </Badge>
                     )}
+                    {!it.hasAssessment && <Badge variant="outline">Sem assessment</Badge>}
                   </div>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                {!it.hasAssessment && (
+                  <Button variant="ghost" asChild className="gap-2">
+                    <Link to="/app/pulses">
+                      <Send className="h-4 w-4" /> Enviar assessment
+                    </Link>
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="gap-2"
@@ -123,6 +147,7 @@ function SubordinatesPage() {
                   )}
                   {it.trackGeneratedAt ? "Regerar trilha" : "Gerar trilha"}
                 </Button>
+                </div>
               </div>
 
               {it.aiReading && <p className="mt-4 text-sm text-muted-foreground">{it.aiReading}</p>}

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -673,6 +673,15 @@ function NewDialog({
               ))}
             </SelectContent>
           </Select>
+          {team.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Nenhuma pessoa cadastrada na equipe ainda —{" "}
+              <Link to="/app/team" className="underline">
+                cadastre seu time
+              </Link>{" "}
+              para agendar 1:1s.
+            </p>
+          )}
         </div>
         <div>
           <Label>Data e hora</Label>
