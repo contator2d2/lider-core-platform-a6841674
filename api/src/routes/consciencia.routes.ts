@@ -100,6 +100,7 @@ conscienciaRouter.get("/:orgId/consciencia/me", asyncRoute(async (req, res) => {
         autoPdiId: true,
         autoPdiGeneratedAt: true,
         coachTrackMarkdown: true,
+        coachTrackPlan: true,
         coachTrackGeneratedAt: true,
         updatedAt: true,
       },
