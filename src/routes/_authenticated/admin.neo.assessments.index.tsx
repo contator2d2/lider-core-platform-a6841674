@@ -46,6 +46,34 @@ function Page() {
       description="Catálogo dos assessments disponíveis. O construtor de perguntas fica em cada assessment aberto."
       endpoint="/admin/neo/assessments"
       entityLabel="assessment"
+      help={{
+        what:
+          "Assessment é o teste aplicado ao líder ou ao liderado (DISC, Quociente Positivo, Dominância Cerebral, Radar H.S.H, Sabotadores). Aqui você cria o teste; as perguntas ficam dentro dele.",
+        why: [
+          "Gera o diagnóstico que alimenta o radar, o 9-Box e o PDI.",
+          "Dá à IA os dados reais da pessoa para análises e recomendações.",
+          "Pode ser respondido por link público, sem login, e enviado por WhatsApp.",
+        ],
+        steps: [
+          "Clique em Novo (ou em Gerar com IA para criar o teste a partir de um texto/objetivo).",
+          "Defina Nome, Módulo C.O.R.E. e Frequência (único, mensal, trimestral…).",
+          "Clique no nome do assessment para abrir o construtor de blocos e perguntas.",
+          "Use os presets prontos (Quociente Positivo, DISC, Dominância Cerebral, Radar H.S.H) ou monte manualmente.",
+          "Gere um Link público na aba do construtor e envie ao respondente.",
+          "Acompanhe as respostas no painel do assessment e clique no ícone de análise para a leitura da IA.",
+        ],
+        examples: [
+          "Quociente Positivo (24 itens, 2 blocos)",
+          "DISC (20 itens)",
+          "Radar H.S.H (30 itens)",
+          "Dominância Cerebral — Herrmann (25 itens)",
+        ],
+        tips: [
+          "A coluna Conteúdo mostra quantos blocos e perguntas o teste já tem — se estiver zerado, o teste ainda não está pronto.",
+          "Só ative o assessment depois de responder você mesmo pelo link público, para conferir a escala.",
+          "Presets já vêm com o cálculo oficial do resultado; perguntas manuais não têm score automático.",
+        ],
+      }}
       defaultValues={{ status: "draft", frequency: "one_off", weight: 1, competencies: [] }}
       headerExtra={
         <Button

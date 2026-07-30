@@ -23,6 +23,31 @@ function Page() {
       description="Modelos reutilizáveis de feedback, PDI, 1:1, checklists e avaliações que a plataforma oferece aos líderes."
       endpoint="/admin/neo/templates"
       entityLabel="template"
+      help={{
+        what:
+          "São modelos prontos que o líder usa no dia a dia: roteiros de feedback, PDI, 1:1, checklists e avaliações. O líder abre o modelo e só preenche.",
+        why: [
+          "Padroniza a qualidade: todo líder conduz o ritual do mesmo jeito.",
+          "Reduz o esforço do líder — ele não começa da folha em branco.",
+          "Servem de estrutura para a IA gerar rascunhos já no formato Neo.",
+        ],
+        steps: [
+          "Clique em Novo e escolha o Tipo (feedback, PDI, 1:1, checklist…).",
+          "Nomeie de forma que o líder entenda quando usar (ex.: 'Feedback de reconhecimento').",
+          "Na Descrição, explique em qual situação aplicar o modelo.",
+          "Use Tags para o template aparecer nas jornadas e recomendações certas.",
+          "Publique como Ativo para disponibilizar no app do líder.",
+        ],
+        examples: [
+          "Feedback: modelo SCI (Situação-Comportamento-Impacto)",
+          "1:1: pauta quinzenal em 4 blocos",
+          "PDI: plano de 90 dias",
+        ],
+        tips: [
+          "Um template por situação — evite modelos genéricos demais.",
+          "Teste como Rascunho antes de ativar para toda a base.",
+        ],
+      }}
       filterField="kind"
       filterOptions={KINDS}
       defaultValues={{ kind: "feedback", status: "active", tags: [], body: {} }}
