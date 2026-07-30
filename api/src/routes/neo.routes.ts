@@ -13,6 +13,14 @@ import {
   POSITIVITY_ITEMS,
   scorePositivity,
 } from "../lib/positivity.js";
+import {
+  HERRMANN_BLOCK_DESCRIPTION,
+  HERRMANN_BLOCK_TITLE,
+  HERRMANN_HELP,
+  HERRMANN_ITEMS,
+  HERRMANN_QUADRANTS,
+  scoreHerrmann,
+} from "../lib/herrmann.js";
 
 export const neoRouter = Router();
 neoRouter.use(requireAuth, requireRoles("super_admin", "neo_admin"));
@@ -616,6 +624,53 @@ neoRouter.post("/assessments/:id/preset/quociente-positivo", async (req, res) =>
     note: "preset Quociente Positivo aplicado",
   });
   res.json({ created: 1, questions: POSITIVITY_ITEMS.length, mode: "preset" });
+});
+
+/** Preenche o assessment com as 25 questões do teste de Dominância Cerebral (Herrmann). */
+neoRouter.post("/assessments/:id/preset/dominancia-cerebral", async (req, res) => {
+  const a = await prisma.assessment.findUnique({ where: { id: req.params.id } });
+  if (!a) return res.status(404).json({ error: "Assessment não encontrado" });
+
+  const existingBlocks = await prisma.assessmentBlock.count({ where: { assessmentId: a.id } });
+  const block = await prisma.assessmentBlock.create({
+    data: {
+      assessmentId: a.id,
+      title: HERRMANN_BLOCK_TITLE,
+      description: HERRMANN_BLOCK_DESCRIPTION,
+      orderIndex: existingBlocks,
+    },
+  });
+
+  for (const [index, item] of HERRMANN_ITEMS.entries()) {
+    await prisma.assessmentQuestion.create({
+      data: {
+        blockId: block.id,
+        type: "unica",
+        prompt: `${index + 1}) ${item.prompt}`,
+        helpText: HERRMANN_HELP,
+        required: true,
+        weight: 1,
+        orderIndex: index,
+        options: {
+          create: item.options.map((opt, i) => ({
+            label: opt.label,
+            value: opt.quadrant,
+            score: 1,
+            orderIndex: i,
+          })),
+        },
+      },
+    });
+  }
+
+  await recordAudit({
+    entity: "assessment",
+    entityId: a.id,
+    action: "update",
+    actorId: req.userId,
+    note: "preset Dominância Cerebral (Herrmann) aplicado",
+  });
+  res.json({ created: 1, questions: HERRMANN_ITEMS.length, mode: "preset" });
 });
 
 /** Recalcula o score e gera a leitura da IA para uma resposta pública. */
