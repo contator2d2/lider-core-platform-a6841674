@@ -33,12 +33,12 @@ type Step = {
   cta?: { label: string; to: string };
 };
 
-const TOUR_STEPS: Step[] = [
+const MENTORED_STEPS: Step[] = [
   {
     key: "welcome",
-    title: "Bem-vindo ao Líder C.O.R.E.",
+    title: "Bem-vindo de volta à metodologia",
     description:
-      "Este é o sistema operacional da sua liderança. Vamos rodar 4 pontos essenciais em ~2 minutos.",
+      "Você chegou por convite da Neo, então já conhece a metodologia C.O.R.E. Vamos ativar a jornada completa em poucos passos.",
     icon: Sparkles,
   },
   {
@@ -89,6 +89,40 @@ const TOUR_STEPS: Step[] = [
   },
 ];
 
+// Trilha básica (cadastro aberto): só o essencial. O restante vai sendo
+// liberado conforme o líder usa o app.
+const BASIC_STEPS: Step[] = [
+  {
+    key: "welcome",
+    title: "Bem-vindo ao Líder C.O.R.E.",
+    description:
+      "Vamos começar simples: confirme seus dados e faça seu primeiro diagnóstico. O resto do sistema abre conforme você avança.",
+    icon: Sparkles,
+  },
+  {
+    key: "profile",
+    title: "Confirme seus dados",
+    description:
+      "Essas informações ajudam a IA Coach a personalizar suas orientações e recomendações.",
+    icon: Brain,
+  },
+  {
+    key: "consciencia",
+    title: "Comece pela Consciência",
+    description:
+      "Faça os assessments e receba seu radar Hard / Soft / Heart. É a porta de entrada da metodologia.",
+    icon: Compass,
+    cta: { label: "Abrir Meu perfil", to: "/app/consciencia" },
+  },
+  {
+    key: "done",
+    title: "Pronto para começar",
+    description:
+      "Conforme você conclui a Consciência, os próximos módulos aparecem no seu app. Em 'Ajuda' você acompanha o que já está liberado.",
+    icon: CheckCircle2,
+  },
+];
+
 const LOCAL_SKIP_KEY = "lc_onboarding_skipped";
 
 export function LeaderOnboarding() {
@@ -112,8 +146,13 @@ export function LeaderOnboarding() {
     setOpen(true);
   }, [user]);
 
-  const step = TOUR_STEPS[idx];
-  const total = TOUR_STEPS.length;
+  const isMentored = user?.onboardingTrack === "mentored" || user?.didNeoMentorship === true;
+  const steps = useMemo(
+    () => (isMentored ? MENTORED_STEPS : BASIC_STEPS),
+    [isMentored],
+  );
+  const step = steps[Math.min(idx, steps.length - 1)];
+  const total = steps.length;
   const isLast = idx === total - 1;
   const Icon = step.icon;
 
