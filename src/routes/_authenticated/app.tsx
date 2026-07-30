@@ -329,15 +329,20 @@ function AppShell() {
               <DialogTitle>Captura por voz</DialogTitle>
               <DialogDescription>
                 {conscienciaOnly
-                  ? "Fale uma ação, feedback, delegação ou lembrete. O registro entra na sua Agenda de liderança."
+                  ? "Fale uma ação, feedback ou lembrete. Notas vão para a Base do líder; o resto entra na Agenda."
                   : "Fale um feedback, delegação ou nota. A IA transcreve, classifica e leva você direto para o lugar certo."}
               </DialogDescription>
             </DialogHeader>
             {orgId && (
               <div className="pt-2">
-                <VoiceCapture orgId={orgId} onConfirm={handleVoiceIntent} label="Iniciar gravação" />
+                <VoiceCapture
+                  orgId={orgId}
+                  onConfirm={handleVoiceIntent}
+                  label="Toque para gravar"
+                  variant="panel"
+                />
                 <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-                  Exemplos: <em>"Dar feedback positivo à Ana"</em> · <em>"Delegar ao João o relatório até sexta"</em> · <em>"Lembrar de preparar a 1:1"</em>.
+                  Exemplos: <em>"Anotar que a Ana pediu mais autonomia"</em> · <em>"Dar feedback positivo à Ana"</em> · <em>"Delegar ao João o relatório até sexta"</em>.
                 </p>
               </div>
             )}
