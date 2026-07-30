@@ -49,7 +49,7 @@ meRouter.get("/home/briefing", async (req, res) => {
   // Próxima jornada inicial disponível (usada no onboarding pós-mentoria)
   const initialJourney = await prisma.journey
     .findFirst({
-      where: { isInitial: true, status: "published" as never },
+      where: { isInitial: true, status: "active" },
       orderBy: { updatedAt: "desc" },
       select: { id: true, slug: true, name: true, description: true },
     })
@@ -157,7 +157,7 @@ meRouter.post("/onboarding/neo-mentorship", async (req, res) => {
 // GET /me/journey/initial — jornada inicial publicada + step atual (best-effort)
 meRouter.get("/journey/initial", async (_req, res) => {
   const journey = await prisma.journey.findFirst({
-    where: { isInitial: true, status: "published" as never },
+    where: { isInitial: true, status: "active" },
     orderBy: { updatedAt: "desc" },
     include: {
       steps: { orderBy: { orderIndex: "asc" } },
