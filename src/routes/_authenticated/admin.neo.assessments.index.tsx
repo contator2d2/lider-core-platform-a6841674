@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { NeoCrudPage } from "@/components/admin/NeoCrud";
+import { Switch } from "@/components/ui/switch";
 
 type AssessmentRow = Record<string, unknown> & {
   id: string;
@@ -137,10 +138,54 @@ function Page() {
         { key: "coreModule", label: "CORE" },
         { key: "frequency", label: "Frequência" },
         { key: "status", label: "Status" },
+        { key: "active", label: "Disponível no app", render: (it) => <ActiveToggle id={it.id} status={String(it.status ?? "draft")} /> },
       ]}
     />
     {aiOpen && <QuickAiDialog onClose={() => setAiOpen(false)} />}
     </>
+  );
+}
+
+/** Liga/desliga o assessment para os líderes (status active ↔ draft). */
+function ActiveToggle({ id, status }: { id: string; status: string }) {
+  const qc = useQueryClient();
+  const [optimistic, setOptimistic] = useState<boolean | null>(null);
+  const isActive = optimistic ?? status === "active";
+  const archived = status === "archived";
+
+  const toggle = useMutation({
+    mutationFn: (next: boolean) =>
+      api(`/admin/neo/assessments/${id}`, {
+        method: "PATCH",
+        body: { status: next ? "active" : "draft" },
+      }),
+    onSuccess: (_d, next) => {
+      toast.success(next ? "Assessment disponível para os líderes." : "Assessment ocultado do app.");
+      qc.invalidateQueries({ queryKey: ["/admin/neo/assessments"] });
+    },
+    onError: (e: Error) => {
+      setOptimistic(null);
+      toast.error(e.message);
+    },
+  });
+
+  if (archived) {
+    return <span className="text-xs text-[color:var(--neo-muted)]">Arquivado</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={isActive}
+        disabled={toggle.isPending}
+        onCheckedChange={(next) => {
+          setOptimistic(next);
+          toggle.mutate(next);
+        }}
+        aria-label="Disponibilizar assessment no app"
+      />
+      <span className="text-xs text-[color:var(--neo-muted)]">{isActive ? "Ativo" : "Oculto"}</span>
+    </div>
   );
 }
 

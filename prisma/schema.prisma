@@ -1015,6 +1015,7 @@ model LeaderProfile {
   autoPdiId              String?         @map("auto_pdi_id") @db.Uuid
   autoPdiGeneratedAt     DateTime?       @map("auto_pdi_generated_at")
   coachTrackMarkdown     String?         @map("coach_track_markdown")
+  coachTrackPlan         Json?           @map("coach_track_plan")
   coachTrackGeneratedAt  DateTime?       @map("coach_track_generated_at")
   createdAt              DateTime        @default(now()) @map("created_at")
   updatedAt              DateTime        @updatedAt @map("updated_at")

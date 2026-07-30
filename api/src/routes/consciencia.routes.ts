@@ -4,6 +4,7 @@ import { prisma } from "../prisma.js";
 import { requireAuth } from "../auth.js";
 import { completeChat, extractDocumentText } from "../lib/ai-gateway.js";
 import { heuristicTrack, type TrackStep } from "../lib/subordinate-track.js";
+import { neoContextMessage } from "../lib/neo-context.js";
 
 /**
  * MÓDULO C — Consciência.
@@ -99,6 +100,7 @@ conscienciaRouter.get("/:orgId/consciencia/me", asyncRoute(async (req, res) => {
         autoPdiId: true,
         autoPdiGeneratedAt: true,
         coachTrackMarkdown: true,
+        coachTrackPlan: true,
         coachTrackGeneratedAt: true,
         updatedAt: true,
       },
@@ -651,49 +653,301 @@ conscienciaRouter.post("/:orgId/consciencia/coach/plan", async (req, res) => {
     });
     if (!profile) return res.status(400).json({ error: "Preencha o assessment antes." });
 
-    const cadenceLabel = cadence === "weekly" ? "Semanal" : cadence === "biweekly" ? "Quinzenal" : "Mensal";
+    const cadenceLabel =
+      cadence === "weekly" ? "semanal" : cadence === "biweekly" ? "quinzenal" : "mensal";
     const h = profile.hardSelfScore ?? 50;
     const s = profile.softSelfScore ?? 50;
     const hr = profile.heartSelfScore ?? 50;
-    const focus = h <= s && h <= hr ? "Hard" : s <= hr ? "Soft" : "Heart";
-    const sabotages = (profile.sabotages ?? []).slice(0, 2).join(", ") || "seus padrões internos";
+    const focus: "Hard" | "Soft" | "Heart" =
+      h <= s && h <= hr ? "Hard" : s <= hr ? "Soft" : "Heart";
+    const sabotageTop = Object.entries(
+      (profile.sabotageScores as Record<string, number> | null) ?? {},
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([k, v]) => `${k} (${v}/100)`);
+    const sabotages = sabotageTop.length
+      ? sabotageTop
+      : (profile.sabotages ?? []).slice(0, 2);
 
-    const md = [
-      `# Trilha ${cadenceLabel} — Metodologia C.O.R.E.`,
-      ``,
-      `**Foco desta rodada:** ${focus} — dimensão mais frágil hoje.`,
-      ``,
-      `## C — Consciência`,
-      `Observe durante a rodada quando "${sabotages}" aparece. Anote 3 gatilhos concretos.`,
-      ``,
-      `## O — Organização`,
-      focus === "Hard"
-        ? "Traduza a meta do trimestre em 1 indicador claro. Revise em cada 1:1."
-        : focus === "Soft"
-        ? "Delegue 1 entrega travada com critério de aceite, prazo e 1 checkpoint."
-        : "Reserve 30 min sem agenda com o liderado mais crítico. Só escuta.",
-      ``,
-      `## R — Resultado`,
-      "Defina 1 KPI de rota e 1 KPI de saída para acompanhar até a próxima trilha.",
-      ``,
-      `## E — Evolução`,
-      `Ao final, avalie de 0 a 10 quanto a prática moveu "${focus}". Registre 1 aprendizado.`,
-    ].join("\n");
+    const plan = await buildCoachPlan({
+      cadence,
+      cadenceLabel,
+      focus,
+      scores: { hard: h, soft: s, heart: hr },
+      sabotages,
+      risks: profile.riskFlags ?? [],
+      strengths: profile.strengths ?? [],
+      activity: profile.activityDescription ?? null,
+    });
+
+    const md = planToMarkdown(plan, cadenceLabel);
 
     await prisma.leaderProfile.update({
       where: { organizationId_userId: { organizationId: orgId, userId } },
       data: {
         coachTrackMarkdown: md,
+        coachTrackPlan: plan as never,
         coachTrackGeneratedAt: new Date(),
         coachCadence: cadence,
       },
     });
 
-    res.json({ markdown: md, cadence, generatedAt: new Date().toISOString() });
+    res.json({ plan, markdown: md, cadence, generatedAt: new Date().toISOString() });
   } catch (err) {
     badReq(res, err);
   }
 });
+
+// ---- Plano estruturado do coach (IA com fallback determinístico) ----
+
+export type CoachAction = {
+  id: string;
+  title: string;
+  why: string;
+  how: string;
+  when: string;
+  dimension: "C" | "O" | "R" | "E";
+  minutes: number;
+};
+
+export type CoachPlan = {
+  headline: string;
+  focus: "Hard" | "Soft" | "Heart";
+  diagnosis: string;
+  actions: CoachAction[];
+  ritual: { title: string; cadence: string; script: string[] };
+  metric: { name: string; target: string; checkAt: string };
+  watchOut: string;
+};
+
+type CoachInput = {
+  cadence: "weekly" | "biweekly" | "monthly";
+  cadenceLabel: string;
+  focus: "Hard" | "Soft" | "Heart";
+  scores: { hard: number; soft: number; heart: number };
+  sabotages: string[];
+  risks: string[];
+  strengths: string[];
+  activity: string | null;
+};
+
+function heuristicCoachPlan(input: CoachInput): CoachPlan {
+  const { focus, scores, cadenceLabel } = input;
+  const sab = input.sabotages[0] ?? "seu padrão automático de urgência";
+  const value = focus === "Hard" ? scores.hard : focus === "Soft" ? scores.soft : scores.heart;
+
+  const byFocus: Record<CoachPlan["focus"], CoachAction[]> = {
+    Hard: [
+      {
+        id: "h1",
+        title: "Escolher 1 indicador que decide o mês",
+        why: `Seu Hard está em ${value}/100 — decisão sem número vira opinião.`,
+        how: "Escreva a meta do mês em uma frase e o número que prova que ela andou.",
+        when: "Hoje, 15 min",
+        dimension: "O",
+        minutes: 15,
+      },
+      {
+        id: "h2",
+        title: "Rodar 1 revisão planejado × entregue",
+        why: "Sem revisão o plano vira lista de desejos.",
+        how: "Abra o plano da semana, marque o que saiu e escreva o motivo de cada desvio.",
+        when: "Sexta, 20 min",
+        dimension: "R",
+        minutes: 20,
+      },
+      {
+        id: "h3",
+        title: "Cortar 1 iniciativa que não move o indicador",
+        why: "Foco é o que você deixa de fazer.",
+        how: "Liste as 5 frentes ativas, escolha a de menor impacto e comunique o corte.",
+        when: "Esta semana, 10 min",
+        dimension: "O",
+        minutes: 10,
+      },
+    ],
+    Soft: [
+      {
+        id: "s1",
+        title: "Delegar 1 entrega que ainda está no seu colo",
+        why: `Seu Soft está em ${value}/100 — você está executando o que deveria estar dirigindo.`,
+        how: "Escolha a entrega, defina critério de aceite, prazo e 1 checkpoint. Comunique hoje.",
+        when: "Hoje, 20 min",
+        dimension: "O",
+        minutes: 20,
+      },
+      {
+        id: "s2",
+        title: "Dar 1 feedback direto que você vem adiando",
+        why: "Feedback adiado vira ressentimento e queda de performance.",
+        how: "Fato → impacto → pedido. 3 frases, sem rodeio, cara a cara.",
+        when: "Nas próximas 48h, 15 min",
+        dimension: "C",
+        minutes: 15,
+      },
+      {
+        id: "s3",
+        title: "Interceptar o sabotador na hora da decisão",
+        why: `"${sab}" aparece justamente quando a decisão é difícil.`,
+        how: "Ao sentir o gatilho, pare 60s e escreva: o que o medo está pedindo? o que o papel exige?",
+        when: "Diário, 2 min",
+        dimension: "C",
+        minutes: 2,
+      },
+    ],
+    Heart: [
+      {
+        id: "c1",
+        title: "30 min de escuta pura com o liderado mais crítico",
+        why: `Seu Heart está em ${value}/100 — o time sente antes de você perceber.`,
+        how: "Sem pauta, sem solução. Pergunte: o que está pesando? Só ouça e anote.",
+        when: "Esta semana, 30 min",
+        dimension: "C",
+        minutes: 30,
+      },
+      {
+        id: "c2",
+        title: "Reconhecer 2 pessoas com fato específico",
+        why: "Reconhecimento genérico não muda comportamento; fato muda.",
+        how: "Diga o que a pessoa fez, o impacto real e por que importou para o time.",
+        when: "Até sexta, 10 min",
+        dimension: "E",
+        minutes: 10,
+      },
+      {
+        id: "c3",
+        title: "Fechar 1 combinado que você quebrou",
+        why: "Coerência é o único ativo de confiança que não se recupera com discurso.",
+        how: "Nomeie o combinado, assuma o furo e refaça o acordo com data.",
+        when: "Hoje, 10 min",
+        dimension: "C",
+        minutes: 10,
+      },
+    ],
+  };
+
+  return {
+    headline:
+      focus === "Hard"
+        ? "Você está liderando no instinto — falta número."
+        : focus === "Soft"
+        ? "Você está fazendo o trabalho do time — falta direção."
+        : "Você está entregando resultado sem levar gente junto.",
+    focus,
+    diagnosis: `Hard ${scores.hard} · Soft ${scores.soft} · Heart ${scores.heart}. A dimensão ${focus} é o gargalo desta rodada${
+      input.sabotages.length ? ` e "${input.sabotages.join('", "')}" é o padrão que segura você.` : "."
+    }`,
+    actions: byFocus[focus],
+    ritual: {
+      title: focus === "Heart" ? "1:1 de escuta" : "Revisão de rota",
+      cadence: cadenceLabel,
+      script: [
+        "O que avançou desde a última rodada?",
+        "O que travou e de quem depende?",
+        "Qual é a única coisa que precisa acontecer até a próxima?",
+      ],
+    },
+    metric: {
+      name: `${focus} autoavaliado`,
+      target: `${Math.min(100, value + 10)}/100`,
+      checkAt: `Próxima rodada ${cadenceLabel}`,
+    },
+    watchOut: input.risks[0]
+      ? `Atenção ao risco declarado: ${input.risks[0]}.`
+      : `Se a semana apertar, a primeira coisa que você vai abandonar é ${
+          focus === "Heart" ? "a escuta" : "a revisão"
+        }. Não abandone.`,
+  };
+}
+
+async function buildCoachPlan(input: CoachInput): Promise<CoachPlan> {
+  const fallback = heuristicCoachPlan(input);
+  try {
+    const neo = await neoContextMessage();
+    const raw = await completeChat({
+      temperature: 0.5,
+      messages: [
+        neo,
+        {
+          role: "system",
+          content:
+            "Você é o coach da metodologia Líder C.O.R.E. Fale em português do Brasil, direto, sem enrolação e sem elogio vazio. Cada ação precisa ser executável em minutos e ter um verbo no início. Responda APENAS com JSON válido no formato: {\"headline\":string,\"diagnosis\":string,\"actions\":[{\"title\":string,\"why\":string,\"how\":string,\"when\":string,\"dimension\":\"C\"|\"O\"|\"R\"|\"E\",\"minutes\":number}],\"ritual\":{\"title\":string,\"cadence\":string,\"script\":[string]},\"metric\":{\"name\":string,\"target\":string,\"checkAt\":string},\"watchOut\":string}. Entre 3 e 5 ações.",
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            cadencia: input.cadenceLabel,
+            radar_hsh: input.scores,
+            dimensao_foco: input.focus,
+            sabotadores: input.sabotages,
+            riscos: input.risks,
+            forcas: input.strengths,
+            atividades_do_lider: input.activity?.slice(0, 1200) ?? null,
+          }),
+        },
+      ],
+    });
+    const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+    const parsed = JSON.parse(json) as Partial<CoachPlan>;
+    const actions = (parsed.actions ?? [])
+      .filter((a) => a && a.title)
+      .slice(0, 5)
+      .map((a, i) => ({
+        id: `ai${i + 1}`,
+        title: String(a.title),
+        why: String(a.why ?? ""),
+        how: String(a.how ?? ""),
+        when: String(a.when ?? "Esta semana"),
+        dimension: (["C", "O", "R", "E"].includes(String(a.dimension)) ? a.dimension : "O") as CoachAction["dimension"],
+        minutes: Number(a.minutes) > 0 ? Number(a.minutes) : 15,
+      }));
+    if (!actions.length) return fallback;
+    return {
+      headline: parsed.headline ? String(parsed.headline) : fallback.headline,
+      focus: input.focus,
+      diagnosis: parsed.diagnosis ? String(parsed.diagnosis) : fallback.diagnosis,
+      actions,
+      ritual: parsed.ritual?.title
+        ? {
+            title: String(parsed.ritual.title),
+            cadence: String(parsed.ritual.cadence ?? input.cadenceLabel),
+            script: (parsed.ritual.script ?? fallback.ritual.script).map(String).slice(0, 5),
+          }
+        : fallback.ritual,
+      metric: parsed.metric?.name
+        ? {
+            name: String(parsed.metric.name),
+            target: String(parsed.metric.target ?? fallback.metric.target),
+            checkAt: String(parsed.metric.checkAt ?? fallback.metric.checkAt),
+          }
+        : fallback.metric,
+      watchOut: parsed.watchOut ? String(parsed.watchOut) : fallback.watchOut,
+    };
+  } catch (err) {
+    console.warn("[consciencia] plano do coach via IA indisponível, usando heurística", err);
+    return fallback;
+  }
+}
+
+function planToMarkdown(plan: CoachPlan, cadenceLabel: string): string {
+  return [
+    `# Trilha ${cadenceLabel} — ${plan.headline}`,
+    "",
+    plan.diagnosis,
+    "",
+    "## Faça agora",
+    ...plan.actions.map((a, i) => `${i + 1}. **${a.title}** (${a.when}) — ${a.how}`),
+    "",
+    `## Ritual: ${plan.ritual.title} (${plan.ritual.cadence})`,
+    ...plan.ritual.script.map((q) => `- ${q}`),
+    "",
+    `## Métrica: ${plan.metric.name} → ${plan.metric.target} (${plan.metric.checkAt})`,
+    "",
+    `> ${plan.watchOut}`,
+  ].join("\n");
+}
+
 
 // -------- Agenda de liderança --------
 const agendaSchema = z.object({
