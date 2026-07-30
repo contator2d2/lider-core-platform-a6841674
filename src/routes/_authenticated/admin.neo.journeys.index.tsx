@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { NeoCrudPage } from "@/components/admin/NeoCrud";
 
-export const Route = createFileRoute("/_authenticated/admin/neo/journeys")({
+export const Route = createFileRoute("/_authenticated/admin/neo/journeys/")({
   component: Page,
 });
 

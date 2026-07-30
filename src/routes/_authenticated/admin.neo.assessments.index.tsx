@@ -22,7 +22,7 @@ type AssessmentRow = Record<string, unknown> & {
   _count?: { blocks?: number };
 };
 
-export const Route = createFileRoute("/_authenticated/admin/neo/assessments")({
+export const Route = createFileRoute("/_authenticated/admin/neo/assessments/")({
   component: Page,
   head: () => ({
     meta: [
