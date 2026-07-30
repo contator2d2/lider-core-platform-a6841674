@@ -304,6 +304,8 @@ export function scoreHerrmann(
     .sort((a, b) => b.count - a.count);
 
   const dominant = ranking[0].count > 0 ? ranking[0].quadrant : null;
+  const activationMode = dominant ? ACTIVATION_BY_QUADRANT[dominant] : null;
+  const activation = activationMode ? ACTIVATION_MODES[activationMode] : null;
   const strong = ranking.filter((r) => r.percent >= 25).map((r) => r.quadrant);
   const profile =
     strong.length >= 3
@@ -321,7 +323,10 @@ export function scoreHerrmann(
     percents,
     dominant,
     dominantName: dominant ? HERRMANN_QUADRANTS[dominant].name : null,
-    profile,
+    activationMode,
+    activationName: activation?.name ?? null,
+    activationDescription: activation?.description ?? null,
+    profile: activation ? `Modo de ativação: ${activation.name} · ${profile}` : profile,
     ranking,
     breakdown: ranking.map((r) => ({
       emotion: `${r.quadrant} · ${r.name} (${r.percent}%)`,
