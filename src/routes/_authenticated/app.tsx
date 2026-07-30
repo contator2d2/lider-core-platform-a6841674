@@ -76,7 +76,8 @@ const mobileNav = [
 ] as const;
 
 const conscienciaOnlyNav = [
-  { to: "/app/consciencia", label: "Início", icon: Home, section: "Consciência", module: "consciencia" },
+  { to: "/app", label: "Hoje", icon: Home, section: "Consciência", module: "consciencia" },
+  { to: "/app/consciencia", label: "Meu perfil", icon: Brain, section: "Consciência", module: "consciencia" },
   { to: "/app/journey", label: "Jornada", icon: Compass, section: "Consciência", module: "consciencia" },
   { to: "/app/team", label: "Minha equipe", icon: Users, section: "Consciência", module: "consciencia" },
   { to: "/app/notes", label: "Notas & reuniões", icon: NotebookPen, section: "Base", module: "*" },
@@ -88,12 +89,11 @@ const conscienciaOnlyNav = [
 ] as const;
 
 const conscienciaOnlyMobileNav = [
-  { to: "/app/consciencia", label: "Início", icon: Home, module: "consciencia" },
+  { to: "/app", label: "Hoje", icon: Home, module: "consciencia" },
   { to: "/app/consciencia/agenda", label: "Agenda", icon: Calendar, module: "consciencia" },
+  { to: "/app/consciencia", label: "Perfil", icon: Brain, module: "consciencia" },
   { to: "/app/team", label: "Equipe", icon: Users, module: "consciencia" },
-  { to: "/app/consciencia/pdi", label: "PDI", icon: Zap, module: "consciencia" },
   { to: "/app/notes", label: "Notas", icon: NotebookPen, module: "*" },
-  { to: "/app/help", label: "Mais", icon: MoreHorizontal, module: "*" },
 ] as const;
 
 type ShellNavItem = {

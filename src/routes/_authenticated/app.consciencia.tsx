@@ -69,6 +69,7 @@ type Profile = {
   notes: string | null;
   assessmentAt: string | null;
   activityDescription?: string | null;
+  autoPdiGeneratedAt?: string | null;
   coachTrackGeneratedAt?: string | null;
   updatedAt: string;
 };
@@ -206,7 +207,7 @@ function ConscienciaPage() {
       title: "PDI",
       subtitle: activeCommitments > 0 ? `${activeCommitments} meta${activeCommitments > 1 ? "s" : ""} ativa${activeCommitments > 1 ? "s" : ""}` : "Plano de desenvolvimento",
       minutes: 3,
-      done: activeCommitments > 0,
+      done: activeCommitments > 0 || !!profile?.autoPdiGeneratedAt,
       to: "/app/consciencia/pdi",
     },
     {

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Sparkles } from "lucide-react";
@@ -29,6 +29,7 @@ type Me = {
 
 function CoachTrackPage() {
   const { orgId } = useCurrentOrg();
+  const qc = useQueryClient();
   const [cadence, setCadence] = useState<"weekly" | "biweekly" | "monthly">("weekly");
   const [md, setMd] = useState<string | null>(null);
   const [at, setAt] = useState<string | null>(null);
@@ -54,6 +55,7 @@ function CoachTrackPage() {
     onSuccess: (r) => {
       setMd(r.markdown);
       setAt(r.generatedAt);
+      qc.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
       toast.success("Trilha atualizada.");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha"),
