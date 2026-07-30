@@ -86,6 +86,177 @@ function buildGreeting(name: string | null): string {
   return first ? `${prefix}, ${first}` : prefix;
 }
 
+// ============================================================
+// GET /me/home/attention — "Quem precisa da sua atenção"
+// Agrega fatos reais do sistema: liderados sem 1:1, feedbacks pendentes,
+// delegações atrasadas e próximos rituais. Mais o CORE Score atual.
+// ============================================================
+type AttentionItem = {
+  id: string;
+  title: string;
+  reason: string;
+  severity: "high" | "medium" | "low";
+  kind: "one_on_one" | "feedback" | "delegation" | "ritual";
+  link: string | null;
+};
+
+const DAY = 86_400_000;
+
+meRouter.get("/home/attention", async (req, res) => {
+  const userId = req.userId!;
+  const now = new Date();
+  try {
+    const membership = await prisma.membership.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      select: { organizationId: true },
+    });
+    if (!membership) {
+      return res.json({ generatedAt: now.toISOString(), items: [], coreScore: null });
+    }
+    const orgId = membership.organizationId;
+
+    const [members, oneOnOnes, feedbacks, delegations, occurrences, snapshot] = await Promise.all([
+      prisma.membership.findMany({
+        where: { organizationId: orgId, userId: { not: userId } },
+        include: { user: { include: { profile: true } } },
+        take: 60,
+      }),
+      prisma.oneOnOne.findMany({
+        where: { organizationId: orgId, leaderId: userId },
+        orderBy: { scheduledAt: "desc" },
+        select: { subjectUserId: true, scheduledAt: true, status: true },
+        take: 300,
+      }),
+      prisma.feedbackRecord.findMany({
+        where: { organizationId: orgId, authorId: userId, status: { not: "concluido" } },
+        orderBy: { createdAt: "asc" },
+        take: 50,
+      }),
+      prisma.delegation
+        .findMany({
+          where: { organizationId: orgId, delegatorId: userId, dueAt: { lt: now } },
+          orderBy: { dueAt: "asc" },
+          take: 20,
+        })
+        .catch(() => [] as Array<{ id: string; title: string; dueAt: Date | null; status: string }>),
+      prisma.ritualOccurrence
+        .findMany({
+          where: {
+            scheduledAt: { gte: now, lte: new Date(now.getTime() + 2 * DAY) },
+            status: "scheduled",
+            ritual: { organizationId: orgId },
+          },
+          orderBy: { scheduledAt: "asc" },
+          include: { ritual: { select: { name: true } } },
+          take: 10,
+        })
+        .catch(() => []),
+      prisma.leadershipScoreSnapshot
+        .findFirst({
+          where: { organizationId: orgId, userId },
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          select: { score: true, createdAt: true },
+        })
+        .catch(() => null),
+    ]);
+
+    const items: AttentionItem[] = [];
+
+    // 1) Liderados sem 1:1 recente
+    const lastOneOnOne = new Map<string, Date>();
+    for (const o of oneOnOnes) {
+      if (o.status === "cancelled") continue;
+      if (o.scheduledAt > now) continue;
+      const prev = lastOneOnOne.get(o.subjectUserId);
+      if (!prev || o.scheduledAt > prev) lastOneOnOne.set(o.subjectUserId, o.scheduledAt);
+    }
+    for (const m of members) {
+      const name = m.user?.profile?.fullName || m.user?.email || "Liderado";
+      const last = lastOneOnOne.get(m.userId);
+      const days = last ? Math.floor((now.getTime() - last.getTime()) / DAY) : null;
+      if (days === null) {
+        items.push({
+          id: `1x1-never-${m.id}`,
+          title: name,
+          reason: "Nunca teve uma 1:1 registrada",
+          severity: "high",
+          kind: "one_on_one",
+          link: "/app/one-on-ones",
+        });
+      } else if (days >= 14) {
+        items.push({
+          id: `1x1-${m.id}`,
+          title: name,
+          reason: `Sem 1:1 há ${days} dias`,
+          severity: days >= 30 ? "high" : "medium",
+          kind: "one_on_one",
+          link: "/app/one-on-ones",
+        });
+      }
+    }
+
+    // 2) Feedbacks pendentes
+    const nameByUser = new Map(
+      members.map((m) => [m.userId, m.user?.profile?.fullName || m.user?.email || "Liderado"]),
+    );
+    for (const f of feedbacks) {
+      const due = f.followUpAt ?? f.dueAt;
+      const days = Math.floor((now.getTime() - f.createdAt.getTime()) / DAY);
+      const overdue = due ? due < now : days >= 7;
+      if (!overdue) continue;
+      items.push({
+        id: `fb-${f.id}`,
+        title: (f.subjectUserId ? nameByUser.get(f.subjectUserId) : null) ?? f.subjectLabel ?? "Feedback",
+        reason: `Feedback pendente há ${days} dia${days === 1 ? "" : "s"}`,
+        severity: days >= 14 ? "high" : "medium",
+        kind: "feedback",
+        link: "/app/feedbacks",
+      });
+    }
+
+    // 3) Delegações atrasadas
+    for (const d of delegations as Array<{ id: string; title: string; dueAt: Date | null; status: string }>) {
+      if (["concluida", "cancelada"].includes(String(d.status))) continue;
+      const days = d.dueAt ? Math.floor((now.getTime() - new Date(d.dueAt).getTime()) / DAY) : 0;
+      items.push({
+        id: `dg-${d.id}`,
+        title: d.title,
+        reason: `Delegação atrasada há ${Math.max(days, 1)} dia${days === 1 ? "" : "s"}`,
+        severity: "high",
+        kind: "delegation",
+        link: "/app/delegations",
+      });
+    }
+
+    // 4) Próximos rituais (informativo)
+    for (const occ of occurrences as Array<{ id: string; scheduledAt: Date; ritual: { name: string } }>) {
+      const hours = Math.max(1, Math.round((new Date(occ.scheduledAt).getTime() - now.getTime()) / 3_600_000));
+      items.push({
+        id: `rt-${occ.id}`,
+        title: occ.ritual?.name ?? "Ritual",
+        reason: hours <= 48 ? `Ritual em ${hours}h` : "Ritual agendado",
+        severity: "low",
+        kind: "ritual",
+        link: "/app/consciencia/agenda",
+      });
+    }
+
+    const rank = { high: 0, medium: 1, low: 2 } as const;
+    items.sort((a, b) => rank[a.severity] - rank[b.severity]);
+
+    res.json({
+      generatedAt: now.toISOString(),
+      items: items.slice(0, 8),
+      total: items.length,
+      coreScore: snapshot?.score ?? null,
+    });
+  } catch (err) {
+    console.error("[me] falha ao montar atenção", err);
+    res.json({ generatedAt: now.toISOString(), items: [], total: 0, coreScore: null });
+  }
+});
+
 // GET /me/dna — CORE DNA do usuário logado
 meRouter.get("/dna", async (req, res) => {
   const dna = await prisma.leaderDNA.findUnique({ where: { userId: req.userId! } });
