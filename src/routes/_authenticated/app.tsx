@@ -112,8 +112,7 @@ function AppShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { signOut } = useAuth();
-  const { user } = useAuth();
+  const { signOut, user } = useAuth();
   const { orgId } = useCurrentOrg();
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
