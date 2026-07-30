@@ -95,12 +95,15 @@ function HomeBriefing() {
       )}
 
       <section className="grid gap-3 md:grid-cols-2">
-        <Tile icon={Brain} label="Meu perfil" desc="Diagnóstico C.O.R.E. e CORE DNA" to="/app/consciencia" enabled={modules.has("consciencia")} />
-        <Tile icon={UsersIcon} label="Minha equipe" desc="Radar HSH, 9-box e delegações" to="/app/team" enabled={modules.has("consciencia")} />
-        <Tile icon={CalendarIcon} label="Agenda" desc="Rituais e 1:1s" to="/app/organization/agenda" enabled={modules.has("organizacao")} />
-        <Tile icon={MessageSquare} label="Feedbacks" desc="Enviar, receber e pulsos" to="/app/feedbacks" enabled={modules.has("evolucao")} />
-        <Tile icon={Target} label="PDIs" desc="Plano de desenvolvimento" to="/app/pdis" enabled={modules.has("evolucao")} />
-        <Tile icon={Sparkles} label="Copiloto IA" desc="Coach e recomendações" to="/app/ai" enabled={modules.has("evolucao")} />
+        {/* Módulo C (ativo hoje) */}
+        <Tile icon={Brain} label="Meu perfil" desc="Diagnóstico C.O.R.E. e CORE DNA" to="/app/consciencia" enabled={hasC} />
+        <Tile icon={UsersIcon} label="Minha equipe" desc="Radar HSH, 9-box e delegações" to="/app/team" enabled={hasC} />
+        <Tile icon={Target} label="PDIs" desc="Plano de desenvolvimento" to="/app/pdis" enabled={hasC} />
+        <Tile icon={MessageSquare} label="Feedbacks e pulsos" desc="Enviar, receber e coletar respostas" to="/app/pulses" enabled={hasC} />
+        {/* Base do app — sempre disponível, independente de módulo */}
+        <Tile icon={CalendarIcon} label="Agenda" desc="Rituais, 1:1s e compromissos" to="/app/consciencia/agenda" enabled />
+        <Tile icon={NotebookPen} label="Notas" desc="Anotações rápidas e por voz" to="/app/notes" enabled />
+        <Tile icon={Sparkles} label="Copiloto IA" desc="Coach e recomendações" to="/app/ai" enabled />
       </section>
 
       <section>
