@@ -218,6 +218,9 @@ export type HerrmannScore = {
   percents: Record<HerrmannQuadrant, number>;
   dominant: HerrmannQuadrant | null;
   dominantName: string | null;
+  activationMode: ActivationMode | null;
+  activationName: string | null;
+  activationDescription: string | null;
   profile: string;
   ranking: Array<{ quadrant: HerrmannQuadrant; name: string; count: number; percent: number }>;
   breakdown: Array<{ emotion: string; polarity: "positive" | "negative"; value: number }>;
