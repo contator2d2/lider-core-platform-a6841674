@@ -16,6 +16,7 @@ import {
   Activity,
   Play,
   Users,
+  Mic,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
@@ -388,6 +389,33 @@ function ConscienciaPage() {
             <JourneyRow key={s.key} step={s} />
           ))}
         </ul>
+      </section>
+
+      {/* 4b · Ferramentas do módulo */}
+      <section>
+        <div className="mb-3 px-1 text-[13px] font-semibold">Ferramentas</div>
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            to="/app/consciencia/agenda"
+            className="rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-secondary/50"
+          >
+            <Mic className="h-4 w-4 text-accent" />
+            <div className="mt-2 text-[13px] font-semibold leading-tight">Agenda de voz</div>
+            <div className="mt-0.5 text-[11px] text-muted-foreground">
+              Fale sua agenda e vire tarefas
+            </div>
+          </Link>
+          <Link
+            to="/app/consciencia/liderados"
+            className="rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-secondary/50"
+          >
+            <Users className="h-4 w-4 text-accent" />
+            <div className="mt-2 text-[13px] font-semibold leading-tight">Mapa dos liderados</div>
+            <div className="mt-0.5 text-[11px] text-muted-foreground">
+              Perfis e trilhas do time
+            </div>
+          </Link>
+        </div>
       </section>
 
       {/* 5 · Minha Evolução */}
