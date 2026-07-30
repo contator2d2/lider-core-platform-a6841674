@@ -157,6 +157,85 @@ function HomeBriefing() {
 }
 
 function collectModules(features: FeaturesResponse | undefined): Set<string> {
+  return collectModulesImpl(features);
+}
+
+function AttentionCard() {
+  const q = useQuery({
+    queryKey: ["me", "home", "attention"],
+    queryFn: () => api<Attention>("/me/home/attention"),
+    refetchInterval: 120_000,
+  });
+  const items = q.data?.items ?? [];
+  const today = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date());
+  const dayLabel = today.charAt(0).toUpperCase() + today.slice(1);
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Hoje · {dayLabel}
+        </div>
+        {items.length > 0 && (
+          <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">
+            {items.length} {items.length === 1 ? "ação" : "ações"}
+          </span>
+        )}
+      </div>
+
+      <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight md:text-3xl">
+        Quem precisa da sua atenção
+      </h2>
+
+      <ul className="mt-4 space-y-3">
+        {q.isLoading &&
+          [0, 1, 2].map((i) => (
+            <li key={i} className="h-[62px] animate-pulse rounded-2xl border border-border bg-muted/40" />
+          ))}
+
+        {!q.isLoading && items.length === 0 && (
+          <li className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">
+            Nada urgente agora. Seus liderados estão em dia com 1:1s, feedbacks e delegações.
+          </li>
+        )}
+
+        {items.map((it) => {
+          const dot =
+            it.severity === "high"
+              ? "bg-destructive"
+              : it.severity === "medium"
+                ? "bg-accent"
+                : "bg-muted-foreground/40";
+          const body = (
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 shadow-sm transition group-hover:border-accent/50 group-hover:bg-secondary/30">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{it.title}</div>
+                <div className="mt-0.5 truncate text-xs text-muted-foreground">{it.reason}</div>
+              </div>
+              <span className={"h-2.5 w-2.5 shrink-0 rounded-full " + dot} aria-hidden />
+            </div>
+          );
+          return (
+            <li key={it.id} className="group">
+              {it.link ? <Link to={it.link}>{body}</Link> : body}
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+        <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          CORE Score
+        </span>
+        <span className="font-display text-2xl font-semibold">
+          {q.data?.coreScore ?? "—"}
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function collectModulesImpl(features: FeaturesResponse | undefined): Set<string> {
   const roles = features?.roles ?? [];
   const isAdmin = roles.includes("super_admin") || roles.includes("neo_admin");
   if (isAdmin || !features) return new Set(["consciencia", "organizacao", "resultado", "evolucao"]);
