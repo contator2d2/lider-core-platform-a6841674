@@ -217,7 +217,7 @@ export function LeaderOnboarding() {
         {/* Stepper */}
         <div className="mb-6 flex items-center justify-between gap-2">
           <div className="flex flex-1 items-center">
-            {TOUR_STEPS.map((_, i) => {
+            {steps.map((_, i) => {
               const done = i < idx;
               const active = i === idx;
               return (
