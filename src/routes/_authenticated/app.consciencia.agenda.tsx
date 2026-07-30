@@ -186,7 +186,7 @@ function ItemList({ title, items, onToggle, onDelete, muted }: {
               onClick={() => onToggle(it)}
               className={
                 "mt-0.5 grid h-5 w-5 place-items-center rounded border transition-colors " +
-                (it.done ? "border-foreground bg-foreground text-background" : "border-border")
+                (it.done ? "border-primary bg-primary text-primary-foreground" : "border-border")
               }
               aria-label={it.done ? "Marcar como pendente" : "Concluir"}
             >

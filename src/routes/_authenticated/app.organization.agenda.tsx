@@ -80,7 +80,7 @@ function AgendaPage() {
               onClick={() => setRange(r)}
               className={
                 "rounded-full px-4 py-1.5 text-sm font-medium transition-colors " +
-                (range === r ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")
+                (range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")
               }
             >
               {r === "day" ? "Hoje" : r === "week" ? "Semana" : "Mês"}
@@ -111,7 +111,7 @@ function AgendaPage() {
               className={
                 "relative flex flex-col items-center gap-1 rounded-2xl border px-1 py-3 text-center transition-colors " +
                 (active
-                  ? "border-foreground bg-foreground text-background"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card text-foreground hover:border-accent/40")
               }
             >

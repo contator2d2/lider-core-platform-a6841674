@@ -371,7 +371,7 @@ export function LeaderOnboarding() {
             {idx === 0 ? "Pular" : "Voltar"}
           </Button>
           <Button
-            className="h-12 flex-1 rounded-2xl bg-foreground text-background hover:bg-foreground/90"
+            className="h-12 flex-1 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={next}
             disabled={saving}
           >
