@@ -112,6 +112,20 @@ const GOAL_STATUS_CLS: Record<GoalStatus, string> = {
 
 type DateFilter = "todos" | "30d" | "90d" | "ano";
 
+function Avatar({ name }: { name?: string }) {
+  const initials = (name ?? "Liderado")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase())
+    .join("");
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-sm font-semibold text-primary ring-1 ring-primary/25">
+      {initials || <Users className="h-4 w-4" />}
+    </div>
+  );
+}
+
 const DATE_FILTERS: Record<DateFilter, string> = {
   todos: "Todo o período",
   "30d": "Últimos 30 dias",
