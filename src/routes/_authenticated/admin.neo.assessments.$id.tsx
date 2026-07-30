@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink, HeartPulse, BarChart3, Brain, Compass } from "lucide-react";
+import { Plus, Sparkles, Trash2, ArrowLeft, GripVertical, Pencil, Link2, Copy, Ban, ExternalLink, HeartPulse, BarChart3, Brain, Compass, Users, Radar } from "lucide-react";
 
 type Option = { id?: string; label: string; value: string; score?: number };
 type Question = {
@@ -104,6 +104,16 @@ function Page() {
     onSuccess: (r) => { toast.success(`${r.questions} questões de Dominância Cerebral adicionadas`); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const applyDisc = useMutation({
+    mutationFn: () => api<{ questions: number }>(`/admin/neo/assessments/${id}/preset/disc`, { method: "POST" }),
+    onSuccess: (r) => { toast.success(`${r.questions} questões DISC adicionadas`); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const applyRadar = useMutation({
+    mutationFn: () => api<{ questions: number }>(`/admin/neo/assessments/${id}/preset/radar-hsh`, { method: "POST" }),
+    onSuccess: (r) => { toast.success(`${r.questions} itens do Radar H.S.H adicionados`); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const a = query.data;
 
@@ -145,6 +155,24 @@ function Page() {
             title="Adiciona as 25 questões do teste de Dominância Cerebral (Ned Herrmann) com cálculo automático dos quadrantes A/B/C/D"
           >
             <Compass className="mr-1.5 h-4 w-4" /> Dominância Cerebral
+          </Button>
+          <Button
+            onClick={() => applyDisc.mutate()}
+            disabled={applyDisc.isPending}
+            variant="outline"
+            className="rounded-full border-[color:var(--neo-line)] bg-white/70"
+            title="Adiciona as 20 questões do DISC com cálculo automático dos fatores D/I/S/C"
+          >
+            <Users className="mr-1.5 h-4 w-4" /> DISC
+          </Button>
+          <Button
+            onClick={() => applyRadar.mutate()}
+            disabled={applyRadar.isPending}
+            variant="outline"
+            className="rounded-full border-[color:var(--neo-line)] bg-white/70"
+            title="Adiciona os 30 itens do Radar das Competências (Hard, Soft e Heart) com score 0-100 por eixo"
+          >
+            <Radar className="mr-1.5 h-4 w-4" /> Radar H.S.H
           </Button>
           <Button
             onClick={() => addBlock.mutate()}
