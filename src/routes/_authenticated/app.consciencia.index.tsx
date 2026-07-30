@@ -341,7 +341,7 @@ function ConscienciaPage() {
 
       {/* 3 · Continue de onde parou */}
       {current && (
-        <section className="overflow-hidden rounded-3xl bg-primary text-primary-foreground">
+        <section className="overflow-hidden rounded-3xl bg-ink-gradient text-ink-foreground shadow-[0_24px_60px_-30px_oklch(0_0_0_/_0.5)]">
           <div className="relative p-6">
             <div
               aria-hidden
@@ -367,7 +367,7 @@ function ConscienciaPage() {
               <Link
                 to={current.to}
                 search={current.search}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-[13px] font-semibold text-accent-foreground transition-transform hover:scale-[1.01] active:scale-100"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-gradient px-4 py-3 text-[13px] font-semibold text-white shadow-lg transition-transform hover:scale-[1.01] active:scale-100"
               >
                 <Play className="h-4 w-4" fill="currentColor" /> Continuar
               </Link>
