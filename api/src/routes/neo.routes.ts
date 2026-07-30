@@ -7,8 +7,7 @@ import { requireAuth, requireRoles } from "../auth.js";
 import { recordAudit, shallowDiff } from "../lib/audit.js";
 import { completeChat } from "../lib/ai-gateway.js";
 import {
-  POSITIVITY_BLOCK_DESCRIPTION,
-  POSITIVITY_BLOCK_TITLE,
+  POSITIVITY_BLOCKS,
   POSITIVITY_HELP,
   POSITIVITY_ITEMS,
   scorePositivity,
