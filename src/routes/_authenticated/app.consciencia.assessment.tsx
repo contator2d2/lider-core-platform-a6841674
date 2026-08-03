@@ -280,9 +280,10 @@ function AssessmentWizard() {
           markAssessedNow: true,
         },
       }),
-    onSuccess: async () => {
+    onSuccess: async (data: any) => {
       await queryClient.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
       toast.success("Assessment oficial concluído.");
+      // Redireciona para a home da consciência onde os resultados são exibidos
       navigate({ to: "/app/consciencia" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar"),
