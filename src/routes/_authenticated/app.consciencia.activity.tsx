@@ -189,40 +189,44 @@ function ActivityPage() {
                 <CheckCircle2 className="h-3.5 w-3.5" /> {data.profile.activityDocName}
               </p>
             )}
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-border/40">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => navigate({ to: "/app/consciencia" })}
+                className="text-muted-foreground hover:text-foreground order-last sm:order-first"
+              >
+                Responder depois
+              </Button>
+              <div className="flex flex-wrap justify-end gap-3 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  disabled={save.isPending}
+                  onClick={() => save.mutate(undefined)}
+                  className="gap-2 h-12 px-6 border-border/60 bg-white hover:bg-white/80 rounded-xl font-medium"
+                >
+                  {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar rascunho
+                </Button>
+                <Button
+                  disabled={save.isPending || text.trim().length < 20}
+                  onClick={() => save.mutate({ next: true })}
+                  className="gap-2 h-12 px-8 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Salvar e avançar
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+
+            {text.trim().length < 20 && (
+              <p className="text-right text-xs text-muted-foreground">
+                Escreva pelo menos 20 caracteres para avançar.
+              </p>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/40">
-            <Button
-              variant="ghost"
-              onClick={() => navigate({ to: "/app/consciencia" })}
-              className="text-muted-foreground hover:text-foreground order-last sm:order-first"
-            >
-              Responder depois
-            </Button>
-            <div className="flex flex-wrap justify-end gap-3 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              disabled={save.isPending}
-              onClick={() => save.mutate(undefined)}
-              className="gap-2 h-12 px-6 border-border/60 bg-white hover:bg-white/80 rounded-xl font-medium"
-            >
-              {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Salvar rascunho
-            </Button>
-            <Button
-              disabled={save.isPending || text.trim().length < 20}
-              onClick={() => save.mutate({ next: true })}
-              className="gap-2 h-12 px-8 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Salvar e avançar
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          {text.trim().length < 20 && (
-            <p className="text-right text-xs text-muted-foreground">
-              Escreva pelo menos 20 caracteres para avançar.
-            </p>
-          )}
         </section>
       )}
     </div>
