@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Save, FileText, ArrowRight, Upload, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, FileText, ArrowRight, Upload, CheckCircle2, ChevronLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCurrentOrg } from "@/lib/use-current-org";
 import { Button } from "@/components/ui/button";
@@ -105,15 +105,29 @@ function ActivityPage() {
   if (!orgId) return null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 pb-20">
       <header>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate({ to: "/app/consciencia" })}
+            className="rounded-full bg-white/50 backdrop-blur-sm border border-border/50 hover:bg-white"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="h-1 flex-1 bg-border/30 rounded-full overflow-hidden">
+            <div className="h-full bg-primary w-[65%]" />
+          </div>
+        </div>
+
+        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/80">
           Módulo C · Descrição de atividades
         </div>
         <h1 className="mt-2 font-display text-3xl leading-tight">O que você faz de verdade</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground/80">
           Descreva com clareza o que ocupa suas horas hoje. Esta descrição cruza com o radar
-          Hard·Soft·Heart e com os sabotadores para gerar seu PDI automático.
+          <span className="font-medium text-foreground"> Hard·Soft·Heart</span> e com os sabotadores para gerar seu PDI automático.
         </p>
       </header>
 
@@ -122,36 +136,37 @@ function ActivityPage() {
           <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
         </div>
       ) : (
-        <section className="rounded-2xl border border-border bg-card p-6 space-y-5">
+        <section className="rounded-3xl border border-border bg-white/40 backdrop-blur-xl p-8 shadow-sm space-y-8">
           <div>
-            <Label>Descrição livre</Label>
+            <Label className="text-sm font-semibold mb-2 block">Descrição livre</Label>
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Ex.: acompanho 8 lideranças diretas, revisor final de propostas comerciais, respondo cliente C-level..."
-              className="min-h-[220px]"
+              className="min-h-[220px] bg-white border-border/60 focus:border-primary/50 focus:ring-primary/10 rounded-2xl p-4 text-[15px] transition-all resize-none"
             />
             <p className="mt-1 text-xs text-muted-foreground">
               Seja específico: entregas, decisões, reuniões recorrentes, retrabalhos.
             </p>
           </div>
           <div>
-            <Label className="flex items-center gap-2">
-              <FileText className="h-3.5 w-3.5" /> Link para documento externo (opcional)
+            <Label className="flex items-center gap-2 text-sm font-semibold mb-2">
+              <FileText className="h-4 w-4 text-primary" /> Link para documento externo (opcional)
             </Label>
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://…"
               inputMode="url"
+              className="bg-white border-border/60 rounded-xl h-12 px-4 transition-all focus:ring-primary/10"
             />
           </div>
-          <div className="rounded-xl border border-dashed border-border p-4">
-            <Label className="flex items-center gap-2">
-              <Upload className="h-3.5 w-3.5" /> Enviar documento (PDF, DOCX, TXT ou imagem)
+          <div className="rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 p-6 transition-colors hover:bg-primary/10 group">
+            <Label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+              <Upload className="h-4 w-4 text-primary" /> Enviar documento (PDF, DOCX, TXT ou imagem)
             </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              A IA lê o arquivo e transforma em descrição de atividades. Você pode editar depois.
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              A IA lê o arquivo e transforma em descrição de atividades automaticamente.
             </p>
             <input
               type="file"
@@ -180,15 +195,15 @@ function ActivityPage() {
               variant="outline"
               disabled={save.isPending}
               onClick={() => save.mutate(undefined)}
-              className="gap-2"
+              className="gap-2 h-12 px-6 border-border/60 bg-white hover:bg-white/80 rounded-xl font-medium"
             >
               {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Salvar
+              Salvar rascunho
             </Button>
             <Button
               disabled={save.isPending || text.trim().length < 20}
               onClick={() => save.mutate({ next: true })}
-              className="gap-2"
+              className="gap-2 h-12 px-8 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               Salvar e avançar
               <ArrowRight className="h-4 w-4" />
