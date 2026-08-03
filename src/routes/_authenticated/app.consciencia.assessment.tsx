@@ -48,6 +48,7 @@ type Profile = {
   hardSelfScore: number | null; softSelfScore: number | null; heartSelfScore: number | null;
   strengths: string[]; notes: string | null; communicationStyle: string | null;
   assessmentType: "disc" | "big_five" | "other" | null;
+  sabotageScores?: Record<string, number> | null;
 };
 type Me = { profile: Profile | null };
 
