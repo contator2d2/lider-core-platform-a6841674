@@ -266,7 +266,13 @@ function ConscienciaPage() {
   // Timeline
   const timeline: Array<{ when: string; label: string }> = [];
   if (profile?.discPrimary) timeline.push({ when: relativeDay(profile.assessmentAt ?? profile.updatedAt), label: `DISC ${profile.discPrimary} concluído` });
-  if (profile?.sabotages && profile.sabotages.length > 0) timeline.push({ when: relativeDay(profile.updatedAt), label: `${profile.sabotages.length} Sabotadores identificados` });
+  if (profile?.sabotages && profile.sabotages.length > 0) {
+    const sList = profile.sabotages.join(", ");
+    timeline.push({ 
+      when: relativeDay(profile.assessmentAt ?? profile.updatedAt), 
+      label: `Sabotadores identificados: ${sList}` 
+    });
+  }
   if (profile?.updatedAt) timeline.push({ when: relativeDay(profile.updatedAt), label: "Perfil atualizado" });
 
   return (
