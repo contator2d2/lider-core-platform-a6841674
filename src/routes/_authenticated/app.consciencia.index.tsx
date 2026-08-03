@@ -588,7 +588,7 @@ function JourneyRow({
     <li>
       <Link 
         to={step.to} 
-        search={step.done ? { ...step.search, showResults: true } : step.search} 
+        search={step.state === "done" ? { ...step.search, showResults: true } : step.search} 
         className="block w-full text-left"
       >
         {inner}
