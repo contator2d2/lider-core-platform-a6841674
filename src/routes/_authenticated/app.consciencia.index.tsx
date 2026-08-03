@@ -194,7 +194,7 @@ function ConscienciaPage() {
       title: "Sabotadores",
       subtitle:
         (profile?.sabotages?.length ?? 0) > 0
-          ? `${profile!.sabotages.length} identificado${profile!.sabotages.length > 1 ? "s" : ""}`
+          ? `${profile!.sabotages.slice(0, 2).join(", ")}${profile!.sabotages.length > 2 ? "..." : ""}`
           : "Identifique os principais",
       minutes: 6,
       done: (profile?.sabotages?.length ?? 0) >= 3,
