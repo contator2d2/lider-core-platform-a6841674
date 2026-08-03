@@ -162,7 +162,7 @@ function ConscienciaPage() {
     minutes: number;
     done: boolean;
     to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
-    search?: { step: "behavioral" | "hsh" | "sabotages" };
+    search?: { step: "behavioral" | "hsh" | "sabotages"; showResults?: boolean };
   };
   const steps: Step[] = [
     {
