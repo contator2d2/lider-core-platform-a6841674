@@ -189,8 +189,17 @@ function ActivityPage() {
                 <CheckCircle2 className="h-3.5 w-3.5" /> {data.profile.activityDocName}
               </p>
             )}
+            </div>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/40">
+            <Button
+              variant="ghost"
+              onClick={() => navigate({ to: "/app/consciencia" })}
+              className="text-muted-foreground hover:text-foreground order-last sm:order-first"
+            >
+              Responder depois
+            </Button>
+            <div className="flex flex-wrap justify-end gap-3 w-full sm:w-auto">
             <Button
               variant="outline"
               disabled={save.isPending}
