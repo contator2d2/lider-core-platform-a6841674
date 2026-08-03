@@ -642,7 +642,6 @@ function AssessmentWizard() {
     </div>
   );
 }
-}
 
 function HshBlock({
   title, color, values, setValues, questions,
