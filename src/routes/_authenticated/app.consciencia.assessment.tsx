@@ -622,9 +622,7 @@ function AssessmentWizard() {
         )}
       </section>
 
-        )}
-      {!showResults && (
-        <footer className="flex items-center justify-between">
+      <footer className="flex items-center justify-between">
         <Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep((s: number) => Math.max(0, s - 1))} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
@@ -639,10 +637,11 @@ function AssessmentWizard() {
           </Button>
         )}
       </footer>
-        </footer>
+      </>
       )}
     </div>
   );
+}
 }
 
 function HshBlock({
