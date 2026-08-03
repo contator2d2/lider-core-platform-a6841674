@@ -110,6 +110,7 @@ function PublicAssessmentPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Falha ao enviar.");
       setDone(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao enviar.");
     } finally {
