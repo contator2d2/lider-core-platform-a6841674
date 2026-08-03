@@ -25,6 +25,7 @@ function isAssessmentStepKey(value: unknown): value is AssessmentStepKey {
 export const Route = createFileRoute("/_authenticated/app/consciencia/assessment")({
   validateSearch: (search: Record<string, unknown>) => ({
     step: isAssessmentStepKey(search.step) ? search.step : undefined,
+    showResults: search.showResults === true || search.showResults === "true",
   }),
   component: AssessmentWizard,
   head: () => ({
@@ -187,6 +188,7 @@ function AssessmentWizard() {
   const queryClient = useQueryClient();
   const search = Route.useSearch();
   const stepParam: unknown = search.step;
+  const showResults = !!search.showResults;
   const requestedStep: number = isAssessmentStepKey(stepParam) ? STEP_INDEX[stepParam] : 0;
   const { data, isLoading } = useQuery({
     queryKey: ["consciencia", "me", orgId],
@@ -294,8 +296,11 @@ function AssessmentWizard() {
     onSuccess: async (data: any) => {
       await queryClient.invalidateQueries({ queryKey: ["consciencia", "me", orgId] });
       toast.success("Assessment oficial concluído.");
-      // Redireciona para a home da consciência onde os resultados são exibidos
-      navigate({ to: "/app/consciencia" });
+      // Redireciona para os resultados dentro do assessment com o parâmetro showResults
+      navigate({ 
+        to: "/app/consciencia/assessment", 
+        search: { step: stepParam as any, showResults: true } 
+      });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar"),
   });
@@ -341,7 +346,70 @@ function AssessmentWizard() {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 pb-20">
+      {showResults && (
+        <section className="mb-6 rounded-2xl border-2 border-accent bg-accent/5 p-6 shadow-xl animate-in fade-in zoom-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-accent text-white">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="font-display text-2xl font-bold">Resultado Identificado</h2>
+              <p className="text-sm text-muted-foreground">O sistema já possui suas respostas salvas.</p>
+            </div>
+          </div>
+          
+          <div className="mt-6 space-y-4">
+            {stepParam === "behavioral" && (
+              <div className="rounded-xl bg-card p-4 border border-border">
+                <div className="text-xs font-semibold uppercase tracking-wider text-accent">Seu Estilo Dominante</div>
+                <div className="mt-1 text-3xl font-bold font-display">{initial?.discPrimary ? DISC.find(d => d.key === initial.discPrimary)?.title : "Não identificado"}</div>
+                <p className="mt-2 text-sm text-muted-foreground">{initial?.discPrimary ? DISC.find(d => d.key === initial.discPrimary)?.desc : ""}</p>
+              </div>
+            )}
+            
+            {stepParam === "sabotages" && (
+              <div className="rounded-xl bg-card p-4 border border-border">
+                <div className="text-xs font-semibold uppercase tracking-wider text-accent">Seus Principais Sabotadores</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {initial?.sabotages?.map(s => (
+                    <span key={s} className="rounded-full bg-accent/10 px-3 py-1 text-sm font-bold text-accent border border-accent/20">{s}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {stepParam === "hsh" && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-card p-3 border border-border text-center">
+                  <div className="text-[10px] font-bold uppercase text-primary">Hard</div>
+                  <div className="text-xl font-bold">{initial?.hardSelfScore ?? "—"}</div>
+                </div>
+                <div className="rounded-xl bg-card p-3 border border-border text-center">
+                  <div className="text-[10px] font-bold uppercase text-accent">Soft</div>
+                  <div className="text-xl font-bold">{initial?.softSelfScore ?? "—"}</div>
+                </div>
+                <div className="rounded-xl bg-card p-3 border border-border text-center">
+                  <div className="text-[10px] font-bold uppercase text-success">Heart</div>
+                  <div className="text-xl font-bold">{initial?.heartSelfScore ?? "—"}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 flex gap-3">
+            <Button className="flex-1" onClick={() => navigate({ to: "/app/consciencia" })}>
+              Voltar para a Jornada
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => navigate({ to: "/app/consciencia/assessment", search: { step: stepParam as any, showResults: false } })}>
+              Refazer Avaliação
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {!showResults && (
+        <>
       <header>
         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Módulo C · Assessment guiado</div>
         <h1 className="mt-2 font-display text-3xl leading-tight">{steps[step].title}</h1>
@@ -554,7 +622,9 @@ function AssessmentWizard() {
         )}
       </section>
 
-      <footer className="flex items-center justify-between">
+        )}
+      {!showResults && (
+        <footer className="flex items-center justify-between">
         <Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep((s: number) => Math.max(0, s - 1))} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
@@ -569,6 +639,8 @@ function AssessmentWizard() {
           </Button>
         )}
       </footer>
+        </footer>
+      )}
     </div>
   );
 }

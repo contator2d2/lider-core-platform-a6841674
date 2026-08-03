@@ -586,7 +586,11 @@ function JourneyRow({
 
   return (
     <li>
-      <Link to={step.to} search={step.search} className="block w-full text-left">
+      <Link 
+        to={step.to} 
+        search={step.done ? { ...step.search, showResults: true } : step.search} 
+        className="block w-full text-left"
+      >
         {inner}
       </Link>
     </li>
