@@ -48,6 +48,7 @@ type Profile = {
   hardSelfScore: number | null; softSelfScore: number | null; heartSelfScore: number | null;
   strengths: string[]; notes: string | null; communicationStyle: string | null;
   assessmentType: "disc" | "big_five" | "other" | null;
+  sabotageScores?: Record<string, number> | null;
 };
 type Me = { profile: Profile | null };
 
@@ -219,6 +220,16 @@ function AssessmentWizard() {
     setDiscPrimary(initial.discPrimary ?? null);
     setMbtiType(initial.mbtiType ?? "");
     setRiskFlags(initial.riskFlags ?? []);
+
+    // Hidrata respostas de sabotadores se existirem
+    if (initial.sabotageScores) {
+      const scores = initial.sabotageScores as Record<string, number>;
+      const answers: Record<string, number> = {};
+      Object.entries(scores).forEach(([key, val]) => {
+        answers[key] = Math.round(val / 20);
+      });
+      setSabAns(answers);
+    }
   }, [initial]);
 
   const avg = (arr: number[]) => Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 20); // 1..5 → 20..100
