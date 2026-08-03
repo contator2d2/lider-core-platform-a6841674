@@ -162,7 +162,7 @@ function ConscienciaPage() {
     minutes: number;
     done: boolean;
     to: "/app/consciencia/assessment" | "/app/consciencia/activity" | "/app/consciencia/pdi" | "/app/consciencia/coach" | "/app/consciencia/liderados";
-    search?: { step: "behavioral" | "hsh" | "sabotages" };
+    search?: { step: "behavioral" | "hsh" | "sabotages"; showResults?: boolean };
   };
   const steps: Step[] = [
     {
@@ -586,7 +586,11 @@ function JourneyRow({
 
   return (
     <li>
-      <Link to={step.to} search={step.search} className="block w-full text-left">
+      <Link 
+        to={step.to} 
+        search={step.state === "done" ? { ...step.search, showResults: true } : step.search} 
+        className="block w-full text-left"
+      >
         {inner}
       </Link>
     </li>
